@@ -1,0 +1,3 @@
+[submodule "submodules/forked_pi_portal"]
+	path = submodules/forked_pi_portal
+	url = https://github.com/briansgithub/wifi-connect-headless-rpi.git
