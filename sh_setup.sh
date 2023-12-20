@@ -61,4 +61,9 @@ echo -e "\n##### END E-INK SETUP #####\n"
 ### END E-INK SETUP ###
 
 # TODO: [add the tidetracker submodule  init && update commands]
-# TODO: [Reboot]
+    # cd /TideTracker_repo
+    # git submodule update --init --recursive
+# TODO: Run the wifi portal init commands
+    # (?) sudo /TideTracker_repo/submodules/forked_pi_portal/scripts/rpi_headless_wifi_install.sh 
+# TODO: edit the cron file (?)
+# sudo reboot
