@@ -1,31 +1,51 @@
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from datetime import datetime, timedelta
+import datetime as dt
 import requests
 from PIL import Image
 import csv
+import pytz
+from timezonefinder import TimezoneFinder
 import ephem
 
-def get_sunrise_sunset(decimal_latitude, decimal_longitude, date):
-    # Create an observer object for the given coordinates
+print("BEGINNING")
+
+def get_timezone(latitude, longitude):
+    tf = TimezoneFinder()
+    timezone_str = tf.timezone_at(lng=longitude, lat=latitude)
+    
+    if timezone_str:
+        return pytz.timezone(timezone_str)
+    else:
+        # Return a default timezone if the location is not found
+        return pytz.timezone('UTC')
+
+def get_sunrise_sunset(latitude, longitude, date, zone=None):
+
+    print("sunrise/sunset function")
+    print("\t", longitude, latitude, date, zone)
+    # Create an observer object
     observer = ephem.Observer()
-    observer.lat = str(decimal_latitude)
-    observer.lon = str(decimal_longitude)
+    observer.lon = str(longitude)
+    observer.lat = str(latitude)
 
-    # Set the date for which to compute sunrise and sunset times, considering only the date component
-    observer.date = ephem.Date(date.date())
+    # Convert the date to the required format
+    observer.date = date
 
-    # Compute sunrise and sunset times
-    sunrise = observer.previous_rising(ephem.Sun())
-    sunset = observer.next_setting(ephem.Sun())
+    # Calculate sunrise and sunset times
+    sunrise = observer.previous_rising(ephem.Sun())  # Get the most recent sunrise
+    sunset = observer.next_setting(ephem.Sun())  # Get the next sunset
 
-    # Convert the times to Python datetime objects
-    sunrise_datetime = datetime.utcfromtimestamp(min(sunrise.datetime().timestamp(), sunset.datetime().timestamp()))
-    sunset_datetime = datetime.utcfromtimestamp(max(sunrise.datetime().timestamp(), sunset.datetime().timestamp()))
+    # Format the results
+    sunrise_time = ephem.localtime(sunrise)
+    sunset_time = ephem.localtime(sunset)
 
-    return sunrise_datetime, sunset_datetime
-
-def get_station_coordinates(station_id):
+    if zone:
+        return sunrise_time.astimezone(zone), sunset_time.astimezone(zone)
+    else: 
+        return sunrise_time, sunset_time
+    
+def get_station_info(station_id):
     with open("stations.csv", newline="", encoding="utf-8") as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -34,38 +54,9 @@ def get_station_coordinates(station_id):
                 state = row["State"]
                 decimal_latitude = float(row["decimal_latitude"])
                 decimal_longitude = float(row["decimal_longitude"])
-                return city, state, decimal_latitude, decimal_longitude
+                return city, state, decimal_latitude, decimal_longitude, get_timezone(decimal_latitude, decimal_longitude)
 
-# Modify the plot_tide_predictions function to use get_station_coordinates
-def plot_tide_predictions(station_id):
-    city, state, decimal_latitude, decimal_longitude = get_station_coordinates(station_id)
-
-    # Get sunrise and sunset times for yesterday, today, and tomorrow
-    yesterday = datetime.now() - timedelta(days=1)
-    today = datetime.now()
-    tomorrow = datetime.now() + timedelta(days=1)
-
-    yesterday_sunrise, yesterday_sunset = get_sunrise_sunset(decimal_latitude, decimal_longitude, yesterday)
-    today_sunrise, today_sunset = get_sunrise_sunset(decimal_latitude, decimal_longitude, today)
-    tomorrow_sunrise, tomorrow_sunset = get_sunrise_sunset(decimal_latitude, decimal_longitude, tomorrow)
-
-    # Print or use the sunrise and sunset times as needed
-    print(f"Sunrise at {city}, {state} (Yesterday): {yesterday_sunrise}")
-    print(f"Sunset at {city}, {state} (Yesterday): {yesterday_sunset}")
-
-    print(f"Sunrise at {city}, {state} (Today): {today_sunrise}")
-    print(f"Sunset at {city}, {state} (Today): {today_sunset}")
-
-    print(f"Sunrise at {city}, {state} (Tomorrow): {tomorrow_sunrise}")
-    print(f"Sunset at {city}, {state} (Tomorrow): {tomorrow_sunset}")
-    
-    print(decimal_latitude)
-    print(decimal_longitude)
-    # Get yesterday's date with time set to midnight
-    yesterday_date = datetime.now() - timedelta(days=1)
-    yesterday_date = yesterday_date.replace(hour=0, minute=0, second=0, microsecond=0)
-    yesterday_date_string = yesterday_date.strftime("%Y%m%d")
-
+def fetch_NOAA_data(station_id, date):
     range_hours = 60
     datum = "mllw"
     interval_minutes = 10
@@ -76,14 +67,45 @@ def plot_tide_predictions(station_id):
 
     # Retrieve data from the URL
     response = requests.get(url)
-    data = response.json()
+    
+    return response.json()
 
-    # Extract time and value data
-    all_times = [datetime.strptime(entry['t'], '%Y-%m-%d %H:%M') for entry in data['predictions']]
+# Modify the plot_tide_predictions function to use get_station_coordinates
+def compute_station_time_info(station_id):
+    city, state, lat, long, zone = get_station_info(station_id)
+    
+    # _dtz := date, time,
+    now_dtz = dt.datetime.now(zone)
+    today_d = now_dtz.date()
+    yesterday_d = today_d - dt.timedelta(days=1)
+    tomorrow_d = today_d + dt.timedelta(days=1)
+
+    print(f"DEBUG - today:\n\t {today_d}")
+    print(f"DEBUG - city, state, zone\n\t{city}, {state}, {zone}")
+    print()
+
+    yesterday_sunrise, yesterday_sunset = get_sunrise_sunset(lat, long, yesterday_d, zone)
+    today_sunrise, today_sunset = get_sunrise_sunset(lat, long, today_d, zone)
+    tomorrow_sunrise, tomorrow_sunset = get_sunrise_sunset(lat, long, tomorrow_d, zone)
+
+    print()
+    print("Yesterday")
+    print(yesterday_d, "\n\t", yesterday_sunrise.strftime("%I:%M %p %Z"), "\n\t", yesterday_sunset.strftime("%I:%M %p %Z"),"\n")
+    print("Today")
+    print(today_d, "\n\t", today_sunrise.strftime("%I:%M %p %Z"), "\n\t", today_sunset.strftime("%I:%M %p %Z"),"\n")
+    print("Tomorrow")
+    print(tomorrow_d, "\n\t", tomorrow_sunrise.strftime("%I:%M %p %Z"), "\n\t", tomorrow_sunset.strftime("%I:%M %p %Z"),"\n")
+
+    return
+
+
+def plot_data(data):
+     # Extract time and value data. strptime converts string to datetime
+    all_times = [dt.datetime.strptime(entry['t'], '%Y-%m-%d %H:%M') for entry in data['predictions']]
     all_values = [float(entry['v']) for entry in data['predictions']]
 
     # Calculate the start time as 12 hours ago
-    start_time = yesterday_date + timedelta(hours=12)
+    start_time = now - dt.timedelta(hours=12)
 
     # Filter data points that occurred after the start time
     filtered_times = [t for t in all_times if t >= start_time]
@@ -96,7 +118,7 @@ def plot_tide_predictions(station_id):
     plt.plot(filtered_times, filtered_values, label='v vs t', color='black')
 
     plt.title('Tide Predictions', fontsize=18, weight='bold')  # Larger title
-    plt.xlabel('Date and Time', fontsize=14, weight='bold')  # Bold x-axis label
+    plt.xlabel('Time', fontsize=14, weight='bold')  # Bold x-axis label
     plt.ylabel('ΔHeight (Feet)\nfrom Low Tide', fontsize=14, weight='bold')  # Changed y-axis label
 
     # Format x-axis dates with three-letter month abbreviation, rotate, and display time
@@ -108,22 +130,24 @@ def plot_tide_predictions(station_id):
     plt.xlim(start_time, filtered_times[-1])
 
     # Overlay additional data points onto the existing plot with a black, solid line and linewidth 12
-    now = datetime.now()
     two_hours_later = now + timedelta(hours=2)
     additional_times = [t for t in all_times if now <= t <= two_hours_later]
     additional_values = [v for t, v in zip(all_times, all_values) if now <= t <= two_hours_later]
 
     plt.plot(additional_times, additional_values, label='Additional Data', color='black', linewidth=12)
 
+    # Set y-limits to cover the entire range
+    plt.ylim(plt.gca().get_ylim()[0], plt.gca().get_ylim()[1])
     # Highlight the area between yesterday's sunset and today's sunrise
-    plt.fill_betweenx(y=[plt.gca().get_ylim()[0], plt.gca().get_ylim()[1]], x1=yesterday_sunset, x2=today_sunrise, color='gray', alpha=0.5, label='Nighttime')
-    print(yesterday_sunset)
-    print(yesterday_sunrise)
-    print (all_times[0])
+    plt.fill_between(x=[yesterday_sunset, today_sunrise], y1=plt.gca().get_ylim()[0], y2=plt.gca().get_ylim()[1], color='gray', alpha=0.5, label='Nighttime')
+    
+    str_yesterday_sunset = yesterday_sunset.strftime("%I:%M %p %Z")
+    print(f"yesterday sunset: {str_yesterday_sunset}")
+    
 
     plt.grid(True)
 
-    plt.legend()
+#    plt.legend()
 
     # Save the plot as an image
     plt.savefig("plot_image.png")
@@ -143,5 +167,10 @@ def plot_tide_predictions(station_id):
 
 # Call the function with a specific station_id when the module is run directly
 if __name__ == "__main__":
-    station_id = "8725520"
-    plot_tide_predictions(station_id)
+    station_id = "8725520" # Ft Myers
+    #station_id = "8738043" # West Fowl River Bridge 
+    compute_station_time_info(station_id)
+
+    #data = fetch_NOAA_data(station_id, yesterday)
+
+    #plot_data(data)
