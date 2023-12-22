@@ -17,9 +17,9 @@ logging.basicConfig(level=logging.DEBUG)
 
 try:
     epd = epd7in5_V2.EPD()
-    logging.info("\ninit and Clear\n")
-    epd.init()
-    epd.Clear()
+    ### logging.info("\ninit and Clear\n")
+    ### epd.init()
+    ### epd.Clear()
 
     logging.info("\nDisplay a file (does it need to be .bmp?)\n")
     plot_image = Image.open(os.path.join(maindir, 'plot_image.png'))
