@@ -88,7 +88,7 @@ def plot_data(data, now_dtz):
     filtered_values = [v for t, v in zip(all_times, all_values) if t >= start_time]
 
     # Plotting. Size of 7.5in e-ink is 163.2mm x 97.92mm. Converted to in: 6.425 x 3.855
-    plt.figure(figsize=(2*6.425, 2*3.855))
+    plt.figure(figsize=(1.2*6.425, 1.2*3.855))
 
     # Plot filtered data
     # plt.plot(all_times, all_values, label='v vs t', color='black')
@@ -136,9 +136,12 @@ def plot_data(data, now_dtz):
     # Fill between today's sunset and tomorrow's sunrise with a different dithered pattern (only hatching, no solid fill)
     plt.fill_betweenx(y=[plt.gca().get_ylim()[0], plt.gca().get_ylim()[1]], x1=today_sunset, x2=tomorrow_sunrise, facecolor='gray', edgecolor='none', label='Shaded Area')
 
+    plt.tight_layout()
+
     # Format 'bmp' is not supported (supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff, webp)
     # plt.savefig("plot_image.png")
     # plt.show()
+
     # use a buffer to save plt.savefig to instead of to a file to reduce wear on the microSD card)
     from io import BytesIO
     buffer = BytesIO()
