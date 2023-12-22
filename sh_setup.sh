@@ -9,16 +9,20 @@
 # Run the script with:
 # ./run_command.sh
 
-# Make the script executable with the following command:
-# chmod +x thisScriptName.sh
 
+### SETUP: UPDATE & UPGRADE ###
+echo -e "\n##### SETUP: UPDATE & UPGRADE #####\n" 
 sudo apt-get update
 sudo apt-get upgrade
+echo -e "\n##### END SETUP: UPDATE & UPGRADE #####\n" 
+### END SETUP: UPDATE & UPGRADE ###
 
-### BOOT SPEED UP# ### 
+
+
+### BOOT SPEED UP ### 
+echo -e "\n##### SETUP: BOOT SPEED UP #####\n" 
 
 CONFIG_FILE="/boot/config.txt"
-echo -e "\n##### BOOT SPEED UP #####\n" 
 
 # Check if the config file exists
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -33,36 +37,41 @@ echo "dtoverlay=disable-bt" | sudo tee -a "$CONFIG_FILE"
 #UPDATE THIS: echo "hdmi_blanking=1" | sudo tee -a "$CONFIG_FILE"
 echo "Settings added to $CONFIG_FILE. Reboot for changes to take effect."
 
-echo -e "\n##### END BOOT SPEED UP #####\n" 
+echo -e "\n##### END SETUP: BOOT SPEED UP #####\n" 
+
 ### END BOOT SPEED UP ###
 
-###  Setup ###
-echo -e "\n##### SETUP #####\n" 
 
-y | sudo apt-get install python3
+
+###  SETUP: INSTALL PYTHON###
+echo -e "\n##### SETUP: INSTALL PYTHON #####\n" 
+
+sudo apt-get install -y python3
 sudo apt install python3-pip
 sudo -H pip3 install --upgrade pip
 
-echo -e "\n##### END SETUP #####\n" 
+echo -e "\n##### END SETUP: PYTHON INSTALL #####\n" 
+###  END SETUP: INSTALL PYTHON###
 
-### E-INK SETUP ###
-echo -e "\n##### E-INK SETUP #####\n" 
+
+
+### SETUP: E-INK SETUP ###
+echo -e "\n##### SETUP: E-INK #####\n" 
 
 sudo apt-get install python3-pil # Python Imaging Library, pillow library 	
 sudo apt-get install python3-numpy
 sudo pip3 install RPi.GPIO
 sudo pip3 install spidev
 # Enable SPI, code according to ChatGPT
-echo -e "\n##### ENABLE SPI #####\n" 
+echo -e "\n##### SETUP: ENABLE SPI (4-wire) #####\n" 
 sudo raspi-config nonint do_spi 0 
-echo -e "\n##### END ENABLE SPI #####\n" 
+echo -e "\n##### END SETUP: ENABLE SPI (4-wire) #####\n" 
 
-echo -e "\n##### END E-INK SETUP #####\n" 
+echo -e "\n##### END SETUP: E-INK SETUP #####\n" 
 ### END E-INK SETUP ###
 
-# TODO: [add the tidetracker submodule  init && update commands]
-    # cd /TideTracker_repo
-    # git submodule update --init --recursive
+
+
 # TODO: Run the wifi portal init commands
     # (?) sudo /TideTracker_repo/submodules/forked_pi_portal/scripts/rpi_headless_wifi_install.sh 
 # TODO: edit the cron file (?)
