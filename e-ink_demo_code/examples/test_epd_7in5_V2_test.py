@@ -22,8 +22,9 @@ try:
     epd.Clear()
 
     logging.info("\nDisplay a file (does it need to be .bmp?)\n")
-    Himage = Image.open(os.path.join(maindir, 'plot_image.png'))
-    epd.display(epd.getbuffer(Himage))
+    plot_image = Image.open(os.path.join(maindir, 'plot_image.png'))
+    plot_image.transpose(Image.ROTATE_180)
+    epd.display(epd.getbuffer(plot_image))
     #time.sleep(2)
 
     ### # Initialize a canvas. Open a file and display it on the canvas. 
