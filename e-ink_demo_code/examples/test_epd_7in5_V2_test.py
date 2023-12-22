@@ -22,7 +22,7 @@ try:
     ### epd.Clear()
 
     logging.info("\nDisplay a file (does it need to be .bmp?)\n")
-    plot_image = Image.open(os.path.join(maindir, 'plot_image.png'))
+    plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
     plot_image = plot_image.transpose(Image.ROTATE_180)
     epd.display(epd.getbuffer(plot_image))
     #time.sleep(2)
