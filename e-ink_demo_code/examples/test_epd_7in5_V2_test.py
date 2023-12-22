@@ -17,12 +17,12 @@ logging.basicConfig(level=logging.DEBUG)
 
 try:
     epd = epd7in5_V2.EPD()
-    logging.info("init and Clear")
+    logging.info("\ninit and Clear\n")
     epd.init()
     epd.Clear()
 
-    logging.info("Display a file (does it need to be .bmp?)")
-    Himage = Image.open(os.path.join(maindir, 'plot_image.png'))
+    logging.info("\nDisplay a file (does it need to be .bmp?)\n")
+    Himage = Image.open(os.path.join(maindir, 'plot_image.bmp'))
     epd.display(epd.getbuffer(Himage))
     #time.sleep(2)
 
@@ -34,11 +34,11 @@ try:
     ### epd.display(epd.getbuffer(Himage2))
     ### time.sleep(2)
 
-    logging.info("Clear...")
+    logging.info("\nClear...\n")
     epd.init()
     epd.Clear()
 
-    logging.info("Goto Sleep...")
+    logging.info("\nGoto Sleep...\n")
     epd.sleep()
     
 except IOError as e:
