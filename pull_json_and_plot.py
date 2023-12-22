@@ -87,16 +87,16 @@ def plot_data(data, now_dtz):
     filtered_times = [t for t in all_times if t >= start_time]
     filtered_values = [v for t, v in zip(all_times, all_values) if t >= start_time]
 
-    # Plotting
-    plt.figure(figsize=(10, 6))
+    # Plotting. Size of 7.5in e-ink is 163.2mm x 97.92mm. Converted to in: 6.425 x 3.855
+    plt.figure(figsize=(6.425, 3.855))
 
     # Plot filtered data
     # plt.plot(all_times, all_values, label='v vs t', color='black')
     plt.plot(filtered_times, filtered_values, label='v vs t', color='black')
-    plt.title(f'Tide Predictions for\n{city}, {state}', fontsize=18, weight='bold')
+    plt.title(f'Tide Predictions for\n{city}, {state}', weight='bold')
     # plt.xlabel('Time', fontsize=14, weight='bold')  # Bold x-axis label
 
-    plt.ylabel('Deviation from\nAvg. Low Tide', fontsize=14, weight='bold')  # Changed y-axis label
+    plt.ylabel('Deviation from\nAvg. Low Tide', weight='bold')  # Changed y-axis label
     # Add "ft." label to y-axis tick labels
     def add_ft_label(value, _):
         rounded_value = round(value, 1)
@@ -140,6 +140,10 @@ def plot_data(data, now_dtz):
     # plt.show()
 
     img = Image.open("plot_image.png")
+    img = img.resize((800, 480))
+    img.save("plot_image.png")  # Replace "resized_image.jpg" with your desired output file name
+
+
     img.show()
     img.close()
 
