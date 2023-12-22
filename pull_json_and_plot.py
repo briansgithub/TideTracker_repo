@@ -104,9 +104,16 @@ def plot_data(data, now_dtz):
     plt.gca().yaxis.set_major_formatter(FuncFormatter(add_ft_label))
 
     # This sets the printed format of the x-axis labels
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%b %d\n%I:%M %p', tz=zone))
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%b. %d\n%I:%M %p', tz=zone))
+    
     # This (probably) ensures that the x-axis is labeled in 6-hour increments. (Although this probably happens automatically)
     plt.gca().xaxis.set_major_locator(mdates.HourLocator(interval=6))  # Show every 6 hours
+
+    # TODO: maybe insert a custom x-axis label formatting function so the date only shows if it's a new day
+    
+    # Set x-axis labels to bold
+    for label in plt.gca().xaxis.get_majorticklabels():
+        label.set_weight('bold')
     # This rotates the labels and prevents overlapping 
     plt.gcf().autofmt_xdate(rotation=45)  # Rotate x-axis labels for better visibility
 
@@ -139,13 +146,13 @@ def plot_data(data, now_dtz):
     plt.tight_layout()
 
     # Format 'bmp' is not supported (supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff, webp)
-    # plt.savefig("plot_image.png")
+    # plt.savefig("plot_image.png", dpi=600)
     # plt.show()
 
     # use a buffer to save plt.savefig to instead of to a file to reduce wear on the microSD card)
     from io import BytesIO
     buffer = BytesIO()
-    plt.savefig(buffer, format='png')
+    plt.savefig(buffer, format='png', dpi=600)
     buffer.seek(0)
     img = Image.open(buffer)
     img = img.resize((800, 480))
