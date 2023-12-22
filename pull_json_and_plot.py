@@ -131,17 +131,21 @@ def plot_data(data, now_dtz):
     ### plt.fill_betweenx(y=[plt.gca().get_ylim()[0], plt.gca().get_ylim()[1]], x1=yesterday_sunset, x2=today_sunrise, color='gray', alpha=0.5, label='Shaded Area')
     ### plt.fill_betweenx(y=[plt.gca().get_ylim()[0], plt.gca().get_ylim()[1]], x1=today_sunset, x2=tomorrow_sunrise, color='gray', alpha=0.5, label='Shaded Area')
     # Fill between yesterday's sunset and today's sunrise with a dithered pattern (only hatching, no solid fill)
-    plt.fill_betweenx(y=[plt.gca().get_ylim()[0], plt.gca().get_ylim()[1]], x1=yesterday_sunset, x2=today_sunrise, facecolor='none', hatch='.', edgecolor='black', label='Shaded Area')
+    plt.fill_betweenx(y=[plt.gca().get_ylim()[0], plt.gca().get_ylim()[1]], x1=yesterday_sunset, x2=today_sunrise, facecolor='gray', edgecolor='black', label='Shaded Area')
 
     # Fill between today's sunset and tomorrow's sunrise with a different dithered pattern (only hatching, no solid fill)
     plt.fill_betweenx(y=[plt.gca().get_ylim()[0], plt.gca().get_ylim()[1]], x1=today_sunset, x2=tomorrow_sunrise, facecolor='none', hatch='\\\\', edgecolor='black', label='Shaded Area')
 
-    plt.savefig("plot_image.png")
+    # Format 'bmp' is not supported (supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff, webp)
+    # plt.savefig("plot_image.png")
     # plt.show()
-
-    img = Image.open("plot_image.png")
+    from io import BytesIO
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    img = Image.open(buffer)
     img = img.resize((800, 480))
-    img.save("plot_image.png")  # Replace "resized_image.jpg" with your desired output file name
+    img.save("plot_image.bmp") # Waveshare can display either png or bmp as long as they're <= 800x480 pixels
 
 
     img.show()
