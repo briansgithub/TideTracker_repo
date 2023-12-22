@@ -88,7 +88,7 @@ def plot_data(data, now_dtz):
     filtered_values = [v for t, v in zip(all_times, all_values) if t >= start_time]
 
     # Plotting. Size of 7.5in e-ink is 163.2mm x 97.92mm. Converted to in: 6.425 x 3.855
-    plt.figure(figsize=(6.425, 3.855))
+    plt.figure(figsize=(2*6.425, 2*3.855))
 
     # Plot filtered data
     # plt.plot(all_times, all_values, label='v vs t', color='black')
@@ -139,6 +139,7 @@ def plot_data(data, now_dtz):
     # Format 'bmp' is not supported (supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff, webp)
     # plt.savefig("plot_image.png")
     # plt.show()
+    # use a buffer to save plt.savefig to instead of to a file to reduce wear on the microSD card)
     from io import BytesIO
     buffer = BytesIO()
     plt.savefig(buffer, format='png')
