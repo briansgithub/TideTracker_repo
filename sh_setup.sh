@@ -62,6 +62,7 @@ sudo apt-get install python3-pil # Python Imaging Library, pillow library
 sudo apt-get install python3-numpy
 sudo pip3 install RPi.GPIO
 sudo pip3 install spidev
+
 # Enable SPI, code according to ChatGPT
 echo -e "\n##### SETUP: ENABLE SPI (4-wire) #####\n" 
 sudo raspi-config nonint do_spi 0 
@@ -69,6 +70,17 @@ echo -e "\n##### END SETUP: ENABLE SPI (4-wire) #####\n"
 
 echo -e "\n##### END SETUP: E-INK SETUP #####\n" 
 ### END E-INK SETUP ###
+
+
+
+### SETUP: NOAA PULL AND PLOT LIBS ###
+echo -e "\n##### SETUP: NOAA PULL AND PLOT LIBS #####\n" 
+
+sudo pip3 install matplotlib 
+sudo pip3 install timezonefinder 
+
+### END SETUP: NOAA PULL AND PLOT LIBS ###
+echo -e "\n##### END SETUP: NOAA PULL AND PLOT LIBS #####\n" 
 
 
 
