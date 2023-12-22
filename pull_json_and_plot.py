@@ -149,6 +149,7 @@ def plot_data(data, now_dtz):
     buffer.seek(0)
     img = Image.open(buffer)
     img = img.resize((800, 480))
+    img = img.convert('1') #convert bit-depth from 32 (default) to 1
     img.save("plot_image.bmp") # Waveshare can display either png or bmp as long as they're <= 800x480 pixels
 
 
