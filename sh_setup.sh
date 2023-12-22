@@ -78,6 +78,7 @@ echo -e "\n##### SETUP: NOAA PULL AND PLOT LIBS #####\n"
 
 sudo pip3 install matplotlib 
 sudo pip3 install timezonefinder 
+sudo pip3 install ephem
 
 ### END SETUP: NOAA PULL AND PLOT LIBS ###
 echo -e "\n##### END SETUP: NOAA PULL AND PLOT LIBS #####\n" 
