@@ -163,4 +163,4 @@ echo -e "\n##### END SETUP: SET UP SCRIPT TO RUN ON BOOT #####\n"
 # TODO: edit the cron file (?)
 
 
-# sudo reboot
+sudo reboot
