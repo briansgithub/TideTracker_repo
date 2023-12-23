@@ -62,8 +62,12 @@ echo -e "\n##### END SETUP: PYTHON INSTALL #####\n"
 ### SETUP: E-INK SETUP ###
 echo -e "\n##### SETUP: E-INK #####\n" 
 
-sudo apt-get install python3-pil # Python Imaging Library, pillow library 	
-sudo apt-get install python3-numpy
+sudo apt-get install -y python3-pil # Python Imaging Library, pillow library 	
+
+# sudo apt-get install -y python3-numpy
+sudo apt-get install -y libopenblas-dev # needed to fix numpy 
+pip3 install --force-reinstall numpy
+
 sudo pip3 install RPi.GPIO
 sudo pip3 install spidev
 
@@ -80,14 +84,11 @@ echo -e "\n##### END SETUP: E-INK SETUP #####\n"
 ### SETUP: NOAA PULL AND PLOT LIBS ###
 echo -e "\n##### SETUP: NOAA PULL AND PLOT LIBS #####\n" 
 
-#? sudo apt-get install -y libatlas-base-dev gfortran # needed for numpy, according to chatGPT
-### sudo pip3 install numpy
-### sudo pip3 install matplotlib 
 # Installing packages on Raspberry Pi Zero can be time-consuming due to its limited resources. You can try installing precompiled packages to save time:
-sudo apt-get install python3-numpy python3-matplotlib
-pip install --upgrade numpy
+sudo apt-get install -y python3-matplotlib
 pip3 install timezonefinder 
 pip3 install ephem
+pip3 intall pytz
 
 ### END SETUP: NOAA PULL AND PLOT LIBS ###
 echo -e "\n##### END SETUP: NOAA PULL AND PLOT LIBS #####\n" 
@@ -96,7 +97,7 @@ echo -e "\n##### END SETUP: NOAA PULL AND PLOT LIBS #####\n"
 ### Fix NUMPY install
 echo -e "\n##### FIX NUMPY INSTALL #####\n" 
 sudo apt-get update
-sudo apt-get install libopenblas-dev
+sudo apt-get install -y libopenblas-dev
 sudo pip3 install --force-reinstall numpy
 ### not executed, may not be neessary ### export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/openblas-base
 
@@ -106,5 +107,8 @@ sudo pip3 install --force-reinstall numpy
 # Must execute ./rpi_headless_wifi_install.sh as sudo
 # Must execute ./run as sudo
     # (?) sudo /TideTracker_repo/submodules/forked_pi_portal/scripts/rpi_headless_wifi_install.sh 
+
 # TODO: edit the cron file (?)
+
+
 # sudo reboot
