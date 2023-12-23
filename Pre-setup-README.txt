@@ -6,8 +6,10 @@ git clone https://github.com/briansgithub/TideTracker_repo.git
 In order to execute setup scripts, you need to make them exeutable
     cd TideTracker_repo
     chmod +x *.sh
+    chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.sh
     
-install 
+
+
 Run the setup script: sh1_setup.sh
 Run the sh2_setup_on-boot-service.sh script (Do NOT run with sudo)
    Accidentally running as sudo will direct the bootup service to set the
