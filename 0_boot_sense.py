@@ -10,7 +10,7 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(gpio_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 # Define script names and their paths
-pi_portal_sh = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'placeholder.sh')
+pi_portal_sh = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'forked_wifi-connect-headless-rpi', 'scripts', 'run.sh')
 get_data_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), '1_pull_json_and_plot.py')
 update_screen = os.path.join(os.path.dirname(os.path.realpath(__file__)), '2_update_epd_7in5_V2_screen.py')
 
