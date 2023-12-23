@@ -1,7 +1,9 @@
 #!/bin/bash
 
+echo -e "\nGPIO TEST SCRIPT: $(basename $0)\n"
+
 # GPIO pin number
-GPIO_PIN=17  # Replace with your GPIO pin number
+GPIO_PIN=27  # Replace with your GPIO pin number
 
 # Set up GPIO pin as input
 gpio -g mode $GPIO_PIN in
@@ -18,3 +20,5 @@ check_gpio_state() {
 
 # Check GPIO state on boot
 check_gpio_state
+
+echo -e "\nEND GPIO TEST SCRIPT: $(basename $0)\n"
