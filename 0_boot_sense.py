@@ -1,4 +1,6 @@
-import RPi.GPIO as GPIO
+print("\nCONTENTS OF '0_boot_sense.py. Good work\n")
+
+'''import RPi.GPIO as GPIO
 import subprocess
 
 # Define the GPIO pin you want to monitor
@@ -23,3 +25,4 @@ try:
 finally:
     # Cleanup GPIO settings
     GPIO.cleanup()
+'''
