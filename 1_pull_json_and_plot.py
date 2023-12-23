@@ -8,6 +8,7 @@ import pytz
 from timezonefinder import TimezoneFinder
 import ephem
 from matplotlib.ticker import FuncFormatter
+import os
 
 print("BEGINNING")
 
@@ -55,7 +56,8 @@ def get_sunrise_sunset(latitude, longitude, date, zone=None):
         return sunrise_time, sunset_time
     
 def get_station_info(station_id):
-    with open("stations.csv", newline="", encoding="utf-8") as csvfile:
+    CSV_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'stations.csv')
+    with open(CSV_PATH, newline="", encoding="utf-8") as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             if row["Station ID"] == station_id:
