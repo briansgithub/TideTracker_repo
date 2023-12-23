@@ -1,4 +1,4 @@
-$(function(){
+$(function () {
     var networks = undefined;
 
     function showHideFormFields() {
@@ -7,18 +7,20 @@ $(function(){
         $('#identity-group').addClass('hidden');
         $('#passphrase-group').addClass('hidden');
         $('#hidden-ssid-group').addClass('hidden');
-        if(security === 'NONE') {
+        $('#noaa-station-id-group').removeClass('hidden'); // Show NOAA Station ID field
+
+        if (security === 'NONE') {
             return; // nothing to do
         }
-        if(security === 'ENTERPRISE') {
+        if (security === 'ENTERPRISE') {
             $('#identity-group').removeClass('hidden');
             $('#passphrase-group').removeClass('hidden');
             return;
-        } 
-        if(security === 'HIDDEN') {
+        }
+        if (security === 'HIDDEN') {
             $('#hidden-ssid-group').removeClass('hidden');
             // fall through
-        } 
+        }
         // otherwise security is HIDDEN, WEP, WPA, or WPA2 which need password
         $('#passphrase-group').removeClass('hidden');
     }
