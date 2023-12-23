@@ -126,8 +126,8 @@ def plot_data(data, now_dtz):
     present_values = [v for t, v in zip(filtered_times, filtered_values) if now_dtz <= t <= two_hours_later]
     plt.plot(present_times, present_values, label='Present Stretch', color='black', linewidth=12)
 
-    # Vertical line at current time
-    plt.axvline(now_dtz, 0 , color='r')
+    # Draw a Vertical line at current time
+    # plt.axvline(now_dtz, 0 , color='r')
     #Horizontal line through y=0
     plt.axhline(y=0, color='black', linewidth=2, label='Zero Line')
 
