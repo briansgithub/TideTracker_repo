@@ -12,6 +12,6 @@ GPIO.setup(gpio_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 if GPIO.input(gpio_pin) == GPIO.HIGH:
     subprocess.run(["your_high_command_here"])
 else:
-        subprocess.run(["your_low_command_here"])
+    subprocess.run(["your_low_command_here"])
 
 GPIO.cleanup()
