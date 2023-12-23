@@ -12,7 +12,7 @@ from matplotlib.ticker import FuncFormatter
 print("BEGINNING")
 
 PERIOD = 2 #hours between TPL5110 reloads
-STATIC_TIMEZONE = True
+STATIC_TIMEZONE = True #used to set timezone to Fort Myers so get_timezone is averted
 
 def get_timezone(latitude, longitude):
     if(STATIC_TIMEZONE):
