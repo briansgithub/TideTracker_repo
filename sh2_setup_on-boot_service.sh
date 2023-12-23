@@ -1,5 +1,4 @@
 #!/usr/bin/env bash 
-set -x
 
 # Set the username automatically
 USERNAME=$(whoami)
