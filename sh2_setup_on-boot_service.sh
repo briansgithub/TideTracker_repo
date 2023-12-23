@@ -6,16 +6,19 @@ USERNAME=$(whoami)
 
 # Define paths and filenames
 SERVICE_FILE_CONTENT=$(cat <<EOL
+# /etc/systemd/system/0_boot_sense.service
+
 [Unit]
 Description=Boot Sense
+After=basic.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/$USERNAME/TideTracker_repo/0_boot_sense.py
-Restart=always
-User=root
+ExecStart=/usr/bin/python3 /home/pi/TideTracker_repo/0_boot_sense.py
+Restart=no
 
 [Install]
 WantedBy=multi-user.target
+
 EOL
 )
 
