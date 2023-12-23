@@ -1,7 +1,9 @@
-print("\nCONTENTS OF '0_boot_sense.py. Good work\n")
-
-'''import RPi.GPIO as GPIO
+import os
+import RPi.GPIO as GPIO
 import subprocess
+
+# Get the current username
+current_user = os.getlogin()
 
 # Define the GPIO pin you want to monitor
 gpio_pin = 16  # Replace with your GPIO pin number
@@ -11,9 +13,9 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(gpio_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 # Define script names and their paths
-pi_portal_sh = 'placeholder.sh'
-get_data_script = '1_pull_json_and_plot.py'
-update_screen = '2_update_epd_7in5_V2_screen.py'
+pi_portal_sh = f'/home/{current_user}/TideTracker_repo/placeholder.sh'
+get_data_script = f'/home/{current_user}/TideTracker_repo/1_pull_json_and_plot.py'
+update_screen = f'/home/{current_user}/TideTracker_repo/2_update_epd_7in5_V2_screen.py'
 
 try:
     if GPIO.input(gpio_pin) == GPIO.HIGH:
@@ -25,4 +27,3 @@ try:
 finally:
     # Cleanup GPIO settings
     GPIO.cleanup()
-'''
