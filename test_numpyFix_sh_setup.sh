@@ -82,22 +82,14 @@ echo -e "\n##### SETUP: NOAA PULL AND PLOT LIBS #####\n"
 ### sudo pip3 install numpy
 ### sudo pip3 install matplotlib 
 # Installing packages on Raspberry Pi Zero can be time-consuming due to its limited resources. You can try installing precompiled packages to save time:
-sudo apt-get install python3-numpy python3-matplotlib
-pip install --upgrade numpy
+sudo apt-get install libopenblas-dev
+sudo pip3 install --force-reinstall numpy
+sudo apt-get install python3-matplotlib
 sudo pip3 install timezonefinder 
 sudo pip3 install ephem
 
 ### END SETUP: NOAA PULL AND PLOT LIBS ###
 echo -e "\n##### END SETUP: NOAA PULL AND PLOT LIBS #####\n" 
-
-
-### Fix NUMPY install
-echo -e "\n##### FIX NUMPY INSTALL #####\n" 
-sudo apt-get update
-sudo apt-get install libopenblas-dev
-sudo pip3 install --force-reinstall numpy
-### not executed, may not be neessary ### export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/openblas-base
-
 
 
 # TODO: Run the wifi portal init commands
