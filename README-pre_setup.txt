@@ -1,6 +1,11 @@
+Install git
+    sudo apt-get install -y git
+
+git clone https://github.com/briansgithub/TideTracker_repo.git
+
 In order to execute setup scripts, you need to make them exeutable
+    cd TideTracker_repo
     chmod +x *.sh
-    with sudo, install forked_pi_portal\scripts\rpi_headless_wifi_install.sh
     
 install 
 Run the setup script: sh1_setup.sh
