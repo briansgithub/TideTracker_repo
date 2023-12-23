@@ -1,4 +1,5 @@
 #!/usr/bin/env bash 
+set -x
 
 # TODO:  Add echo statements before each batch of commands
 
