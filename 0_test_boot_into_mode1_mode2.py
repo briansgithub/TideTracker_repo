@@ -13,10 +13,12 @@ GPIO.setup(gpio_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 def execute_commands():
     if GPIO.input(gpio_pin) == GPIO.HIGH:
         # Command to execute when GPIO is HIGH
-        subprocess.run(["your_high_command_here"])
+        # subprocess.run(["your_high_command_here"])
+        print("RESULT: GPIO is HIGH")
     else:
         # Command to execute when GPIO is LOW
-        subprocess.run(["your_low_command_here"])
+        # subprocess.run(["your_low_command_here"])
+        print("RESULT: GPIO is LOW")
 
 # Main loop
 try:
