@@ -1,6 +1,5 @@
 In order to execute setup scripts, you need to make them exeutable
     chmod +x *.sh
-    chmod +x 0_boot_sense.py
 
 Run the setup script: sh1_setup.sh
 Run the sh2_setup_on-boot-service.sh script (Do NOT run with sudo)
