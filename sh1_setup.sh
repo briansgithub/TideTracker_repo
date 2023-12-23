@@ -38,6 +38,8 @@ echo "dtoverlay=disable-bt" | sudo tee -a "$CONFIG_FILE"
 #UPDATE THIS: echo "hdmi_blanking=1" | sudo tee -a "$CONFIG_FILE"
 echo "Settings added to $CONFIG_FILE. Reboot for changes to take effect."
 
+# echo 0 | sudo tee /sys/class/leds/led0/brightness #? Disable LED
+
 echo -e "\n##### END SETUP: BOOT SPEED UP #####\n" 
 
 ### END BOOT SPEED UP ###
