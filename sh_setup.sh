@@ -13,7 +13,7 @@
 ### SETUP: UPDATE & UPGRADE ###
 echo -e "\n##### SETUP: UPDATE & UPGRADE #####\n" 
 sudo apt-get update
-sudo apt-get upgrade
+sudo apt-get upgrade -y
 echo -e "\n##### END SETUP: UPDATE & UPGRADE #####\n" 
 ### END SETUP: UPDATE & UPGRADE ###
 
@@ -46,8 +46,9 @@ echo -e "\n##### END SETUP: BOOT SPEED UP #####\n"
 ###  SETUP: INSTALL PYTHON###
 echo -e "\n##### SETUP: INSTALL PYTHON #####\n" 
 
+echo "\nsudo apt-get install -y python3\n"
 sudo apt-get install -y python3
-sudo apt install python3-pip
+sudo apt install -y python3-pip
 sudo -H pip3 install --upgrade pip
 
 echo -e "\n##### END SETUP: PYTHON INSTALL #####\n" 
@@ -76,12 +77,25 @@ echo -e "\n##### END SETUP: E-INK SETUP #####\n"
 ### SETUP: NOAA PULL AND PLOT LIBS ###
 echo -e "\n##### SETUP: NOAA PULL AND PLOT LIBS #####\n" 
 
-sudo pip3 install matplotlib 
+#? sudo apt-get install -y libatlas-base-dev gfortran # needed for numpy, according to chatGPT
+### sudo pip3 install numpy
+### sudo pip3 install matplotlib 
+# Installing packages on Raspberry Pi Zero can be time-consuming due to its limited resources. You can try installing precompiled packages to save time:
+sudo apt-get install python3-numpy python3-matplotlib
+pip install --upgrade numpy
 sudo pip3 install timezonefinder 
 sudo pip3 install ephem
 
 ### END SETUP: NOAA PULL AND PLOT LIBS ###
 echo -e "\n##### END SETUP: NOAA PULL AND PLOT LIBS #####\n" 
+
+
+### Fix NUMPY install
+echo -e "\n##### FIX NUMPY INSTALL #####\n" 
+sudo apt-get update
+sudo apt-get install libopenblas-dev
+sudo pip3 install --force-reinstall numpy
+### not executed, may not be neessary ### export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/openblas-base
 
 
 
