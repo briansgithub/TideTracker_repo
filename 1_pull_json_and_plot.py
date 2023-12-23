@@ -12,16 +12,20 @@ from matplotlib.ticker import FuncFormatter
 print("BEGINNING")
 
 PERIOD = 2 #hours between TPL5110 reloads
+STATIC_TIMEZONE = True
 
 def get_timezone(latitude, longitude):
-    tf = TimezoneFinder()
-    timezone_str = tf.timezone_at(lng=longitude, lat=latitude)
-    
-    if timezone_str:
-        return pytz.timezone(timezone_str)
+    if(STATIC_TIMEZONE):
+        return pytz.timezone('US/Eastern') #Fort Myers
     else:
-        # Return a default timezone if the location is not found
-        return pytz.timezone('UTC')
+        tf = TimezoneFinder()
+        timezone_str = tf.timezone_at(lng=longitude, lat=latitude)
+        
+        if timezone_str:
+            return pytz.timezone(timezone_str)
+        else:
+            # Return a default timezone if the location is not found
+            return pytz.timezone('UTC')
 
 def get_sunrise_sunset(latitude, longitude, date, zone=None):
 
