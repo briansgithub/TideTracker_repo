@@ -103,6 +103,8 @@ sudo pip3 install --force-reinstall numpy
 
 
 # TODO: Run the wifi portal init commands
+# Must execute ./rpi_headless_wifi_install.sh as sudo
+# Must execute ./run as sudo
     # (?) sudo /TideTracker_repo/submodules/forked_pi_portal/scripts/rpi_headless_wifi_install.sh 
 # TODO: edit the cron file (?)
 # sudo reboot

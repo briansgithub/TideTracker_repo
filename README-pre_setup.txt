@@ -1,6 +1,8 @@
 In order to execute setup scripts, you need to make them exeutable
     chmod +x *.sh
-
+    with sudo, install forked_pi_portal\scripts\rpi_headless_wifi_install.sh
+    
+install 
 Run the setup script: sh1_setup.sh
 Run the sh2_setup_on-boot-service.sh script (Do NOT run with sudo)
    Accidentally running as sudo will direct the bootup service to set the
