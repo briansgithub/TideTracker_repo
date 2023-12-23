@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 import sys
 import os
-libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'e-ink lib')
+libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'e-ink_lib')
 maindir = os.path.dirname(os.path.realpath(__file__))
 if os.path.exists(libdir):
     sys.path.append(libdir)
