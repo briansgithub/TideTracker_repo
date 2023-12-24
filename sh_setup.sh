@@ -114,6 +114,7 @@ pip3 install timezonefinder
 pip3 install ephem
 pip3 install pytz
 pip3 install scipy
+pip3 install requests
 
 ### END SETUP: NOAA PULL AND PLOT LIBS ###
 echo -e "\n##### END SETUP: NOAA PULL AND PLOT LIBS #####\n" 
