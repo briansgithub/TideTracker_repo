@@ -16,31 +16,15 @@ pi_wifi_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'forked
 NOAA_pull_script_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '1_pull_json_and_plot.py')
 refresh_eInk_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '2_update_epd_7in5_V2_screen.py')
 
-def is_internet_connected():
-    try:
-        # Try to send a request to a reliable server (e.g., Google)
-        response = requests.get('https://api.tidesandcurrents.noaa.gov/api/prod/', timeout=5)
-        print(response)
-        return True
-    except requests.ConnectionError:
-        # Internet connection failed
-        return False
-
 try:
     if GPIO.input(gpio_pin) == GPIO.HIGH:
         command = "sudo systemctl start NetworkManager"
-        subprocess.run(command, shell=True)
+        subprocess.run(command, shell=True, check=True)
         time.sleep(15)
         # pi_wifi_path = pi_wifi_path.replace('run.sh', 'del-run.sh') # to delete wifi connections
         subprocess.run(['sudo', 'bash', pi_wifi_path], check=True)
     else:
-        # Wait for internet connection before proceeding
-        while not is_internet_connected():
-            print("Waiting for internet connection...")
-            time.sleep(5)  # Wait for 5 seconds before checking again
-
-        # Continues once connected
-        print("Internet connection established. Running the main script.")
+        time.sleep(15)
         subprocess.run(['python3', NOAA_pull_script_path], check=True)
         subprocess.run(['python3', refresh_eInk_path], check=True)
 
