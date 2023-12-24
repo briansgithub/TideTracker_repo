@@ -32,7 +32,7 @@ try:
         subprocess.run(command, shell=True)
         time.sleep(15)
         # pi_wifi_path = pi_wifi_path.replace('run.sh', 'del-run.sh') # to delete wifi connections
-        subprocess.run(['sudo', 'bash', pi_wifi_path])
+        subprocess.run(['sudo', 'bash', pi_wifi_path], check=True)
     else:
         # Wait for internet connection before proceeding
         while not is_internet_connected():
@@ -41,8 +41,8 @@ try:
 
         # Continues once connected
         print("Internet connection established. Running the main script.")
-        subprocess.run(['python3', NOAA_pull_script_path])
-        subprocess.run(['python3', refresh_eInk_path])
+        subprocess.run(['python3', NOAA_pull_script_path], check=True)
+        subprocess.run(['python3', refresh_eInk_path], check=True)
 
 finally:
     # Cleanup GPIO settings
