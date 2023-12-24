@@ -80,9 +80,7 @@ echo -e "\n##### SETUP: E-INK #####\n"
 
 sudo apt-get install -y python3-pil # Python Imaging Library, pillow library 	
 
-# sudo apt-get install -y python3-numpy
-sudo apt-get install -y libopenblas-dev # needed to fix numpy 
-pip3 install --force-reinstall numpy
+# pip3 install --force-reinstall numpy
 
 pip3 install RPi.GPIO
 pip3 install spidev
