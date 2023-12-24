@@ -9,6 +9,9 @@ from timezonefinder import TimezoneFinder
 import ephem
 from matplotlib.ticker import FuncFormatter
 import os
+from scipy.signal import find_peaks
+import numpy as np
+
 
 print("BEGINNING")
 DISPLAY_PLOT = True
@@ -89,6 +92,11 @@ def fetch_NOAA_data(station_id, date):
         print(f"Error fetching NOAA data: {e}")
         return None
 
+def rm_lead_zeros(time_string):
+    # Replace leading zeros in the hour part of the time string
+    time_string = time_string.replace('01:', '1:').replace('02:', '2:').replace('03:', '3:').replace('04:', '4:').replace('05:', '5:').replace('06:', '6:').replace('07:', '7:').replace('08:', '8:').replace('09:', '9:')
+    return time_string
+    
 def plot_data(data, now_dtz):
      # Extract time and value data. strptime converts string to datetime
     all_times = [dt.datetime.strptime(entry['t'], '%Y-%m-%d %H:%M') for entry in data['predictions']]
@@ -107,6 +115,29 @@ def plot_data(data, now_dtz):
     # Plot filtered data
     # plt.plot(all_times, all_values, label='v vs t', color='black')
     plt.plot(filtered_times, filtered_values, label='v vs t', color='black')
+
+    peaks, _ = find_peaks(filtered_values)
+    valleys, _ = find_peaks(-np.array(filtered_values))  # Find minima by inverting the values
+
+    # Annotate peaks on the plot
+    for peak_index in peaks:
+        plt.annotate(rm_lead_zeros(f'{filtered_times[peak_index]:%I:%M %p}'),
+                    xy=(filtered_times[peak_index], filtered_values[peak_index]),
+                    xytext=(filtered_times[peak_index], filtered_values[peak_index] + 0.05),  # Adjust text position
+                    arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
+                    ha='center', va='center', fontsize=8, weight='bold')
+
+    # Annotate valleys on the plot
+    for valley_index in valleys:
+        plt.annotate(rm_lead_zeros(f'{filtered_times[valley_index]:%I:%M %p}'),
+                    xy=(filtered_times[valley_index], filtered_values[valley_index]),
+                    xytext=(filtered_times[valley_index], filtered_values[valley_index] - 0.05),  # Adjust text position
+                    arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
+                    ha='center', va='center', fontsize=8, weight='bold')
+
+ 
+
+
     plt.title(f'Tide Predictions for\n{city}, {state}', weight='bold')
     # plt.xlabel('Time', fontsize=14, weight='bold')  # Bold x-axis label
 
@@ -123,9 +154,9 @@ def plot_data(data, now_dtz):
 
         value_datetime = mdates.num2date(value, zone)
         if (value_datetime.hour == 0 or value_datetime.hour == 12) and value_datetime.minute == 0:
-            result = value_datetime.strftime('%b. %d\n%I:%M %p').replace('01:','1:').replace('02:','2:').replace('03:','3:').replace('04:','4:').replace('05:','5:').replace('06:','6:').replace('07:','7:').replace('08:','8:').replace('09:','9:')
+            result = rm_lead_zeros(value_datetime.strftime('%b. %d\n%I:%M %p'))
         else:
-            result = value_datetime.strftime('%I:%M %p').replace('01:','1:').replace('02:','2:').replace('03:','3:').replace('04:','4:').replace('05:','5:').replace('06:','6:').replace('07:','7:').replace('08:','8:').replace('09:','9:')
+            result = rm_lead_zeros(value_datetime.strftime('%I:%M %p'))
 
         return result
     plt.gca().xaxis.set_major_formatter(FuncFormatter(custom_x_axis_major_label_format))
