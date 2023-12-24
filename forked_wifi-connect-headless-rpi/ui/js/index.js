@@ -62,7 +62,7 @@ $(function () {
         ev.preventDefault();
     });
 
-        // Example NOAA Station IDs
+      // Example NOAA Station IDs
     var exampleStationIDs = ["ABC123", "DEF456", "GHI789"];
 
     // Populate the dropdown with example Station IDs
