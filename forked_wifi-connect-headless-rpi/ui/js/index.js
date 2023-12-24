@@ -61,4 +61,18 @@ $(function () {
         });
         ev.preventDefault();
     });
+
+    $("#toggle-password").click(function () {
+        var passwordInput = $("#password-input");
+        var passwordFieldType = passwordInput.attr('type');
+      
+        // Toggle the password visibility
+        if (passwordFieldType === 'password') {
+            passwordInput.attr('type', 'text');
+            $("#toggle-password").text('Hide Password');
+        } else {
+            passwordInput.attr('type', 'password');
+            $("#toggle-password").text('Show Password');
+        }
+    });
 });
