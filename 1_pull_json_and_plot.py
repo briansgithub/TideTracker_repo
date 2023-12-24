@@ -116,6 +116,7 @@ def plot_data(data, now_dtz):
     # plt.plot(all_times, all_values, label='v vs t', color='black')
     plt.plot(filtered_times, filtered_values, label='v vs t', color='black')
 
+
     peaks, _ = find_peaks(filtered_values)
     valleys, _ = find_peaks(-np.array(filtered_values))  # Find minima by inverting the values
 
@@ -134,8 +135,6 @@ def plot_data(data, now_dtz):
                     xytext=(filtered_times[valley_index], filtered_values[valley_index] - 0.05),  # Adjust text position
                     arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
                     ha='center', va='center', fontsize=8, weight='bold')
-
- 
 
 
     plt.title(f'Tide Predictions for\n{city}, {state}', weight='bold')
