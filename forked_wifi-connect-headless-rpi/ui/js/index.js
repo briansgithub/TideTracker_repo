@@ -23,7 +23,7 @@ $(function () {
         }
         // otherwise security is HIDDEN, WEP, WPA, or WPA2 which need password
         $('#passphrase-group').removeClass('hidden');
-        
+
         // Ensure the "Show Password" button is created and its event handler is attached
         createShowPasswordButton();
     }
@@ -35,7 +35,7 @@ $(function () {
             $('#regcode').val(data);
         } else { 
             $('.reg-row').hide(); // no reg code, so hide that part of the UI
-	}
+        }
     });
 
     $.get("/networks", function(data){
@@ -97,7 +97,7 @@ $(function () {
             });
 
             // Append the toggle-password button inside the password-group div
-            passwordGroup.append(togglePasswordButton);
+            passwordGroup.find(".input-group").append(togglePasswordButton);
 
             // Event handler for the toggle-password button
             togglePasswordButton.click(function () {
