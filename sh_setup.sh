@@ -84,8 +84,8 @@ sudo apt-get install -y python3-pil # Python Imaging Library, pillow library
 sudo apt-get install -y libopenblas-dev # needed to fix numpy 
 pip3 install --force-reinstall numpy
 
-sudo pip3 install RPi.GPIO
-sudo pip3 install spidev
+pip3 install RPi.GPIO
+pip3 install spidev
 
 # Enable SPI, code according to ChatGPT
 echo -e "\n##### SETUP: ENABLE SPI (4-wire) #####\n" 

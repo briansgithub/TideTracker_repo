@@ -21,6 +21,8 @@ YEXTEND = 0.175 # y-axis addition to move labels and extend ylim0 and ylim1 to m
 
 PERIOD = 2 #hours between TPL5110 reloads
 STATIC_TIMEZONE = True #used to set timezone to Fort Myers so get_timezone is averted
+# The data and axes will always be in local time, but the sunrise/sunset 
+# are affected by the timezone you apply
 
 def get_timezone(latitude, longitude):
     if(STATIC_TIMEZONE):
