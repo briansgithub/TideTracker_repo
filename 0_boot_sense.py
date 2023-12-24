@@ -23,7 +23,7 @@ try:
         command = "sudo systemctl start NetworkManager"
         subprocess.run(command, shell=True)
         time.sleep(15)
-        pi_wifi_path.repla('run.sh','run2.sh')
+        pi_wifi_path.replace('run.sh','run2.sh')
         subprocess.run(['sudo', 'bash', pi_wifi_path])
 
 finally:
