@@ -62,17 +62,12 @@ $(function () {
         ev.preventDefault();
     });
 
-    $("#toggle-password").click(function () {
-        var passwordInput = $("#password-input");
-        var passwordFieldType = passwordInput.attr('type');
-      
-        // Toggle the password visibility
-        if (passwordFieldType === 'password') {
-            passwordInput.attr('type', 'text');
-            $("#toggle-password").text('Hide Password');
-        } else {
-            passwordInput.attr('type', 'password');
-            $("#toggle-password").text('Show Password');
-        }
-    });
+    // Move the toggle-password button below the password field and justify it to the right
+    var passwordGroup = $("#passphrase-group");
+    var passwordInput = $("#password-input");
+    var togglePasswordButton = $("#toggle-password");
+
+    passwordGroup.append(togglePasswordButton); // Move the button inside the password-group div
+    togglePasswordButton.addClass("pull-right"); // Add Bootstrap class to justify the button to the right
+    passwordInput.parent().removeClass("input-group"); // Remove input-group class from parent to adjust spacing
 });
