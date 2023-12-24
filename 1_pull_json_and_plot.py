@@ -89,21 +89,6 @@ def fetch_NOAA_data(station_id, date):
         print(f"Error fetching NOAA data: {e}")
         return None
 
-# Define custom formatting function
-def custom_x_axis_label_format(value, _):
-    # Convert numeric value to datetime object
-    datetime_obj = mdates.num2date(value).replace(tzinfo=zone)
-    
-    # Check if the hour is equal to zero
-    if datetime_obj.hour == 0:
-        # Format the label with '%b. %d\n%I:%M %p' for midnight
-        formatted_label = mdates.DateFormatter('%b. %d\n%I:%M %p', tz=zone).strftime(datetime_obj)
-    else:
-        # Format the label with '%I:%M %p' for other hours
-        formatted_label = mdates.DateFormatter('%I:%M %p', tz=zone).strftime(datetime_obj)
-    
-    return formatted_label
-
 def plot_data(data, now_dtz):
      # Extract time and value data. strptime converts string to datetime
     all_times = [dt.datetime.strptime(entry['t'], '%Y-%m-%d %H:%M') for entry in data['predictions']]
@@ -138,9 +123,9 @@ def plot_data(data, now_dtz):
 
         value_datetime = mdates.num2date(value, zone)
         if (value_datetime.hour == 0 or value_datetime.hour == 12) and value_datetime.minute == 0:
-            result = value_datetime.strftime('%b. %d\n%I:%M %p').replace("\n0", "\n")
+            result = value_datetime.strftime('%b. %d\n%I:%M %p').replace('01:','1:').replace('02:','2:').replace('03:','3:').replace('04:','4:').replace('05:','5:').replace('06:','6:').replace('07:','7:').replace('08:','8:').replace('09:','9:')
         else:
-            result = value_datetime.strftime('%I:%M %p').replace("\n0", "\n")
+            result = value_datetime.strftime('%I:%M %p').replace('01:','1:').replace('02:','2:').replace('03:','3:').replace('04:','4:').replace('05:','5:').replace('06:','6:').replace('07:','7:').replace('08:','8:').replace('09:','9:')
 
         return result
     plt.gca().xaxis.set_major_formatter(FuncFormatter(custom_x_axis_major_label_format))
