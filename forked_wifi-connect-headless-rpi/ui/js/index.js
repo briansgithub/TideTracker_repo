@@ -54,15 +54,7 @@ $(function () {
         }
     });
 
-    $('#connect-form').submit(function(ev){
-        $.post('/connect', $('#connect-form').serialize(), function(data){
-            $('.before-submit').hide();
-            $('#submit-message').removeClass('hidden');
-        });
-        ev.preventDefault();
-    });
-
-      // Example NOAA Station IDs
+    // Example NOAA Station IDs
     var exampleStationIDs = ["ABC123", "DEF456", "GHI789"];
 
     // Populate the dropdown with example Station IDs
@@ -78,16 +70,34 @@ $(function () {
     var passwordGroup = $("#passphrase-group");
     var passwordInput = $("#password-input");
 
-    // Create the toggle-password button
-    var togglePasswordButton = $("<button>", {
-        class: "btn btn-default pull-right",
-        type: "button",
-        id: "toggle-password",
-        text: "Show Password"
-    });
+    // Check if the toggle-password button already exists before creating it
+    var togglePasswordButton = $("#toggle-password");
+    if (!togglePasswordButton.length) {
+        // Create the toggle-password button
+        togglePasswordButton = $("<button>", {
+            class: "btn btn-default pull-right",
+            type: "button",
+            id: "toggle-password",
+            text: "Show Password"
+        });
 
-    // Append the toggle-password button inside the password-group div
-    passwordGroup.append(togglePasswordButton);
+        // Append the toggle-password button inside the password-group div
+        passwordGroup.append(togglePasswordButton);
+
+        // Event handler for the toggle-password button
+        togglePasswordButton.click(function () {
+            var passwordFieldType = passwordInput.attr('type');
+
+            // Toggle the password visibility
+            if (passwordFieldType === 'password') {
+                passwordInput.attr('type', 'text');
+                togglePasswordButton.text('Hide Password');
+            } else {
+                passwordInput.attr('type', 'password');
+                togglePasswordButton.text('Show Password');
+            }
+        });
+    }
 
     $('#connect-form').submit(function(ev){
         $.post('/connect', $('#connect-form').serialize(), function(data){
@@ -95,19 +105,5 @@ $(function () {
             $('#submit-message').removeClass('hidden');
         });
         ev.preventDefault();
-    });
-
-    // Event handler for the toggle-password button
-    togglePasswordButton.click(function () {
-        var passwordFieldType = passwordInput.attr('type');
-      
-        // Toggle the password visibility
-        if (passwordFieldType === 'password') {
-            passwordInput.attr('type', 'text');
-            togglePasswordButton.text('Hide Password');
-        } else {
-            passwordInput.attr('type', 'password');
-            togglePasswordButton.text('Show Password');
-        }
     });
 });
