@@ -11,6 +11,7 @@ from matplotlib.ticker import FuncFormatter
 import os
 
 print("BEGINNING")
+DISPLAY_PLOT = False
 
 PERIOD = 2 #hours between TPL5110 reloads
 STATIC_TIMEZONE = True #used to set timezone to Fort Myers so get_timezone is averted
@@ -122,7 +123,11 @@ def plot_data(data, now_dtz):
     plt.gca().xaxis.set_major_locator(mdates.HourLocator(interval=6))  # Show every 6 hours
 
     # TODO: maybe insert a custom x-axis label formatting function so the date only shows if it's a new day
+
     
+    # Set x-axis minor locator to show ticks every 3 hours
+    plt.gca().xaxis.set_minor_locator(mdates.HourLocator(interval=2))
+
     # Set x-axis labels to bold
     for label in plt.gca().xaxis.get_majorticklabels():
         label.set_weight('bold')
@@ -166,7 +171,8 @@ def plot_data(data, now_dtz):
     buffer = BytesIO()
     plt.savefig(buffer, format='png', dpi=600)
     buffer.seek(0)
-    img = Image.open(buffer)
+    if DISPLAY_PLOT:
+        img = Image.open(buffer)
     img = img.resize((800, 480))
     img = img.convert('1') #convert bit-depth from 32 (default) to 1
     img.save("plot_image.bmp") # Waveshare can display either png or bmp as long as they're <= 800x480 pixels
