@@ -11,6 +11,15 @@ set -x
 # ./run_command.sh
 
 
+### Pre-Setup ### 
+echo -e "\n##### PRE-SETUP #####\n" 
+sudo chmod +x /home/pi/TideTracker_repo/*.sh
+sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.sh
+echo -e "\n##### END: PRE-SETUP #####\n" 
+### END: Pre-Setup ###
+
+
+
 ### SETUP: UPDATE & UPGRADE ###
 echo -e "\n##### SETUP: UPDATE & UPGRADE #####\n" 
 sudo apt-get update
@@ -19,7 +28,6 @@ echo -e "\n##### END SETUP: UPDATE & UPGRADE #####\n"
 ### END SETUP: UPDATE & UPGRADE ###
 
 
-### Pre-Setup ### 
 echo -e "\n##### PRE-SETUP #####\n" 
 sudo chmod +x /home/pi/TideTracker_repo/*.sh
 sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.sh
@@ -76,7 +84,6 @@ echo -e "\n##### END SETUP: PYTHON INSTALL #####\n"
 
 ### Fix NUMPY install
 echo -e "\n##### SETUP: FIX NUMPY INSTALL #####\n" 
-sudo apt-get update
 sudo apt-get install -y libopenblas-dev
 sudo pip3 install --force-reinstall numpy
 ### not executed, may not be neessary ### export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/openblas-base
@@ -110,11 +117,9 @@ echo -e "\n##### SETUP: NOAA PULL AND PLOT LIBS #####\n"
 
 # Installing packages on Raspberry Pi Zero can be time-consuming due to its limited resources. You can try installing precompiled packages to save time:
 sudo apt-get install -y python3-matplotlib
-sudo pip3 install timezonefinder 
 sudo pip3 install timezonefinder # for some reason this one also needs to be sudo
 sudo pip3 install ephem
-sudo pip3 install pytz
-sudo pip3 install pytz # for some reason this one needs sudo
+sudo pip3 install pytz 
 sudo pip3 install scipy
 sudo pip3 install requests
 
@@ -133,6 +138,7 @@ SERVICE_FILE_CONTENT=$(cat <<EOL
 
 [Unit]
 Description=Boot Sense
+After=network.target
 After=final.target
 
 [Service]
@@ -166,6 +172,11 @@ sudo systemctl start "$SERVICE_FILENAME"
 
 echo "Boot service setup complete."
 echo -e "\n##### END SETUP: SET UP SCRIPT TO RUN ON BOOT #####\n" 
+
+
+echo -e "\n##### RUN RPI HEADLESS WIFI SCRIPT #####\n" 
+sudo /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/rpi_headless_wifi_install.sh
+echo -e "\n##### END: RUN RPI HEADLESS WIFI SCRIPT #####\n" 
 
 
 # TODO: edit the cron file (?)

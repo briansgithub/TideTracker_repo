@@ -81,7 +81,8 @@ cd $TOPDIR
 echo "Installing python3-pip ... pip3 required"
 apt-get install -y python3-pip
 
-# Check if python3 and pip installed correctly
+# Check if pythone and pip installed correctly
+
 echo "Checking that python3 and pip are installed..."
 INSTALL_PATH=`which python3`
 if [[ ! -f "$INSTALL_PATH" ]]; then
