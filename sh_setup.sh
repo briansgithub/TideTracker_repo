@@ -50,6 +50,7 @@ echo "dtoverlay=disable-bt" | sudo tee -a "$CONFIG_FILE"
 # Check if running as root
 echo "dtparam=act_led_trigger=none" | sudo tee -a "$CONFIG_FILE" 
 echo "arm_freq=800" | sudo tee -a "$CONFIG_FILE" 
+echo "force_turbo=1" | sudo tee -a "$CONFIG_FILE" 
 #UPDATE THIS: echo "hdmi_blanking=1" | sudo tee -a "$CONFIG_FILE"
 echo "Settings added to $CONFIG_FILE. Reboot for changes to take effect."
 
