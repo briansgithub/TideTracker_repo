@@ -14,8 +14,8 @@ import numpy as np
 
 
 print("BEGINNING")
-DISPLAY_PLOT = True
-#DISPLAY_PLOT = False
+# DISPLAY_PLOT = True
+DISPLAY_PLOT = False
 
 PERIOD = 2 #hours between TPL5110 reloads
 STATIC_TIMEZONE = True #used to set timezone to Fort Myers so get_timezone is averted
@@ -245,14 +245,14 @@ def plot_data(data, now_dtz):
     buffer = BytesIO()
     plt.savefig(buffer, format='png', dpi=600)
     buffer.seek(0)
-    if DISPLAY_PLOT:
-        img = Image.open(buffer)
+    img = Image.open(buffer)
     img = img.resize((800, 480))
     img = img.convert('1') #convert bit-depth from 32 (default) to 1
     img.save("plot_image.bmp") # Waveshare can display either png or bmp as long as they're <= 800x480 pixels
 
+    if DISPLAY_PLOT:
+        img.show()
 
-    img.show()
     img.close()
 
     return
