@@ -77,11 +77,9 @@ TOPDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 TOPDIR+=/..
 cd $TOPDIR
 
-# Installing pip3 and venv..  Raspberry lite does not have them
+# Installing pip3 ..  Raspberry lite does not have them
 echo "Installing python3-pip ... pip3 required"
 apt-get install -y python3-pip
-echo "Installing python3-venv ... vend required" 
-apt-get install -y python3-venv
 
 # Check if python3 and pip installed correctly
 echo "Checking that python3 and pip are installed..."
@@ -99,12 +97,8 @@ fi
 # Remove any existing virtual environment
 rm -fr $TOPDIR/venv
 
-# Create a virtual environment (venv)
-echo "Creating a python virtual environment..."
-python3 -m venv $TOPDIR/venv
-
-    echo "Installing python modules..."
-    pip3 install -r $TOPDIR/config/requirements.txt
+echo "Installing python modules..."
+pip3 install -r $TOPDIR/config/requirements.txt
 
 echo "Done. Reboot and use wifi-connect-headless-rpi to attach to local wifi"
 echo "Look for SSID Rpi-"$(hostname)" on local wifi rounter" 
