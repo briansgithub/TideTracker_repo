@@ -1,6 +1,7 @@
 import os
 import RPi.GPIO as GPIO
 import subprocess
+import time
 
 # Define the GPIO pin you want to monitor
 gpio_pin = 16  # Replace with your GPIO pin number
@@ -16,6 +17,9 @@ update_screen_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '
 
 try:
     if GPIO.input(gpio_pin) == GPIO.HIGH:
+        command = "sudo systemctl start NetworkManager"
+        subprocess.run(command, shell=True)
+        time.sleep(10)
         subprocess.run(['sudo', 'bash', pi_wifi_path])
     else:
         subprocess.run(['python3', get_data_script_path])
