@@ -25,7 +25,7 @@ sudo chmod +x /home/pi/TideTracker_repo/*.sh
 sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.sh
 
 echo -e "\n##### RUN RPI HEADLESS WIFI SCRIPT #####\n" 
-sudo /TideTracker_repo/forked_wifi-connect-headless-rpi\scripts\rpi_headless_wifi_install.sh
+sudo /TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/rpi_headless_wifi_install.sh
 echo -e "\n##### END: RUN RPI HEADLESS WIFI SCRIPT #####\n" 
 
 echo -e "\n##### END: PRE-SETUP #####\n" 
