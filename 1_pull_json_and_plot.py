@@ -14,8 +14,10 @@ import numpy as np
 
 
 print("BEGINNING")
-# DISPLAY_PLOT = True
-DISPLAY_PLOT = False
+DISPLAY_PLOT = True
+# DISPLAY_PLOT = False
+
+YEXTEND = 0.175 # y-axis addition to move labels and extend ylim0 and ylim1 to make room for labels and present data
 
 PERIOD = 2 #hours between TPL5110 reloads
 STATIC_TIMEZONE = True #used to set timezone to Fort Myers so get_timezone is averted
@@ -152,7 +154,7 @@ def plot_data(data, now_dtz):
         # Annotate
         plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'),
                     xy=(x_coord, y_coord),
-                    xytext=(x_coord + delta_x, y_coord + 0.075),  # Adjust text position
+                    xytext=(x_coord + delta_x, y_coord + YEXTEND),  # Adjust text position
                     arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
                     ha='center', va='center', fontsize=8, weight='bold')
 
@@ -173,7 +175,7 @@ def plot_data(data, now_dtz):
         
         plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'),
                     xy=(x_coord, y_coord),
-                    xytext=(x_coord + delta_x, y_coord - 0.075),  # Adjust text position
+                    xytext=(x_coord + delta_x, y_coord - YEXTEND),  # Adjust text position
                     arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
                     ha='center', va='center', fontsize=8, weight='bold')    
 
@@ -256,7 +258,7 @@ def plot_data(data, now_dtz):
     two_hours_later = now_dtz + dt.timedelta(hours=PERIOD)
     present_times = [t for t in filtered_times if now_dtz <= t <= two_hours_later]
     present_values = [v for t, v in zip(filtered_times, filtered_values) if now_dtz <= t <= two_hours_later]
-    plt.plot(present_times, present_values, label='Present Stretch', color='black', linewidth=12)
+    plt.plot(present_times, present_values, label='Present Run', color='black', linewidth=12)
 
     # Draw a Vertical line at current time
     # plt.axvline(now_dtz, 0 , color='r')
@@ -270,7 +272,7 @@ def plot_data(data, now_dtz):
     ylim1 = plt.ylim()[1]
 
     # give the labels some buffer space in the y direction
-    ylim_offset = 0.07  
+    ylim_offset = YEXTEND
 
     # Increase the y-limits by the offset
     plt.ylim(ylim0 - ylim_offset, ylim1 + ylim_offset)
@@ -311,8 +313,8 @@ def plot_data(data, now_dtz):
 
 # Call the function with a specific station_id when the module is run directly
 if __name__ == "__main__":
-    station_id = "8725520" # Ft Myers
-    # station_id = "8738043" # West Fowl River Bridge 
+    # station_id = "8725520" # Ft Myers
+    station_id = "8738043" # West Fowl River Bridge 
 
     city, state, lat, long, zone = get_station_info(station_id)
     
