@@ -14,8 +14,8 @@ import numpy as np
 
 
 print("BEGINNING")
-DISPLAY_PLOT = True
-# DISPLAY_PLOT = False
+# DISPLAY_PLOT = True
+DISPLAY_PLOT = False
 
 PERIOD = 2 #hours between TPL5110 reloads
 STATIC_TIMEZONE = True #used to set timezone to Fort Myers so get_timezone is averted
