@@ -62,6 +62,18 @@ $(function () {
         ev.preventDefault();
     });
 
+    // Example NOAA Station IDs
+    var exampleStationIDs = ["ABC123", "DEF456", "GHI789"];
+
+    // Populate the dropdown with example Station IDs
+    var noaaStationIdDropdown = $("#noaa-station-id");
+    $.each(exampleStationIDs, function (index, value) {
+        noaaStationIdDropdown.append($('<option>', {
+            value: value,
+            text: value
+        }));
+    });
+
     // Move the toggle-password button below the password field and justify it to the right
     var passwordGroup = $("#passphrase-group");
     var passwordInput = $("#password-input");
