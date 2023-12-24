@@ -17,13 +17,14 @@ update_screen_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '
 
 try:
     if GPIO.input(gpio_pin) == GPIO.HIGH:
-        command = "sudo systemctl start NetworkManager"
-        subprocess.run(command, shell=True)
-        time.sleep(10)
-        subprocess.run(['sudo', 'bash', pi_wifi_path])
-    else:
         subprocess.run(['python3', get_data_script_path])
         subprocess.run(['python3', update_screen_path])
+    else:
+        command = "sudo systemctl start NetworkManager"
+        subprocess.run(command, shell=True)
+        time.sleep(15)
+        pi_wifi_path.repla('run.sh','run2.sh')
+        subprocess.run(['sudo', 'bash', pi_wifi_path])
 
 finally:
     # Cleanup GPIO settings
