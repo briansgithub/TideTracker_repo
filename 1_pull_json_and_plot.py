@@ -184,7 +184,7 @@ def plot_data(data, now_dtz):
 
 
 
-    plt.title(f'Tide Predictions for\n{city}, {state}', weight='bold')
+    plt.title(f'NOAA Tide Predictions for\n{city}, {state}', weight='bold')
     # plt.xlabel('Time', fontsize=14, weight='bold')  # Bold x-axis label
 
     plt.ylabel('Deviation from\nAvg. Low Tide', weight='bold')  # Changed y-axis label
