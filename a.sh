@@ -19,6 +19,9 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+sudo chmod +x /home/pi/TideTracker_repo/*.sh
+sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.sh
+
 # Pull from Git
 git pull
 if [ $? -ne 0 ]; then
