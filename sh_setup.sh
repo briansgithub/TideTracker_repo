@@ -104,6 +104,7 @@ sudo apt-get install -y python3-matplotlib
 pip3 install timezonefinder 
 pip3 install ephem
 pip3 install pytz
+pip3 install scipy
 
 ### END SETUP: NOAA PULL AND PLOT LIBS ###
 echo -e "\n##### END SETUP: NOAA PULL AND PLOT LIBS #####\n" 
