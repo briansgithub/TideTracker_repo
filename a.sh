@@ -35,3 +35,5 @@ sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts
 
 # Uncomment the following line if you want to run the Python script
 #python3 0_boot_sense.py
+
+sudo /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/del-run.sh
