@@ -14,8 +14,8 @@ import numpy as np
 
 
 print("BEGINNING")
-# DISPLAY_PLOT = True
-DISPLAY_PLOT = False
+DISPLAY_PLOT = True
+# DISPLAY_PLOT = False
 
 PERIOD = 2 #hours between TPL5110 reloads
 STATIC_TIMEZONE = True #used to set timezone to Fort Myers so get_timezone is averted
@@ -116,25 +116,61 @@ def plot_data(data, now_dtz):
     # plt.plot(all_times, all_values, label='v vs t', color='black')
     plt.plot(filtered_times, filtered_values, label='v vs t', color='black')
 
+    # Set x-axis range to start at 12:00 PM and go to the last time in the list
+    plt.xlim(start_time, filtered_times[-1])
 
+    # Find peaks in the data
     peaks, _ = find_peaks(filtered_values)
     valleys, _ = find_peaks(-np.array(filtered_values))  # Find minima by inverting the values
 
     # Annotate peaks on the plot
+    approx_label_width = dt.timedelta(hours=4.5) # eyeballed from graph
+    # Format x graph limits as datetimes (from foat64 since epoch time)
+    xlim0 = mdates.num2date(plt.xlim()[0],zone)
+    xlim1 = mdates.num2date(plt.xlim()[1],zone)
+
     for peak_index in peaks:
-        plt.annotate(rm_lead_zeros(f'{filtered_times[peak_index]:%I:%M %p}'),
-                    xy=(filtered_times[peak_index], filtered_values[peak_index]),
-                    xytext=(filtered_times[peak_index], filtered_values[peak_index] + 0.05),  # Adjust text position
+        x_coord = filtered_times[peak_index]
+        y_coord = filtered_values[peak_index]
+        
+        delta_x = dt.timedelta(hours=0)
+
+        # Check if the annotation is too close to the left edge
+        if x_coord - approx_label_width/2 < xlim0:  # Adjust timedelta as needed
+            delta_x += approx_label_width/2  # Move the annotation to the right
+
+        # Check if the annotation would be too close to the right edge
+        if x_coord + approx_label_width/2 > xlim1:  # Adjust timedelta as needed
+            delta_x -= approx_label_width/2  # Move the annotation to the left
+            
+        # Annotate
+        plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'),
+                    xy=(x_coord, y_coord),
+                    xytext=(x_coord + delta_x, y_coord + 0.075),  # Adjust text position
                     arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
                     ha='center', va='center', fontsize=8, weight='bold')
 
     # Annotate valleys on the plot
     for valley_index in valleys:
-        plt.annotate(rm_lead_zeros(f'{filtered_times[valley_index]:%I:%M %p}'),
-                    xy=(filtered_times[valley_index], filtered_values[valley_index]),
-                    xytext=(filtered_times[valley_index], filtered_values[valley_index] - 0.05),  # Adjust text position
+        x_coord = filtered_times[valley_index]
+        y_coord = filtered_values[valley_index]
+
+        delta_x = dt.timedelta(hours=0)
+
+        # Check if the annotation is too close to the left edge
+        if x_coord - approx_label_width/2 < xlim0:  # Adjust timedelta as needed
+            delta_x += approx_label_width/2  # Move the annotation to the right
+
+        # Check if the annotation is too close to the right edge
+        if x_coord + approx_label_width/2 > xlim1:  # Adjust timedelta as needed
+            delta_x -= approx_label_width/2  # Move the annotation to the left
+        
+        plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'),
+                    xy=(x_coord, y_coord),
+                    xytext=(x_coord + delta_x, y_coord - 0.075),  # Adjust text position
                     arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
-                    ha='center', va='center', fontsize=8, weight='bold')
+                    ha='center', va='center', fontsize=8, weight='bold')    
+
 
 
     plt.title(f'Tide Predictions for\n{city}, {state}', weight='bold')
@@ -208,8 +244,7 @@ def plot_data(data, now_dtz):
     # This rotates the labels and prevents overlapping 
     plt.gcf().autofmt_xdate(rotation=45)  # Rotate x-axis labels for better visibility
 
-    # Set x-axis range to start at 12:00 PM and go to the last time in the list
-    plt.xlim(start_time, filtered_times[-1])
+
 
     # Overlay additional data points onto the existing plot with a black, solid line and linewidth 12
     two_hours_later = now_dtz + dt.timedelta(hours=PERIOD)
@@ -224,6 +259,16 @@ def plot_data(data, now_dtz):
 
     plt.grid(True)
 
+    # Get the current y-limits
+    ylim0 = plt.ylim()[0]
+    ylim1 = plt.ylim()[1]
+
+    # give the labels some buffer space in the y direction
+    ylim_offset = 0.07  
+
+    # Increase the y-limits by the offset
+    plt.ylim(ylim0 - ylim_offset, ylim1 + ylim_offset)
+
     # Set y-limits to cover the entire range. For shading at night. 
     plt.ylim(plt.gca().get_ylim()[0], plt.gca().get_ylim()[1])
     ### plt.fill_betweenx(y=[plt.gca().get_ylim()[0], plt.gca().get_ylim()[1]], x1=yesterday_sunset, x2=today_sunrise, color='gray', alpha=0.5, label='Shaded Area')
@@ -235,6 +280,7 @@ def plot_data(data, now_dtz):
     plt.fill_betweenx(y=[plt.gca().get_ylim()[0], plt.gca().get_ylim()[1]], x1=today_sunset, x2=tomorrow_sunrise, facecolor='gray', edgecolor='none', label='Shaded Area')
 
     plt.tight_layout()
+
 
     # Format 'bmp' is not supported (supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff, webp)
     # plt.savefig("plot_image.png", dpi=600)
