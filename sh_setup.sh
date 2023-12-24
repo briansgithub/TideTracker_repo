@@ -113,6 +113,7 @@ sudo apt-get install -y python3-matplotlib
 pip3 install timezonefinder 
 pip3 install ephem
 pip3 install pytz
+sudo pip3 install pytz # for some reason this one needs sudo
 pip3 install scipy
 pip3 install requests
 
