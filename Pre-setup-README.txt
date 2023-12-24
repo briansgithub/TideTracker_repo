@@ -8,7 +8,7 @@ In order to execute setup scripts, you need to make them exeutable
     chmod +x *.sh
     chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.sh
     
-
+Try running 0_boot_sense.py at least once because "Matplotlib is building the font cache; this may take a moment" 
 
 Run the setup script: sh1_setup.sh
 Run the sh2_setup_on-boot-service.sh script (Do NOT run with sudo)
