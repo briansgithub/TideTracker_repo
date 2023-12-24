@@ -90,10 +90,10 @@ echo -e "\n##### SETUP: E-INK #####\n"
 sudo apt-get install -y python3-pil # Python Imaging Library, pillow library 	
 
 # sudo apt-get install -y libopenblas-dev # needed to fix numpy 
-# pip3 install --force-reinstall numpy
+# sudo pip3 install --force-reinstall numpy
 
-pip3 install RPi.GPIO
-pip3 install spidev
+sudo pip3 install RPi.GPIO
+sudo pip3 install spidev
 
 # Enable SPI, code according to ChatGPT
 echo -e "\n##### SETUP: ENABLE SPI (4-wire) #####\n" 
@@ -110,13 +110,13 @@ echo -e "\n##### SETUP: NOAA PULL AND PLOT LIBS #####\n"
 
 # Installing packages on Raspberry Pi Zero can be time-consuming due to its limited resources. You can try installing precompiled packages to save time:
 sudo apt-get install -y python3-matplotlib
-pip3 install timezonefinder 
+sudo pip3 install timezonefinder 
 sudo pip3 install timezonefinder # for some reason this one also needs to be sudo
-pip3 install ephem
-pip3 install pytz
+sudo pip3 install ephem
+sudo pip3 install pytz
 sudo pip3 install pytz # for some reason this one needs sudo
-pip3 install scipy
-pip3 install requests
+sudo pip3 install scipy
+sudo pip3 install requests
 
 ### END SETUP: NOAA PULL AND PLOT LIBS ###
 echo -e "\n##### END SETUP: NOAA PULL AND PLOT LIBS #####\n" 
