@@ -116,39 +116,6 @@ if [[ "$OSTYPE" == "linux"* ]]; then
     deactivate
 fi
 
-echo "crontab replacement"
-
-# Define the filename
-tmpfile='tempfile.txt'
-
-#echo $TOPDIR
-
-# read the current crontab (run in sudo mode)
-crontab -l > $tmpfile
-
-# test if the crontab does not already have run.sh script 
-# if the install script was performed twice, the crontab may already have the script installed. 
-cat $tmpfile | grep run.sh
-
-if [[ $? == 1 ]]; then
-    echo "updating the crontab with this line:"
-    # create the string
-    String='@reboot sleep 15 && '
-    String+=$TOPDIR
-    String+='/scripts/run.sh'
-
-    # print the line
-    echo $String
-
-    echo $String >> $tmpfile
- 
-    crontab $tmpfile
-else
-    echo "crontab already updated"
-fi
-
-rm  $tmpfile
-
 echo "Done. Reboot and use wifi-connect-headless-rpi to attach to local wifi"
 echo "Look for SSID Rpi-"$(hostname)" on local wifi rounter" 
 
