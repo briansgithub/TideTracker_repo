@@ -73,13 +73,19 @@ def fetch_NOAA_data(station_id, date):
     INTERVAL_MINUTES = 10
     yesterday_date_string = date.strftime("%Y%m%d")
 
-    # Modify the URL with yesterday's date and the station ID variable
-    url = f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date={yesterday_date_string}&range={RANGE_HOURS}&product=predictions&datum={DATUM}&interval={INTERVAL_MINUTES}&format=json&units=english&time_zone=lst_ldt&station={station_id}"
+    try:
+        # Modify the URL with yesterday's date and the station ID variable
+        url = f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date={yesterday_date_string}&range={RANGE_HOURS}&product=predictions&datum={DATUM}&interval={INTERVAL_MINUTES}&format=json&units=english&time_zone=lst_ldt&station={station_id}"
 
-    # Retrieve data from the URL
-    response = requests.get(url)
+        # Retrieve data from the URL
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+
+        return response.json()
     
-    return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching NOAA data: {e}")
+        return None
 
 def plot_data(data, now_dtz):
      # Extract time and value data. strptime converts string to datetime
