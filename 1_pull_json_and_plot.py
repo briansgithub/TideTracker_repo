@@ -75,7 +75,13 @@ def get_station_info(station_id):
 def fetch_NOAA_data(station_id, date):
     RANGE_HOURS = 60
     DATUM = "mllw"
-    INTERVAL_MINUTES = 10
+    # NOAA: https://api.tidesandcurrents.noaa.gov/api/prod/
+        #   "...all internet data services have limits on the amount/length 
+        #   of data which can be retrieved per request."
+        # 1-minute interval data	Data length is limited to 4 days
+        # 6-minute interval data	Data length is limited to 1 month
+        # Hourly interval data	    Data length is limited to 1 year
+    INTERVAL_MINUTES = 5
     yesterday_date_string = date.strftime("%Y%m%d")
 
     try:
