@@ -128,7 +128,7 @@ SERVICE_FILE_CONTENT=$(cat <<EOL
 
 [Unit]
 Description=Boot Sense
-After=basic.target
+After=network-online.target
 
 [Service]
 ExecStart=/usr/bin/python3 /home/pi/TideTracker_repo/0_boot_sense.py
