@@ -128,7 +128,7 @@ SERVICE_FILE_CONTENT=$(cat <<EOL
 
 [Unit]
 Description=Boot Sense
-After=multi-user.target
+After=final.target
 
 [Service]
 ExecStart=/usr/bin/python3 /home/pi/TideTracker_repo/0_boot_sense.py
@@ -139,6 +139,9 @@ WantedBy=multi-user.target
 
 EOL
 )
+
+### After=multi-user.target
+### After=network-online.target
 
 SERVICE_FILENAME="0_boot_sense.service"
 SYSTEMD_PATH="/etc/systemd/system/"
