@@ -14,8 +14,8 @@ import numpy as np
 
 
 print("BEGINNING")
-# DISPLAY_PLOT = True
 DISPLAY_PLOT = False
+DISPLAY_PLOT = True
 
 YEXTEND = 0.175 # y-axis addition to move labels and extend ylim0 and ylim1 to make room for labels and present data
 
@@ -184,7 +184,7 @@ def plot_data(data, now_dtz):
 
 
 
-    plt.title(f'NOAA Tide Predictions for\n{city}, {state}', weight='bold')
+    plt.title(f'Tide Predictions for\n{city}, {state}', weight='bold')
     # plt.xlabel('Time', fontsize=14, weight='bold')  # Bold x-axis label
 
     plt.ylabel('Deviation from\nAvg. Low Tide', weight='bold')  # Changed y-axis label
