@@ -11,7 +11,8 @@ from matplotlib.ticker import FuncFormatter
 import os
 
 print("BEGINNING")
-DISPLAY_PLOT = False
+DISPLAY_PLOT = True
+#DISPLAY_PLOT = False
 
 PERIOD = 2 #hours between TPL5110 reloads
 STATIC_TIMEZONE = True #used to set timezone to Fort Myers so get_timezone is averted
@@ -88,6 +89,21 @@ def fetch_NOAA_data(station_id, date):
         print(f"Error fetching NOAA data: {e}")
         return None
 
+# Define custom formatting function
+def custom_x_axis_label_format(value, _):
+    # Convert numeric value to datetime object
+    datetime_obj = mdates.num2date(value).replace(tzinfo=zone)
+    
+    # Check if the hour is equal to zero
+    if datetime_obj.hour == 0:
+        # Format the label with '%b. %d\n%I:%M %p' for midnight
+        formatted_label = mdates.DateFormatter('%b. %d\n%I:%M %p', tz=zone).strftime(datetime_obj)
+    else:
+        # Format the label with '%I:%M %p' for other hours
+        formatted_label = mdates.DateFormatter('%I:%M %p', tz=zone).strftime(datetime_obj)
+    
+    return formatted_label
+
 def plot_data(data, now_dtz):
      # Extract time and value data. strptime converts string to datetime
     all_times = [dt.datetime.strptime(entry['t'], '%Y-%m-%d %H:%M') for entry in data['predictions']]
@@ -115,18 +131,61 @@ def plot_data(data, now_dtz):
         rounded_value = round(value, 1)
         return f"{rounded_value} ft."
     plt.gca().yaxis.set_major_formatter(FuncFormatter(add_ft_label))
-
-    # This sets the printed format of the x-axis labels
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%b. %d\n%I:%M %p', tz=zone))
     
+    
+    def custom_x_axis_major_label_format(value, _):
+        # Custom format definition taken directly from mdates.DateFormatter() definition.
+
+        value_datetime = mdates.num2date(value, zone)
+        if (value_datetime.hour == 0 or value_datetime.hour == 12) and value_datetime.minute == 0:
+            result = value_datetime.strftime('%b. %d\n%I:%M %p').replace("\n0", "\n")
+        else:
+            result = value_datetime.strftime('%I:%M %p').replace("\n0", "\n")
+
+        return result
+    plt.gca().xaxis.set_major_formatter(FuncFormatter(custom_x_axis_major_label_format))
+
+
+    ### This will not work.
+    '''
+    major_tick_labels = plt.gca().xaxis.get_majorticklabels()
+    for label in major_tick_labels:
+        print(label)
+    '''
+    # See https://stackoverflow.com/questions/11244514/modify-tick-label-text
+    
+    ### date_formatter = mdates.DateFormatter('%b. %d\n%I:%M %p', tz=zone)
+    ### plt.gca().xaxis.set_major_formatter(date_formatter)
+ 
+
+    # Set x-axis minor tick labels format
+    
+    def custom_x_axis_minor_label_format(value, _):
+    # Custom format definition taken directly from mdates.DateFormatter() definition.
+        value_datetime = mdates.num2date(value, zone)
+        result = value_datetime.strftime('%I').replace('01','1').replace('02','2').replace('03','3').replace('04','4').replace('05','5').replace('06','6').replace('07','7').replace('08','8').replace('09','9')
+
+        return result
+    ### plt.gca().xaxis.set_minor_formatter(FuncFormatter(custom_x_axis_minor_label_format))
+    
+    # Set x-axis minor tick labels to be bold - may be broken
+    # Doesn't work
+    '''
+    for label in plt.gca().xaxis.get_minorticklabels():
+        label.set_weight('bold')
+        label.set_rotation(45)  # Adjust the rotation angle as needed for better visibility
+        label.set_fontsize(4) 
+    '''
+
     # This (probably) ensures that the x-axis is labeled in 6-hour increments. (Although this probably happens automatically)
     plt.gca().xaxis.set_major_locator(mdates.HourLocator(interval=6))  # Show every 6 hours
 
-    # TODO: maybe insert a custom x-axis label formatting function so the date only shows if it's a new day
-
-    
     # Set x-axis minor locator to show ticks every 3 hours
     plt.gca().xaxis.set_minor_locator(mdates.HourLocator(interval=2))
+
+    plt.gca().tick_params(axis='x', which='major', size=9)
+    plt.gca().tick_params(axis='x', which='minor', size=4)
+ 
 
     # Set x-axis labels to bold
     for label in plt.gca().xaxis.get_majorticklabels():
