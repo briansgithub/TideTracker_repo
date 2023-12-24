@@ -111,6 +111,7 @@ echo -e "\n##### SETUP: NOAA PULL AND PLOT LIBS #####\n"
 # Installing packages on Raspberry Pi Zero can be time-consuming due to its limited resources. You can try installing precompiled packages to save time:
 sudo apt-get install -y python3-matplotlib
 pip3 install timezonefinder 
+sudo pip3 install timezonefinder # for some reason this one also needs to be sudo
 pip3 install ephem
 pip3 install pytz
 sudo pip3 install pytz # for some reason this one needs sudo
