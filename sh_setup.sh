@@ -74,12 +74,22 @@ echo -e "\n##### END SETUP: PYTHON INSTALL #####\n"
 ###  END SETUP: INSTALL PYTHON###
 
 
+### Fix NUMPY install
+echo -e "\n##### SETUP: FIX NUMPY INSTALL #####\n" 
+sudo apt-get update
+sudo apt-get install -y libopenblas-dev
+sudo pip3 install --force-reinstall numpy
+### not executed, may not be neessary ### export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/openblas-base
+echo -e "\n##### END SETUP: FIX NUMPY INSTALL #####\n" 
+
+
 
 ### SETUP: E-INK SETUP ###
 echo -e "\n##### SETUP: E-INK #####\n" 
 
 sudo apt-get install -y python3-pil # Python Imaging Library, pillow library 	
 
+# sudo apt-get install -y libopenblas-dev # needed to fix numpy 
 # pip3 install --force-reinstall numpy
 
 pip3 install RPi.GPIO
@@ -107,14 +117,6 @@ pip3 install scipy
 
 ### END SETUP: NOAA PULL AND PLOT LIBS ###
 echo -e "\n##### END SETUP: NOAA PULL AND PLOT LIBS #####\n" 
-
-
-### Fix NUMPY install
-echo -e "\n##### FIX NUMPY INSTALL #####\n" 
-sudo apt-get update
-sudo apt-get install -y libopenblas-dev
-sudo pip3 install --force-reinstall numpy
-### not executed, may not be neessary ### export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/openblas-base
 
 
 
