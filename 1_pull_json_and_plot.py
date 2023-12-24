@@ -313,8 +313,8 @@ def plot_data(data, now_dtz):
 
 # Call the function with a specific station_id when the module is run directly
 if __name__ == "__main__":
-    # station_id = "8725520" # Ft Myers
-    station_id = "8738043" # West Fowl River Bridge 
+    station_id = "8725520" # Ft Myers
+    # station_id = "8738043" # West Fowl River Bridge 
 
     city, state, lat, long, zone = get_station_info(station_id)
     
