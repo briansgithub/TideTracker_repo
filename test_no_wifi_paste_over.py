@@ -19,6 +19,8 @@ import traceback
 
 logging.info("epd7in5_V2 Paste over")
 epd = epd7in5_V2.EPD()
+epd.init()
+
 
 logging.info("Paste error message over screen window")
 err_img =  Image.open(os.path.join(maindir, 'plot_image.bmp'))
