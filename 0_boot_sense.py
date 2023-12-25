@@ -34,6 +34,10 @@ import os
 from scipy.signal import find_peaks
 import numpy as np
 
+<<<<<<< HEAD
+=======
+plot_tides_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '1_pull_json_and_plot.py')
+>>>>>>> parent of b716228 (Try executing the python command from a bash script)
 
 print("BEGINNING")
 DISPLAY_PLOT = True
@@ -50,6 +54,7 @@ def get_timezone(latitude, longitude):
     if(STATIC_TIMEZONE):
         return pytz.timezone('US/Eastern') #Fort Myers
     else:
+<<<<<<< HEAD
         tf = TimezoneFinder()
         timezone_str = tf.timezone_at(lng=longitude, lat=latitude)
         
@@ -425,6 +430,14 @@ if __name__== "__main__":
             subprocess.run(['sudo', 'bash', auto_run_wifi_path], check=True)
 
             main()
+=======
+        time.sleep(15)
+        print(f"-------- Running the wifi script located at:\n\t{auto_run_wifi_path} ---------")
+        subprocess.run(['sudo', 'bash', auto_run_wifi_path], check=True)
+        time.sleep(1)
+        print(f"--------- \nRunning the tides script located at:\n\t{plot_tides_path} ---------")
+        subprocess.run(['sudo', 'python3', plot_tides_path], check=True)
+>>>>>>> parent of b716228 (Try executing the python command from a bash script)
 
     finally:
         # Cleanup GPIO settings
