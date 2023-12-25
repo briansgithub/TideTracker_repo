@@ -30,7 +30,7 @@ err_img = Image.open(os.path.join(maindir, 'no_wifi.bmp'))
 err_img = plot_image.paste(err_img, (int(epd.width/2), int(epd.height/2)))
 
 err_img = plot_image.transpose(Image.ROTATE_180)
-err_img = plot_image
+
 epd.display(epd.getbuffer(err_img))
 
 logging.info("EPD Go to Sleep...")
