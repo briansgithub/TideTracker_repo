@@ -21,15 +21,13 @@ logging.info("epd7in5_V2 Paste over")
 epd = epd7in5_V2.EPD()
 epd.init()
 
+plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
+plot_image = plot_image.transpose(Image.ROTATE_180)
 
 logging.info("Paste error message over screen window")
-err_img =  Image.open(os.path.join(maindir, 'plot_image.bmp'))
-print(os.path.join(maindir, 'plot_image.bmp'))
-bmp = Image.open(os.path.join(maindir, 'no_wifi.bmp'))
-plot_image = err_img.transpose(Image.ROTATE_180)
 
-
-err_img.paste(bmp)
+err_img = Image.open(os.path.join(maindir, 'no_wifi.bmp'))
+err_img.paste(err_img)
 epd.display(epd.getbuffer(err_img))
 
 logging.info("EPD Go to Sleep...")
