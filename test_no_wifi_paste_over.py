@@ -27,7 +27,7 @@ plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
 logging.info("Paste error message over screen window")
 
 err_img = Image.open(os.path.join(maindir, 'no_wifi.bmp'))
-err_img = plot_image.paste(err_img)
+err_img = plot_image.paste(err_img, (epd.width/2, epd.height/2))
 
 err_img = plot_image.transpose(Image.ROTATE_180)
 err_img = plot_image
