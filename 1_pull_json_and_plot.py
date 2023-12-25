@@ -15,7 +15,7 @@ import numpy as np
 
 print("BEGINNING")
 DISPLAY_PLOT = False
-DISPLAY_PLOT = True
+# DISPLAY_PLOT = True
 
 YEXTEND = 0.175 # y-axis addition to move labels and extend ylim0 and ylim1 to make room for labels and present data
 
