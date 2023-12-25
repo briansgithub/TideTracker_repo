@@ -18,6 +18,7 @@ auto_run_wifi_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '
 
     tides_exec_script_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'run_tides.sh')
 
+<<<<<<< HEAD
     try:
         pin_state = GPIO.input(gpio_pin)
         print(f"\n\nGPIO Pin BCM# {gpio_pin} is {pin_state}\n")
@@ -33,6 +34,23 @@ auto_run_wifi_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '
             subprocess.run(['sudo', 'bash', auto_run_wifi_path], check=True)
 
             main()
+=======
+try:
+    pin_state = GPIO.input(gpio_pin)
+    print(f"GPIO Pin BMC# {gpio_pin} is {pin_state}")
+    if pin_state == GPIO.HIGH:
+        
+        command = "sudo systemctl start NetworkManager"
+        subprocess.run(command, shell=True, check=True)
+        time.sleep(15)
+        subprocess.run(['sudo', 'bash', auto_run_wifi_path], check=True)
+    else:
+        print(f"\nRunning the wifi script located at:\n\t{auto_run_wifi_path}\n\t")
+        subprocess.run(['sudo', 'bash', auto_run_wifi_path], check=True)
+
+        print(f"\nRunning the tides script located at:\n\t{plot_tides_path}\n\t")
+        subprocess.run(['sudo', 'python3', plot_tides_path], check=True)
+>>>>>>> parent of c9a07fb (Add sleep steps to the boot sense launcher)
 
 finally:
     # Cleanup GPIO settings
