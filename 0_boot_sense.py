@@ -23,8 +23,11 @@ try:
         time.sleep(15)
         subprocess.run(['sudo', 'bash', auto_run_wifi_path], check=True)
     else:
+        print(f"\nRunning the wifi script located at:\n\t{auto_run_wifi_path}\n\t")
         subprocess.run(['sudo', 'bash', auto_run_wifi_path], check=True)
-        subprocess.run(['python3', plot_tides_path], check=True)
+
+        print(f"\nRunning the tides script located at:\n\t{plot_tides_path}\n\t")
+        subprocess.run(['sudo', 'python3', plot_tides_path], check=True)
 
 finally:
     # Cleanup GPIO settings
