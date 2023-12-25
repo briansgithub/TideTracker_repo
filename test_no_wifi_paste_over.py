@@ -26,10 +26,10 @@ Himage2 = Image.new('1', (epd.width, epd.height), 255)  # 255: clear the frame
 plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
 logging.info("Paste error message over screen window")
 
-# err_img = Image.open(os.path.join(maindir, 'no_wifi.bmp'))
-# err_img = plot_image.paste(err_img)
+err_img = Image.open(os.path.join(maindir, 'no_wifi.bmp'))
+err_img = plot_image.paste(err_img)
 
-# err_img = plot_image.transpose(Image.ROTATE_180)
+err_img = plot_image.transpose(Image.ROTATE_180)
 err_img = plot_image
 epd.display(epd.getbuffer(err_img))
 
