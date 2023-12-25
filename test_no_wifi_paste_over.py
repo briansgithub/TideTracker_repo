@@ -22,6 +22,7 @@ epd = epd7in5_V2.EPD()
 
 logging.info("Paste error message over screen window")
 err_img =  Image.open(os.path.join(maindir, 'plot_image.bmp'))
+print(os.path.join(maindir, 'plot_image.bmp'))
 bmp = Image.open(os.path.join(maindir, 'no_wifi.bmp'))
 plot_image = err_img.transpose(Image.ROTATE_180)
 
