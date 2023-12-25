@@ -16,7 +16,7 @@ auto_run_wifi_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '
 # delete_and_change_wifi_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'forked_wifi-connect-headless-rpi', 'scripts', 'del-run.sh')
 # NEVER use -d to delete the wifi!? The wifi portal code seems to never autoconnect to wifi normally again after that
 
-plot_tides_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '1_pull_json_and_plot.py')
+tides_exec_script_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'run_tides.sh')
 
 try:
     pin_state = GPIO.input(gpio_pin)
@@ -31,9 +31,9 @@ try:
         time.sleep(15)
         print(f"-------- Running the wifi script located at:\n\t{auto_run_wifi_path} ---------")
         subprocess.run(['sudo', 'bash', auto_run_wifi_path], check=True)
-        time.sleep(1)
-        print(f"--------- \nRunning the tides script located at:\n\t{plot_tides_path} ---------")
-        subprocess.run(['sudo', 'python3', plot_tides_path], check=True)
+
+        print(f"--------- \nRunning the tides script located at:\n\t{tides_exec_script_path} ---------")
+        subprocess.run(['sudo', 'bash', tides_exec_script_path], check=True)
 
 finally:
     # Cleanup GPIO settings
