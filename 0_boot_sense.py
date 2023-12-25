@@ -17,7 +17,10 @@ delete_and_change_wifi_path = os.path.join(os.path.dirname(os.path.realpath(__fi
 plot_tides_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '1_pull_json_and_plot.py')
 
 try:
-    if GPIO.input(gpio_pin) == GPIO.HIGH:
+    pin_state = GPIO.input(gpio_pin)
+    print(f"GPIO Pin BMC# {gpio_pin} is {pin_state}")
+    if pin_state == GPIO.HIGH:
+        
         command = "sudo systemctl start NetworkManager"
         subprocess.run(command, shell=True, check=True)
         time.sleep(15)
