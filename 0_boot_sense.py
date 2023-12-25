@@ -34,6 +34,6 @@ try:
         print(f"\nRunning the tides script located at:\n\t{plot_tides_path}\n\t")
         subprocess.run(['sudo', 'python3', plot_tides_path], check=True)
 
-    finally:
-        # Cleanup GPIO settings
-        GPIO.cleanup()
+finally:
+    # Cleanup GPIO settings
+    GPIO.cleanup()
