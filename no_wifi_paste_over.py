@@ -30,11 +30,11 @@ paste_x = int((plot_width - err_width) / 2)
 paste_y = int((plot_height - err_height) / 2)
 
 
-err_img = plot_image.paste(err_img, (paste_x, paste_y))
+final_image = plot_image.paste(err_img, (paste_x, paste_y))
 
-err_img = plot_image.transpose(Image.ROTATE_180)
+final_image = final_image.transpose(Image.ROTATE_180)
 
-epd.display(epd.getbuffer(err_img))
+epd.display(epd.getbuffer(final_image))
 
 logging.info("EPD Go to Sleep...")
 epd.sleep() 
