@@ -34,7 +34,6 @@ paste_y = int((plot_height - err_height) / 2)
 
 
 err_img = plot_image.paste(err_img, (paste_x, paste_y))
-# err_img = plot_image.paste(err_img, (int(epd.width/2), int(epd.height/2)))
 
 err_img = plot_image.transpose(Image.ROTATE_180)
 
