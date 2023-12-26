@@ -5,6 +5,12 @@ import sys
 import os
 from PIL import Image
 import logging
+
+libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'e-ink_lib')
+maindir = os.path.dirname(os.path.realpath(__file__))
+if os.path.exists(libdir):
+    sys.path.append(libdir)
+
 from waveshare_epd import epd7in5_V2
 
 def main(image_path):
