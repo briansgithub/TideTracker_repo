@@ -29,7 +29,6 @@ sudo chmod +x /home/pi/TideTracker_repo/*.sh
 sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.sh
 
 sudo chmod +x /home/pi/TideTracker_repo/*.py
-sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.py
 
 # Uncomment the following line if you want to run the Python script
 #python3 0_boot_sense.py
