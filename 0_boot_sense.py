@@ -39,15 +39,17 @@ try:
         subprocess.run(command, shell=True, check=True)
 
         time.sleep(15) # wait some time for the system to initialize/stabilize
-        subprocess.run(['sudo', 'bash', auto_run_wifi_script_path], check=True)
+        exit_code = subprocess.run(['sudo', 'bash', auto_run_wifi_script_path], check=True)
     else:
-        time.sleep(5)
+        time.sleep(15)
         if netman.have_active_internet_connection():
             print(f"--------- \nRunning the tides script located at:\n\t{plot_tides_script_path} ---------")
-            subprocess.run(['sudo', 'python3', plot_tides_script_path], check=True)
+            exit_code = subprocess.run(['sudo', 'python3', plot_tides_script_path], check=True)
         else: 
-            subprocess.run(['sudo', 'python3', no_wifi_errors_script_path], check=True)
+            print(f"--------- \nRunning the no-wifi script :\n\t{plot_tides_script_path} ---------")
+            exit_code = subprocess.run(['sudo', 'python3', no_wifi_errors_script_path], check=True)
 
+print(f"\nExit code: {exit_code}\n")
 except GPIOError as e:
     print(f"GPIO error: {e}")
 except subprocess.CalledProcessError as e:
