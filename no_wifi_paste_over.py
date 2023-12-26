@@ -1,9 +1,6 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 
-#!/usr/bin/python
-# -*- coding:utf-8 -*-
-
 import sys
 import os
 libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'e-ink_lib')
