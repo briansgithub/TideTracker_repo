@@ -25,7 +25,7 @@ try:
         
         command = "sudo systemctl start NetworkManager"
         subprocess.run(command, shell=True, check=True)
-        time.sleep(15)
+        time.sleep(15) # wait some time for the system to initialize/stabilize
         subprocess.run(['sudo', 'bash', auto_run_wifi_path], check=True)
     else:
         time.sleep(15)
