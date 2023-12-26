@@ -141,7 +141,7 @@ echo -e "\n##### SETUP: RUN SCRIPT ON BOOT - WRITE TO THE CRON TAB FILE #####\n"
 # open the crontab in a text editor with "crontab -e"
 
 # Add cron job to the file
-(crontab -l; echo "@reboot /home/pi/TideTracker_repo/script_to_run_on_boot.sh") | sort -u | crontab -
+(crontab -l; echo "@reboot sleep 50 && /home/pi/TideTracker_repo/script_to_run_on_boot.sh") | sort -u | crontab -
 
 echo -e "\n##### END SETUP: RUN SCRIPT ON BOOT - WRITE TO THE CRON TAB FILE #####\n" 
 

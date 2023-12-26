@@ -35,13 +35,16 @@ try:
     print(f"\n\nGPIO Pin BCM# {gpio_pin} is {pin_state}\n")
     if pin_state == GPIO.HIGH:
         
-        command = "sudo systemctl start NetworkManager"
-        subprocess.run(command, shell=True, check=True)
+        ### command = "sudo systemctl start NetworkManager"
+        ### subprocess.run(command, shell=True, check=True)
 
-        time.sleep(15) # wait some time for the system to initialize/stabilize
+        # sleep time removed. Cron job set to start 50s after boot
+
         exit_code = subprocess.run(['sudo', 'bash', auto_run_wifi_script_path], check=True)
     else:
-        time.sleep(15)
+
+        # sleep time removed. Cron job set to start 50s after boot
+        
         if netman.have_active_internet_connection():
             print(f"--------- \nRunning the tides script located at:\n\t{plot_tides_script_path} ---------")
             exit_code = subprocess.run(['sudo', 'python3', plot_tides_script_path], check=True)
@@ -49,7 +52,6 @@ try:
             print(f"--------- \nRunning the no-wifi script :\n\t{plot_tides_script_path} ---------")
             exit_code = subprocess.run(['sudo', 'python3', no_wifi_errors_script_path], check=True)
 
-print(f"\nExit code: {exit_code}\n")
 except GPIOError as e:
     print(f"GPIO error: {e}")
 except subprocess.CalledProcessError as e:
@@ -62,3 +64,5 @@ except Exception as e:
 finally:
     # Cleanup GPIO settings
     GPIO.cleanup()
+
+print(f"\nExit code: {exit_code}\n")
