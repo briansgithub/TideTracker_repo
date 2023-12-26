@@ -21,6 +21,3 @@ except netman.InternetConnectionError as e:
 except Exception as e:
     print(f"An unexpected error occurred: {e}")
 
-finally:
-    # Cleanup GPIO settings
-    # close the hotspot and dns mask?
