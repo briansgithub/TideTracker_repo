@@ -316,7 +316,7 @@ def plot_data(data, now_dtz):
     # plt.savefig("plot_image.png", dpi=600)
     # plt.show()
 
-    # use a buffer to save plt.savefig to instead of to a file to reduce wear on the microSD card)
+    # use a buffer to save plt.savefig to instead of to a file (to reduce wear on the microSD card; and mitigage file path issues...)
     from io import BytesIO
     buffer = BytesIO()
     plt.savefig(buffer, format='png', dpi=600)
@@ -324,7 +324,8 @@ def plot_data(data, now_dtz):
     img = Image.open(buffer)
     img = img.resize((800, 480))
     img = img.convert('1') #convert bit-depth from 32 (default) to 1
-    img.save("plot_image.bmp") # Waveshare can display either png or bmp as long as they're <= 800x480 pixels
+    img.save(os.path.join(maindir, 'plot_image.bmp')) # Waveshare can display either png or bmp as long as they're <= 800x480 pixels
+
 
     if DISPLAY_PLOT:
         img.show()
