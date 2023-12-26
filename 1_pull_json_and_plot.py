@@ -358,7 +358,7 @@ if __name__ == "__main__":
         epd = epd7in5_V2.EPD()
         ### logging.info("\ninit and Clear\n")
         epd.init()
-        ### epd.Clear()
+        epd.Clear()
 
         logging.info("\nDisplaying the .bmp on the e-ink display)\n")
         plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
