@@ -17,10 +17,10 @@ epd = epd7in5_V2.EPD()
 epd.init()
 
 logging.info("Paste error message over screen window")
-plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
+plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp')).convert("RGB")
 plot_image = plot_image.transpose(Image.ROTATE_180)
 
-error_image = Image.open(os.path.join(maindir, 'Untitled.bmp'))
+error_image = Image.open(os.path.join(maindir, 'no_wifi.bmp')).convert("RGB")
 error_image = error_image.transpose(Image.ROTATE_180)
 
 
@@ -31,11 +31,8 @@ plot_width, plot_height = plot_image.size
 paste_x = int((plot_width - err_width) / 2)
 paste_y = int((plot_height - err_height) / 2)
 
-# Ensure both images have the same mode and size
-overlay = error_image.convert("RGBA")
-overlay = error_image.resize(plot_image.size, Image.ANTIALIAS)
 
-plot_image.paste(overlay, (paste_x, paste_y))
+plot_image.paste(error_image, (paste_x, paste_y))
 
 epd.display(epd.getbuffer(plot_image))
 
