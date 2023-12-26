@@ -130,17 +130,7 @@ echo -e "\n##### END SETUP: NOAA PULL AND PLOT LIBS #####\n"
 
 
 
-echo -e "\n##### SETUP: SET UP SCRIPT TO RUN ON BOOT #####\n" 
-
-# boot service removed. Changing to cron 
-
-echo -e "\n##### END SETUP: SET UP SCRIPT TO RUN ON BOOT #####\n" 
-
-
-echo -e "\n##### SETUP RUN RPI HEADLESS WIFI SCRIPT #####\n" 
-sudo /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/rpi_headless_wifi_install.sh
-echo -e "\n##### END SETUP: RUN RPI HEADLESS WIFI SCRIPT #####\n" 
-
+# Creating a boot service wasn't working, so changing to cron 
 
 echo -e "\n##### SETUP: RUN SCRIPT ON BOOT - WRITE TO THE CRON TAB FILE #####\n" 
 # Make cron file and edit it (?)
@@ -154,6 +144,14 @@ echo -e "\n##### SETUP: RUN SCRIPT ON BOOT - WRITE TO THE CRON TAB FILE #####\n"
 (crontab -l; echo "@reboot /home/pi/TideTracker_repo/script_to_run_on_boot.sh") | sort -u | crontab -
 
 echo -e "\n##### END SETUP: RUN SCRIPT ON BOOT - WRITE TO THE CRON TAB FILE #####\n" 
+
+
+
+echo -e "\n##### SETUP RUN RPI HEADLESS WIFI SCRIPT #####\n" 
+sudo /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/rpi_headless_wifi_install.sh
+### The wifi portal run.sh code must be performed after a reboot!
+### sudo /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh
+echo -e "\n##### END SETUP: RUN RPI HEADLESS WIFI SCRIPT #####\n" 
 
 
 sudo reboot
