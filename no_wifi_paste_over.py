@@ -13,9 +13,7 @@ if os.path.exists(libdir):
 
 import logging
 from waveshare_epd import epd7in5_V2
-import time
-from PIL import Image,ImageDraw,ImageFont
-import traceback
+from PIL import Image
 
 logging.info("epd7in5_V2 Paste over")
 epd = epd7in5_V2.EPD()
@@ -28,10 +26,9 @@ logging.info("Paste error message over screen window")
 
 err_img = Image.open(os.path.join(maindir, 'no_wifi.bmp'))
 
-
+# Draw image in center of screen
 err_width, err_height = err_img.size
 plot_width, plot_height = plot_image.size
-
 # Calculate the coordinates for the top-left corner to paste in the center
 paste_x = int((plot_width - err_width) / 2)
 paste_y = int((plot_height - err_height) / 2)
