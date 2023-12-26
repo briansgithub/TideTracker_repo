@@ -60,5 +60,7 @@ except Exception as e:
 finally:
     # Cleanup GPIO settings
     GPIO.cleanup()
+    # call function to geracefully stop the wifi hotspot? 
+    # httpserver.py cleanup() ?
 
 print(f"\nExit code: {exit_code}\n")
