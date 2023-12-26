@@ -18,6 +18,8 @@ from PIL import Image
 logging.info("epd7in5_V2 Paste over")
 epd = epd7in5_V2.EPD()
 epd.init()
+epd.Clear()
+
 
 Himage2 = Image.new('1', (epd.width, epd.height), 255)  # 255: clear the frame
 
