@@ -17,9 +17,6 @@ epd = epd7in5_V2.EPD()
 epd.init()
 epd.Clear()
 
-
-Himage2 = Image.new('1', (epd.width, epd.height), 255)  # 255: clear the frame
-
 plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
 logging.info("Paste error message over screen window")
 
