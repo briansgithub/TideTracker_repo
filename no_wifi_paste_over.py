@@ -31,7 +31,11 @@ plot_width, plot_height = plot_image.size
 paste_x = int((plot_width - err_width) / 2)
 paste_y = int((plot_height - err_height) / 2)
 
-plot_image.paste(error_image, (paste_x, paste_y))
+# Ensure both images have the same mode and size
+overlay = error_image.convert("RGBA")
+overlay = error_image.resize(plot_image.size, Image.ANTIALIAS)
+
+plot_image.paste(overlay, (paste_x, paste_y))
 
 epd.display(epd.getbuffer(plot_image))
 
