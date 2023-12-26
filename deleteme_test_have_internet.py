@@ -1,4 +1,4 @@
-import os
+#!/usr/bin/python
 import RPi.GPIO as GPIO
 import subprocess
 import sys

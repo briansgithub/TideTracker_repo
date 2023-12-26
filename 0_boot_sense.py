@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import os
 import RPi.GPIO as GPIO
 import subprocess
