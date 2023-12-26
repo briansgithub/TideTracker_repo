@@ -1,5 +1,6 @@
 #!/usr/bin/env bash 
 set -x
+sudo apt-get install -y vim
 
 # TODO:  Add echo statements before each batch of commands
 
