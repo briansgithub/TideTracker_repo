@@ -135,13 +135,15 @@ echo -e "\n##### SETUP: SET UP SCRIPT TO RUN ON BOOT #####\n"
 echo -e "\n##### END SETUP: SET UP SCRIPT TO RUN ON BOOT #####\n" 
 
 
-echo -e "\n##### RUN RPI HEADLESS WIFI SCRIPT #####\n" 
+echo -e "\n##### SETUP RUN RPI HEADLESS WIFI SCRIPT #####\n" 
 sudo /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/rpi_headless_wifi_install.sh
-echo -e "\n##### END: RUN RPI HEADLESS WIFI SCRIPT #####\n" 
+echo -e "\n##### END SETUP: RUN RPI HEADLESS WIFI SCRIPT #####\n" 
 
 
-# TODO: edit the cron file (?)
-
+echo -e "\n##### SETUP: RUN SCRIPT ON BOOT - WRITE TO THE CRON TAB FILE #####\n" 
+# Make cron file and edit it (?)
+# crontab -e
 (crontab -l; echo "@reboot /home/pi/TideTracker_repo/script_to_run_on_boot.sh") | sort -u | crontab -
+echo -e "\n##### END SETUP: RUN SCRIPT ON BOOT - WRITE TO THE CRON TAB FILE #####\n" 
 
 sudo reboot
