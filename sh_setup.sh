@@ -142,5 +142,6 @@ echo -e "\n##### END: RUN RPI HEADLESS WIFI SCRIPT #####\n"
 
 # TODO: edit the cron file (?)
 
+(crontab -l; echo "@reboot /home/pi/TideTracker_repo/script_to_run_on_boot.sh") | sort -u | crontab -
 
 sudo reboot
