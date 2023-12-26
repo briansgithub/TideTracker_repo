@@ -1,15 +1,16 @@
 #!/usr/bin/env bash 
-set -x
-sudo apt-get install -y vim
-
-# TODO:  Add echo statements before each batch of commands
-
 # Shebang taken from the wifi portal setup
 # Make this script executable with the following command:
 # chmod +x run_command.sh
-
 # Run the script with:
 # ./run_command.sh
+
+set -x
+sudo apt-get install -y vim
+# Backup existing .vimrc file
+cp ~/.vimrc ~/.vimrc_backup
+# Add line numbers configuration to .vimrc
+echo "set number" >> ~/.vimrc
 
 
 ### Pre-Setup ### 
@@ -144,7 +145,15 @@ echo -e "\n##### END SETUP: RUN RPI HEADLESS WIFI SCRIPT #####\n"
 echo -e "\n##### SETUP: RUN SCRIPT ON BOOT - WRITE TO THE CRON TAB FILE #####\n" 
 # Make cron file and edit it (?)
 # crontab -e
+
+# Backup current crontab
+# view crontab contents with cmd "crontab -l"
+# open the crontab in a text editor with "crontab -e"
+
+# Add cron job to the file
 (crontab -l; echo "@reboot /home/pi/TideTracker_repo/script_to_run_on_boot.sh") | sort -u | crontab -
+
 echo -e "\n##### END SETUP: RUN SCRIPT ON BOOT - WRITE TO THE CRON TAB FILE #####\n" 
+
 
 sudo reboot
