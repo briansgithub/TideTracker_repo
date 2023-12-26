@@ -15,12 +15,16 @@ echo "set number" >> ~/.vimrc
 
 ### Pre-Setup ### 
 echo -e "\n##### PRE-SETUP #####\n" 
-sudo chmod +x /home/pi/TideTracker_repo/*.sh
-sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.sh
+
+##### sudo chmod +x /home/pi/TideTracker_repo/*.sh
+##### sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.sh
     # Note that the cron job did not execute when the script_to_run_on_boot.sh was not made executable 
 
-sudo chmod +x /home/pi/TideTracker_repo/*.py
-sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.py
+##### sudo chmod +x /home/pi/TideTracker_repo/*.py
+##### sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.py
+
+# This command should make executable all .sh and .py files in the repo and all its subdirectories
+find /home/pi/TideTracker_repo -type f \( -name "*.sh" -o -name "*.py" \) -exec chmod +x {} \;
 
 echo -e "\n##### END: PRE-SETUP #####\n" 
 ### END: Pre-Setup ###
