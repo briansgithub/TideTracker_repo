@@ -18,12 +18,11 @@ def main(image_path):
     
     epd = epd7in5_V2.EPD()
     epd.init()
-    epd.Clear()
+    ###epd.Clear()
 
-    bmp_image = Image.open(image_path)
-    
-    bmp_image = bmp_image.transpose(Image.ROTATE_180)
-    epd.display(epd.getbuffer(bmp_image))
+    image_bmp = Image.open(image_path)
+    image_bmp = image_bmp.transpose(Image.ROTATE_180)
+    epd.display(epd.getbuffer(image_bmp))
 
     logging.info("EPD Go to Sleep...")
     epd.sleep()

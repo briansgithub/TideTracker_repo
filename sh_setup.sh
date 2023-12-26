@@ -17,6 +17,9 @@ echo "set number" >> ~/.vimrc
 echo -e "\n##### PRE-SETUP #####\n" 
 sudo chmod +x /home/pi/TideTracker_repo/*.sh
 sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.sh
+
+sudo chmod +x /home/pi/TideTracker_repo/*.py
+sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.py
 echo -e "\n##### END: PRE-SETUP #####\n" 
 ### END: Pre-Setup ###
 
