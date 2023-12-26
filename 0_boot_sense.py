@@ -1,8 +1,6 @@
 import os
 import RPi.GPIO as GPIO
 import subprocess
-import time
-import requests
 import sys
 
 maindir = os.path.dirname(os.path.realpath(__file__))
