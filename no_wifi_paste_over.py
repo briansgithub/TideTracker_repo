@@ -19,10 +19,10 @@ epd.Clear()
 
 logging.info("Paste error message over screen window")
 plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
-plot_image.transpose(Image.ROTATE_180)
+plot_image = plot_image.transpose(Image.ROTATE_180)
 
 err_img = Image.open(os.path.join(maindir, 'no_wifi.bmp'))
-err_img.transpose(Image.ROTATE_180)
+err_img = err_img.transpose(Image.ROTATE_180)
 
 # Draw image in center of screen
 err_width, err_height = err_img.size
