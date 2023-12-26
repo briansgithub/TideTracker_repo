@@ -18,7 +18,6 @@ def main(image_path):
     
     epd = epd7in5_V2.EPD()
     epd.init()
-    ###epd.Clear()
 
     image_bmp = Image.open(image_path)
     image_bmp = image_bmp.transpose(Image.ROTATE_180)
