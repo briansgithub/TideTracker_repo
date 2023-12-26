@@ -17,9 +17,11 @@ echo "set number" >> ~/.vimrc
 echo -e "\n##### PRE-SETUP #####\n" 
 sudo chmod +x /home/pi/TideTracker_repo/*.sh
 sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.sh
+    # Note that the cron job did not execute when the script_to_run_on_boot.sh was not made executable 
 
 sudo chmod +x /home/pi/TideTracker_repo/*.py
 sudo chmod +x /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/*.py
+
 echo -e "\n##### END: PRE-SETUP #####\n" 
 ### END: Pre-Setup ###
 
@@ -160,5 +162,7 @@ sudo /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/rpi_head
 echo -e "\n##### END SETUP: RUN RPI HEADLESS WIFI SCRIPT #####\n" 
 
 sudo pip3 install psutil
+# for getting time-since-bootup and for writing python scripts to debug the cron job
+sudo pip3 install json
 
 sudo reboot
