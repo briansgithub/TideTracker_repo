@@ -47,7 +47,7 @@ try:
             print(f"--------- \nRunning the tides script located at:\n\t{plot_tides_script_path} ---------")
             exit_code = subprocess.run(['sudo', 'python3', plot_tides_script_path], check=True)
         else: 
-            print(f"--------- \nRunning the no-wifi script :\n\t{plot_tides_script_path} ---------")
+            print(f"--------- \nRunning the no-wifi script :\n\t{no_wifi_errors_script_path} ---------")
             exit_code = subprocess.run(['sudo', 'python3', no_wifi_errors_script_path], check=True)
 
 except GPIOError as e:
