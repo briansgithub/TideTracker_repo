@@ -27,7 +27,18 @@ plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
 logging.info("Paste error message over screen window")
 
 err_img = Image.open(os.path.join(maindir, 'no_wifi.bmp'))
-err_img = plot_image.paste(err_img, (int(epd.width/2), int(epd.height/2)))
+
+
+err_width, err_height = err_img.size
+plot_width, plot_height = plot_image.size
+
+# Calculate the coordinates for the top-left corner to paste in the center
+paste_x = int((plot_width - err_width) / 2)
+paste_y = int((plot_height - err_height) / 2)
+
+
+err_img = plot_image.paste(err_img, (paste_x, paste_y))
+# err_img = plot_image.paste(err_img, (int(epd.width/2), int(epd.height/2)))
 
 err_img = plot_image.transpose(Image.ROTATE_180)
 
