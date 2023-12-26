@@ -8,8 +8,8 @@ import sys
 maindir = os.path.dirname(os.path.realpath(__file__))
 
 wifi_libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'forked_wifi-connect-headless-rpi','src')
-if os.path.exists(libdir):
-    sys.path.append(libdir)
+if os.path.exists(wifi_libdir):
+    sys.path.append(wifi_libdir)
 import netman
 
 # Define the GPIO pin you want to monitor
