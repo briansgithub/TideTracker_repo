@@ -159,5 +159,6 @@ sudo /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/rpi_head
 ### sudo /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh
 echo -e "\n##### END SETUP: RUN RPI HEADLESS WIFI SCRIPT #####\n" 
 
+sudo pip3 install psutil
 
 sudo reboot
