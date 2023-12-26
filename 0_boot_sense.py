@@ -20,7 +20,7 @@ plot_tides_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '1_p
 
 try:
     pin_state = GPIO.input(gpio_pin)
-    print(f"\n\nGPIO Pin BMC# {gpio_pin} is {pin_state}\n")
+    print(f"\n\nGPIO Pin BCM# {gpio_pin} is {pin_state}\n")
     if pin_state == GPIO.HIGH:
         
         command = "sudo systemctl start NetworkManager"
