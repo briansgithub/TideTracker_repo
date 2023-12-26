@@ -23,5 +23,4 @@ except Exception as e:
 
 finally:
     # Cleanup GPIO settings
-    GPIO.cleanup()
     # close the hotspot and dns mask?
