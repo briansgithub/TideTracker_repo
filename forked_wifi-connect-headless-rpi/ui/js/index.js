@@ -29,9 +29,6 @@ $(function(){
     $('#noaa-station-dropdown').change(function () {
         var selectedOption = this.options[this.selectedIndex];
         $('#noaa-station').val(selectedOption.text);
-
-        // Show the input field when an option is selected
-        $('#noaa-station').show();
     });
 
 
