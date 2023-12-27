@@ -162,13 +162,13 @@ def RequestHandlerClassFactory(address, ssids, rcode):
                         )
                     )
                 ),
-                'output_to_6.txt'
+                'input_to_6.txt'
             )
 
             with open(submitted_station_save_path, 'w') as file:
                 file.write(station_id)
 
-            print(f"Station ID ({station_id}) has been saved to {submitted_station_save_path}")
+            print(f"\nStation ID ({station_id}) has been saved to {submitted_station_save_path}\n")
 
 
             # Look up the ssid in the list we sent, to find out its security
