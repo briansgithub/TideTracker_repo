@@ -32,6 +32,6 @@ fi
 find /home/pi/TideTracker_repo -type f \( -name "*.sh" -o -name "*.py" \) -exec chmod +x {} \;
 
 # Uncomment the following line if you want to run the Python script
-#python3 0_boot_sense.py
+# python3 0_boot_sense.py
 
-sudo /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/del-run.sh
+# sudo /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/del-run.sh
