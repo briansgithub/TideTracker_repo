@@ -44,7 +44,7 @@ def is_raspberry_pi():
 
 IS_RPI = is_raspberry_pi()
 
-if(IS_RPI)
+if(IS_RPI):
     from waveshare_epd import epd7in5_V2
 
 
