@@ -60,7 +60,7 @@
     <!-- New paragraph of text added here -->
     <div class="row before-submit">
       <div class="col-lg-8 col-lg-offset-1">
-        <p>Merry Christmas! Thank you for your kindness and hospitality this year, and best wishes! 
+        <p>Merry Christmas! Thank you for your kindness and hospitality this year, and best wishes!
           Please enjoy using this gift to help keep up with
           the tides!<br>&nbsp;&nbsp;&nbsp;&nbsp;- Brian Ellsworth</p>
       </div>
@@ -108,6 +108,18 @@
           </div>
 
 
+          <div class="form-group" id="noaa-station-group">
+            <label for="noaa-station" class="control-label col-lg-4">NOAA Station ID#</label>
+            <div class="col-lg-4">
+              <select id='noaa-station' class="form-control" name='noaa-station'>
+                <option value="station1">Station 1</option>
+                <option value="station2">Station 2</option>
+                <option value="station3">Station 3</option>
+                <!-- Add more options as needed -->
+              </select>
+            </div>
+          </div>
+
           <div class="form-group">
             <div class="col-lg-6 col-lg-offset-1 text-center">
               <button type='submit' class='btn btn-success'>Submit</button>
@@ -118,10 +130,13 @@
           <div class="row">
             <div class="col-lg-8 col-lg-offset-1">
               <p><br><strong>Note:</strong> The graph data is pulled from NOAA.gov<br>
-                and the values on the graph's y-axis represent the height of the water relative to an established elevation reference point. 
-                In this case, the reference point used is the mean lower low water (MLLW) level, which is the standard water level reference point 
-                used for maritime navigation. 
-                The MLLW is defined as the average low tide level over the past measurement period (typically 19 years). </p>
+                and the values on the graph's y-axis represent the height of the water relative to an established
+                elevation reference point.
+                In this case, the reference point used is the mean lower low water (MLLW) level, which is the standard
+                water level reference point
+                used for maritime navigation.
+                The MLLW is defined as the average low tide level over the past measurement period (typically 19 years).
+              </p>
             </div>
           </div>
 
