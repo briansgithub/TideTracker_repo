@@ -23,6 +23,17 @@ $(function(){
         $('#passphrase-group').removeClass('hidden');
     }
 
+
+
+    // Add an event listener to update the input field when the dropdown changes
+    $('#noaa-station-dropdown').change(function () {
+        var selectedOption = this.options[this.selectedIndex];
+        $('#noaa-station').val(selectedOption.text);
+    });
+
+
+
+
     $('#ssid-select').change(showHideFormFields);
 
     $.get("/regcode", function(data){
