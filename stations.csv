@@ -1,295 +1,295 @@
-Station ID,City,State,decimal_latitude,decimal_longitude
-8735180,Dauphin Island,AL,30.25,-88.075
-8735391,Dog River Bridge,AL,30.565,-88.08833333
-8735523,East Fowl River Bridge,AL,30.44333333,-88.11333333
-8736897,Coast Guard Sector Mobile,AL,30.65,-88.05833333
-8737048,Mobile State Docks,AL,30.705,-88.04
-8737138,Chickasaw Creek,AL,30.78166667,-88.07333333
-8738043,West Fowl River Bridge,AL,30.37666667,-88.15833333
-8739803,Bayou La Batre Bridge,AL,30.40666667,-88.24833333
-9450460,Ketchikan,AK,55.33166667,-131.6266667
-9451054,Port Alexander,AK,56.24666667,-134.6483333
-9451600,Sitka,AK,57.05166667,-135.3433333
-9452210,Juneau,AK,58.29833333,-134.41
-9452400,"Skagway, Taiya Inlet",AK,59.45,-135.3283333
-9452634,Elfin Cove,AK,58.195,-136.3466667
-9453220,"Yakutat, Yakutat Bay",AK,59.54833333,-139.7333333
-9454050,Cordova,AK,60.55666667,-145.755
-9454240,Valdez,AK,61.125,-146.3616667
-9455090,Seward,AK,60.12,-149.4283333
-9455500,Seldovia,AK,59.44,-151.72
-9455760,Nikiski,AK,60.68333333,-151.3983333
-9455920,Anchorage,AK,61.23666667,-149.89
-9457292,Kodiak Island,AK,57.73,-152.5133333
-9457804,Alitak,AK,56.89666667,-154.2483333
-9459450,Sand Point,AK,55.33166667,-160.505
-9459881,King Cove,AK,55.06,-162.3266667
-9461380,Adak Island,AK,51.86,-176.6383333
-9461710,Atka,AK,52.23166667,-174.1733333
-9462450,Nikolski,AK,52.94,-168.8716667
-9462620,Unalaska,AK,53.88,-166.54
-9463502,Port Moller,AK,55.985,-160.5733333
-9464212,"Village Cove, St Paul Island",AK,57.125,-170.285
-9468333,Unalakleet,AK,63.87166667,-160.785
-9468756,"Nome, Norton Sound",AK,64.495,-165.44
-9491094,Red Dog Dock,AK,67.575,-164.065
-9497645,Prudhoe Bay,AK,70.41166667,-148.5316667
-2695535,Bermuda Biological Station,Bermuda,32.37,-64.695
-2695540, St. Georges Island,Bermuda,32.37333333,-64.70333333
-9410170,San Diego,CA,32.715,-117.1766667
-9410230,La Jolla,CA,32.86666667,-117.2566667
-9410660,Los Angeles,CA,33.72,-118.2716667
-9410840,Santa Monica,CA,34.00833333,-118.5
-9411340,Santa Barbara,CA,34.405,-119.6916667
-9412110,Port San Luis,CA,35.17666667,-120.76
-9413450,Monterey,CA,36.60833333,-121.8916667
-9414290,San Francisco,CA,37.80666667,-122.4666667
-9414523,Redwood City,CA,37.50666667,-122.2116667
-9414750,Alameda,CA,37.77166667,-122.3
-9414863,Richmond,CA,37.92833333,-122.4
-9415020,Point Reyes,CA,37.995,-122.9733333
-9415102,Martinez-Amorco Pier,CA,38.035,-122.125
-9415144,Port Chicago,CA,38.05666667,-122.04
-9416841,Arena Cove,CA,38.915,-123.7116667
-9418767,North Spit,CA,40.76666667,-124.2166667
-9419750,Crescent City,CA,41.745,-124.185
-9751364,"Christiansted Harbor, St Croix",VI,17.74833333,-64.69833333
-9751381,"Lameshur Bay, St John",VI,18.31833333,-64.725
-9751401,Lime Tree Bay,VI,17.695,-64.75333333
-9751639,Charlotte Amalie,VI,18.33,-64.925
-9752235,Culebra,PR,18.30166667,-65.30166667
-9752695,"Esperanza, Vieques Island",PR,18.09333333,-65.47166667
-9755371,"San Juan, La Puntilla, San Juan Bay",PR,18.45833333,-66.11666667
-9759110,Magueyes Island,PR,17.97,-67.04666667
-9759394,Mayaguez,PR,18.21833333,-67.16166667
-9759938,Mona Island,PR,18.09,-67.93833333
-8461490,New London,CT,41.37166667,-72.095
-8465705,New Haven,CT,41.28333333,-72.90833333
-8467150,Bridgeport,CT,41.175,-73.18333333
-8551762,Delaware City,DE,39.58166667,-75.58833333
-8551910,Reedy Point,DE,39.55833333,-75.57166667
-8555889,Brandywine Shoal Light,DE,38.98666667,-75.11333333
-8557380,Lewes,DE,38.78333333,-75.12
-8594900,Washington,DC,38.87333333,-77.02166667
-8720030,Fernandina Beach,FL,30.67166667,-81.46666667
-8720218,Mayport (Bar Pilots Dock),FL,30.39833333,-81.42833333
-8720219,Dames Point,FL,30.38666667,-81.55833333
-8720226,"Southbank Riverwalk, St Johns River",FL,30.32,-81.65833333
-8720357,I-295 Buckman Bridge,FL,30.19166667,-81.69
-8721604,"Trident Pier, Port Canaveral",FL,28.415,-80.59333333
-8722670,"Lake Worth Pier, Atlantic Ocean",FL,26.61333333,-80.035
-8722956,South Port Everglades,FL,26.08166667,-80.11666667
-8723214,"Virginia Key, Biscayne Bay",FL,25.73166667,-80.16166667
-8723970,"Vaca Key, Florida Bay",FL,24.71166667,-81.10666667
-8724580,Key West,FL,24.555,-81.80833333
-8725110,"Naples, Gulf of Mexico",FL,26.13166667,-81.80833333
-8725520,Fort Myers,FL,26.64833333,-81.87166667
-8726384,Port Manatee,FL,27.63833333,-82.56166667
-8726520,"St. Petersburg, Tampa Bay",FL,27.76166667,-82.62666667
-8726607,Old Port Tampa,FL,27.85833333,-82.55333333
-8726674,East Bay,FL,27.92333333,-82.42166667
-8726724,Clearwater Beach,FL,27.97833333,-82.83166667
-8727520,Cedar Key,FL,29.135,-83.03166667
-8728690,Apalachicola,FL,29.725,-84.98
-8729108,Panama City,FL,30.15,-85.665
-8729210,Panama City Beach,FL,30.21333333,-85.87833333
-8729840,Pensacola,FL,30.405,-87.21166667
-8670870,Fort Pulaski,GA,32.035,-80.90333333
-8679598,Kings Bay MSF Pier,GA,30.77833333,-81.49166667
-9044020,Gibraltar,MI,42.09166667,-83.18666667
-9044030,Wyandotte,MI,42.20166667,-83.14666667
-9044036,Fort Wayne,MI,42.29833333,-83.09333333
-9044049,Windmill Point,MI,42.35833333,-82.93
-9063020,Buffalo,NY,42.87666667,-78.89
-9063028,Sturgeon Point,NY,42.69166667,-79.04666667
-9063038,"Erie, Lake Erie",PA,42.15333333,-80.075
-9063053,Fairport,OH,41.76,-81.28166667
-9063063,Cleveland,OH,41.54166667,-81.635
-9063079,Marblehead,OH,41.54333333,-82.73166667
-9063085,Toledo,OH,41.69333333,-83.47166667
-9063090,Fermi Power Plant,MI,41.96,-83.25666667
-9075002,Lakeport,MI,43.14,-82.49333333
-9075014,Harbor Beach,MI,43.84666667,-82.64333333
-9075035,Essexville,MI,43.64166667,-83.84666667
-9075065,Alpena,MI,45.06333333,-83.42833333
-9075080,Mackinaw City,MI,45.77666667,-84.72166667
-9075099,De Tour Village,MI,45.99166667,-83.89833333
-9087023,Ludington,MI,43.94666667,-86.44166667
-9087031,Holland,MI,42.77333333,-86.21333333
-9087044,Calumet Harbor,IL,41.73,-87.53833333
-9087057,Milwaukee,WI,43.00166667,-87.88833333
-9087068,"Kewaunee, Lake Michigan",WI,44.46333333,-87.51166667
-9087072,Sturgeon Bay Canal,WI,44.795,-87.31333333
-9087077,Green Bay East,WI,44.53833333,-88.00166667
-9087088,Menominee,MI,45.09666667,-87.59
-9087096,Port Inland,MI,45.97,-85.87166667
-9052000,Cape Vincent,NY,44.13,-76.33166667
-9052030,Oswego,NY,43.465,-76.51166667
-9052058,Rochester,NY,43.26833333,-77.625
-9052076,Olcott,NY,43.33833333,-78.72666667
-9034052,St Clair Shores,MI,42.47333333,-82.88
-9099004,Point Iroquois,MI,46.485,-84.63166667
-9099018,Marquette C.G.,MI,46.545,-87.37833333
-9099044,Ontonagon,MI,46.875,-89.32333333
-9099064,Duluth,MN,46.775,-92.09166667
-9099090,"Grand Marais, Lake Superior",MN,47.74833333,-90.34166667
-9063007,Ashland Ave,NY,43.1,-79.06
-9063009,American Falls,NY,43.08166667,-79.06166667
-9063012,Niagara Intake,NY,43.07666667,-79.01333333
-9014070,Algonac,MI,42.62166667,-82.52666667
-9014080,St. Clair State Police,MI,42.81166667,-82.485
-9014087,Dry Dock,MI,42.945,-82.44333333
-9014090,Mouth of the Black River,MI,42.975,-82.41833333
-9014095,"Port Huron, North of Blue Water Bridge",MI,43.00166667,-82.42333333
-9014098,Fort Gratiot,MI,43.00666667,-82.42166667
-8311030,Ogdensburg,NY,44.69833333,-75.49833333
-8311062,Alexandria Bay,NY,44.33166667,-75.935
-9076024,Rock Cut,MI,46.265,-84.19166667
-9076027,West Neebish Island,MI,46.285,-84.21
-9076033,Little Rapids,MI,46.485,-84.30166667
-9076060,U.S. Slip,MI,46.5,-84.34
-9076070,"S.W. Pier, St. Marys River",MI,46.50166667,-84.37333333
-1611400,Nawiliwili,HI,21.955,-159.3566667
-1612340,Honolulu,HI,21.30333333,-157.865
-1612401,Pearl Harbor,HI,21.36666667,-157.9633333
-1612480,Mokuoloe,HI,21.43333333,-157.79
-1615680,"Kahului, Kahului Harbor",HI,20.895,-156.4683333
-1617433,Kawaihae,HI,20.03666667,-155.83
-1617760,"Hilo, Hilo Bay, Kuhio Bay",HI,19.73,-155.06
-8760721,Pilottown,LA,29.18,-89.25833333
-8760922,"Pilots Station East, S.W. Pass",LA,28.93166667,-89.40666667
-8761305,Shell Beach,LA,29.86833333,-89.67333333
-8761724,Grand Isle,LA,29.26333333,-89.95666667
-8761927,New Canal Station,LA,30.02666667,-90.11333333
-8761955,Carrollton,LA,29.93333333,-90.135
-8762075,"Port Fourchon, Belle Pass",LA,29.115,-90.2
-8762482,"West Bank 1, Bayou Gauche",LA,29.78833333,-90.42
-8764044,"Berwick, Atchafalaya River",LA,29.66833333,-91.23833333
-8764227,"LAWMA, Amerada Pass",LA,29.45,-91.33833333
-8764314,"Eugene Island, North of, Atchafalaya Bay",LA,29.36666667,-91.38333333
-8766072,Freshwater Canal Locks,LA,29.55166667,-92.305
-8767816,Lake Charles,LA,30.22333333,-93.22166667
-8767961,Bulk Terminal,LA,30.19,-93.3
-8768094,Calcasieu Pass,LA,29.76833333,-93.34333333
-8410140,Eastport,ME,44.905,-66.98333333
-8411060,Cutler Farris Wharf,ME,44.65666667,-67.205
-8413320,Bar Harbor,ME,44.39166667,-68.205
-8418150,Portland,ME,43.65833333,-70.245
-8419870,Seavey Island,ME,43.08,-70.74166667
-8570283,Ocean City Inlet,MD,38.32833333,-75.09166667
-8571421,Bishops Head,MD,38.22,-76.03833333
-8571892,Cambridge,MD,38.57166667,-76.06166667
-8573364,Tolchester Beach,MD,39.21333333,-76.245
-8573927,Chesapeake City,MD,39.52666667,-75.81
-8574680,Baltimore,MD,39.27,-76.57833333
-8575512,Annapolis,MD,38.98333333,-76.48166667
-8577330,Solomons Island,MD,38.31666667,-76.45
-8443970,Boston,MA,42.35333333,-71.05
-8447386,Fall River,MA,41.705,-71.16333333
-8447435,Chatham,MA,41.68833333,-69.95166667
-8447636,New Bedford Harbor,MA,41.62166667,-70.91333333
-8447930,Woods Hole,MA,41.52333333,-70.67166667
-8449130,Nantucket Island,MA,41.285,-70.09666667
-8741533,Pascagoula NOAA Lab,MS,30.36833333,-88.56333333
-8747437,Bay Waveland Yacht Club,MS,30.32666667,-89.325
-8531680,Sandy Hook,NJ,40.46666667,-74.01
-8534720,Atlantic City,NJ,39.35666667,-74.41833333
-8536110,Cape May,NJ,38.96833333,-74.96
-8537121,Ship John Shoal,NJ,39.305,-75.37666667
-8539094,"Burlington, Delaware River",NJ,40.08166667,-74.87
-8510560,Montauk,NY,41.04833333,-71.96
-8516945,Kings Point,NY,40.81,-73.765
-8518750,The Battery,NY,40.7,-74.015
-8518962,Turkey Point Hudson River NERRS,NY,42.015,-73.94
-8519483,Bergen Point West Reach,NY,40.63833333,-74.14666667
-8651370,Duck,NC,36.18333333,-75.74666667
-8652587,Oregon Inlet Marina,NC,35.795,-75.54833333
-8654467,USCG Station Hatteras,NC,35.20833333,-75.705
-8656483,"Beaufort, Duke Marine Lab",NC,34.71833333,-76.67166667
-8658120,Wilmington,NC,34.22666667,-77.95333333
-8658163,Wrightsville Beach,NC,34.21333333,-77.78666667
-9431647,Port Orford,OR,42.73833333,-124.4983333
-9432780,Charleston,OR,43.345,-124.3216667
-9435380,South Beach,OR,44.625,-124.045
-9437540,Garibaldi,OR,45.555,-123.9183333
-9439040,Astoria,OR,46.20666667,-123.7683333
-9439099,Wauna,OR,46.16,-123.405
-9439201,St Helens,OR,45.865,-122.7966667
-1619910,"Sand Island, Midway Islands",Pacific Islands,28.21166667,-177.36
-1630000,"Apra Harbor, Guam",Pacific Islands,13.44333333,144.6566667
-1631428,"Apra Harbor, Guam",Pacific Islands,13.42833333,144.7983333
-1770000,"Pago Pago, American Samoa",Pacific Islands,-14.28,-170.69
-1820000,"Kwajalein, Marshall Islands",Pacific Islands,8.731666667,167.7366667
-1890000,"Wake Island, Pacific Ocean",Pacific Islands,19.29,166.6183333
-8540433,Marcus Hook,PA,39.81166667,-75.41
-8545240,Philadelphia,PA,39.93333333,-75.14166667
-8546252,Bridesburg,PA,39.98,-75.08
-8548989,Newbold,PA,40.13666667,-74.75166667
-8452660,Newport,RI,41.505,-71.32666667
-8452944,Conimicut Light,RI,41.71666667,-71.345
-8454000,Providence,RI,41.80666667,-71.4
-8454049,Quonset Point,RI,41.58666667,-71.41
-8661070,Springmaid Pier,SC,33.655,-78.91666667
-8665530,Charleston,SC,32.775,-79.92333333
-8770475,Port Arthur,TX,29.86666667,-93.93
-8770520,Rainbow Bridge,TX,29.98166667,-93.885
-8770613,"Morgans Point, Barbours Cut",TX,29.68166667,-94.985
-8770777,Manchester,TX,29.72666667,-95.265
-8770808,High Island,TX,29.595,-94.39
-8770822,"Texas Point, Sabine Pass",TX,29.69,-93.84166667
-8770971,Rollover Pass,TX,29.515,-94.51333333
-8771013,"Eagle Point, Galveston Bay",TX,29.48166667,-94.91666667
-8771341,"Galveston Bay Entrance, North Jetty",TX,29.35666667,-94.725
-8771367,Sabine Offshore Light,TX,29.46833333,-93.72
-8771450,Galveston Pier 21,TX,29.31,-94.79333333
-8771486,Galveston Railroad Bridge,TX,29.30333333,-94.89666667
-8771972,San Luis Pass,TX,29.08,-95.13
-8772471,Freeport Harbor,TX,28.935,-95.295
-8773037,Seadrift,TX,28.40666667,-96.71166667
-8773146,Matagorda City,TX,28.71,-95.91333333
-8773259,Port Lavaca,TX,28.64,-96.61
-8773701,Port O'Connor,TX,28.45166667,-96.38833333
-8773767,Matagorda Bay Entrance Channel,TX,28.42666667,-96.33
-8774230,Aransas Wildlife Refuge,TX,28.22833333,-96.795
-8774770,Rockport,TX,28.02166667,-97.04666667
-8775132,La Quinta Channel North,TX,27.88,-97.28666667
-8775222,Viola Turning Basin,TX,27.84666667,-97.52
-8775237,Port Aransas,TX,27.84,-97.07333333
-8775241,"Aransas, Aransas Pass",TX,27.83666667,-97.03833333
-8775244,Nueces Bay,TX,27.83333333,-97.48666667
-8775283,"Enbridge, Ingleside",TX,27.81833333,-97.20833333
-8775296,"USS Lexington, Corpus Christi Bay",TX,27.81166667,-97.39
-8775792,Packery Channel,TX,27.63333333,-97.23666667
-8776139,S. Bird Island,TX,27.485,-97.31833333
-8776604,Baffin Bay,TX,27.29666667,-97.405
-8777812,Rincon Del San Jose,TX,26.80166667,-97.47
-8778490,Port Mansfield,TX,26.55833333,-97.425
-8779280,Realitos Peninsula,TX,26.26166667,-97.285
-8779748,South Padre Island CG Station,TX,26.07166667,-97.16666667
-8779749,SPI Brazos Santiago,TX,26.06666667,-97.155
-8779770,Port Isabel,TX,26.06166667,-97.215
-8631044,Wachapreague,VA,37.60833333,-75.685
-8632200,Kiptopeke,VA,37.165,-75.98833333
-8635027,Dahlgren,VA,38.32,-77.03666667
-8635750,Lewisetta,VA,37.99666667,-76.465
-8636580,Windmill Point,VA,37.615,-76.29
-8637689,Yorktown USCG Training Center,VA,37.22666667,-76.47833333
-8638610,Sewells Point,VA,36.94333333,-76.32833333
-8638901,"CBBT, Chesapeake Channel",VA,37.03333333,-76.08333333
-8639348,Money Point,VA,36.77833333,-76.30166667
-9440083,Vancouver,WA,45.63166667,-122.695
-9440357,TEMCO Kalama Terminal,WA,45.98333333,-122.835
-9440422,Longview,WA,46.10666667,-122.955
-9440569,Skamokawa,WA,46.27,-123.4566667
-9440581,Cape Disappointment,WA,46.28166667,-124.0466667
-9440910,Toke Point,WA,46.70833333,-123.9666667
-9441102,Westport,WA,46.905,-124.105
-9442396,"La Push, Quillayute River",WA,47.91333333,-124.635
-9443090,Neah Bay,WA,48.37,-124.6016667
-9444090,Port Angeles,WA,48.125,-123.44
-9444900,Port Townsend,WA,48.11166667,-122.76
-9445958,Bremerton,WA,47.56166667,-122.6233333
-9446484,Tacoma,WA,47.27,-122.4133333
-9447130,Seattle,WA,47.60333333,-122.34
-9449424,Cherry Point,WA,48.86333333,-122.7583333
-9449880,Friday Harbor,WA,48.545,-123.0133333
+Station ID,City,State,decimal_latitude,decimal_longitude,time_zone
+8735180,Dauphin Island,AL,30.25,-88.075,America/Chicago
+8735391,Dog River Bridge,AL,30.565,-88.08833333,America/Chicago
+8735523,East Fowl River Bridge,AL,30.44333333,-88.11333333,America/Chicago
+8736897,Coast Guard Sector Mobile,AL,30.65,-88.05833333,America/Chicago
+8737048,Mobile State Docks,AL,30.705,-88.04,America/Chicago
+8737138,Chickasaw Creek,AL,30.78166667,-88.07333333,America/Chicago
+8738043,West Fowl River Bridge,AL,30.37666667,-88.15833333,America/Chicago
+8739803,Bayou La Batre Bridge,AL,30.40666667,-88.24833333,America/Chicago
+9450460,Ketchikan,AK,55.33166667,-131.6266667,America/Sitka
+9451054,Port Alexander,AK,56.24666667,-134.6483333,America/Sitka
+9451600,Sitka,AK,57.05166667,-135.3433333,America/Sitka
+9452210,Juneau,AK,58.29833333,-134.41,America/Juneau
+9452400,"Skagway, Taiya Inlet",AK,59.45,-135.3283333,America/Juneau
+9452634,Elfin Cove,AK,58.195,-136.3466667,America/Juneau
+9453220,"Yakutat, Yakutat Bay",AK,59.54833333,-139.7333333,America/Yakutat
+9454050,Cordova,AK,60.55666667,-145.755,America/Anchorage
+9454240,Valdez,AK,61.125,-146.3616667,America/Anchorage
+9455090,Seward,AK,60.12,-149.4283333,America/Anchorage
+9455500,Seldovia,AK,59.44,-151.72,America/Anchorage
+9455760,Nikiski,AK,60.68333333,-151.3983333,America/Anchorage
+9455920,Anchorage,AK,61.23666667,-149.89,America/Anchorage
+9457292,Kodiak Island,AK,57.73,-152.5133333,America/Anchorage
+9457804,Alitak,AK,56.89666667,-154.2483333,America/Anchorage
+9459450,Sand Point,AK,55.33166667,-160.505,America/Anchorage
+9459881,King Cove,AK,55.06,-162.3266667,America/Nome
+9461380,Adak Island,AK,51.86,-176.6383333,America/Adak
+9461710,Atka,AK,52.23166667,-174.1733333,America/Adak
+9462450,Nikolski,AK,52.94,-168.8716667,America/Nome
+9462620,Unalaska,AK,53.88,-166.54,America/Nome
+9463502,Port Moller,AK,55.985,-160.5733333,America/Anchorage
+9464212,"Village Cove, St Paul Island",AK,57.125,-170.285,America/Nome
+9468333,Unalakleet,AK,63.87166667,-160.785,America/Anchorage
+9468756,"Nome, Norton Sound",AK,64.495,-165.44,America/Nome
+9491094,Red Dog Dock,AK,67.575,-164.065,America/Nome
+9497645,Prudhoe Bay,AK,70.41166667,-148.5316667,America/Anchorage
+2695535,Bermuda Biological Station,Bermuda,32.37,-64.695,Atlantic/Bermuda
+2695540, St. Georges Island,Bermuda,32.37333333,-64.70333333,Atlantic/Bermuda
+9410170,San Diego,CA,32.715,-117.1766667,America/Los_Angeles
+9410230,La Jolla,CA,32.86666667,-117.2566667,America/Los_Angeles
+9410660,Los Angeles,CA,33.72,-118.2716667,America/Los_Angeles
+9410840,Santa Monica,CA,34.00833333,-118.5,America/Los_Angeles
+9411340,Santa Barbara,CA,34.405,-119.6916667,America/Los_Angeles
+9412110,Port San Luis,CA,35.17666667,-120.76,America/Los_Angeles
+9413450,Monterey,CA,36.60833333,-121.8916667,America/Los_Angeles
+9414290,San Francisco,CA,37.80666667,-122.4666667,America/Los_Angeles
+9414523,Redwood City,CA,37.50666667,-122.2116667,America/Los_Angeles
+9414750,Alameda,CA,37.77166667,-122.3,America/Los_Angeles
+9414863,Richmond,CA,37.92833333,-122.4,America/Los_Angeles
+9415020,Point Reyes,CA,37.995,-122.9733333,America/Los_Angeles
+9415102,Martinez-Amorco Pier,CA,38.035,-122.125,America/Los_Angeles
+9415144,Port Chicago,CA,38.05666667,-122.04,America/Los_Angeles
+9416841,Arena Cove,CA,38.915,-123.7116667,America/Los_Angeles
+9418767,North Spit,CA,40.76666667,-124.2166667,America/Los_Angeles
+9419750,Crescent City,CA,41.745,-124.185,America/Los_Angeles
+9751364,"Christiansted Harbor, St Croix",VI,17.74833333,-64.69833333,America/St_Thomas
+9751381,"Lameshur Bay, St John",VI,18.31833333,-64.725,America/St_Thomas
+9751401,Lime Tree Bay,VI,17.695,-64.75333333,America/St_Thomas
+9751639,Charlotte Amalie,VI,18.33,-64.925,America/St_Thomas
+9752235,Culebra,PR,18.30166667,-65.30166667,America/Puerto_Rico
+9752695,"Esperanza, Vieques Island",PR,18.09333333,-65.47166667,America/Puerto_Rico
+9755371,"San Juan, La Puntilla, San Juan Bay",PR,18.45833333,-66.11666667,America/Puerto_Rico
+9759110,Magueyes Island,PR,17.97,-67.04666667,America/Puerto_Rico
+9759394,Mayaguez,PR,18.21833333,-67.16166667,America/Puerto_Rico
+9759938,Mona Island,PR,18.09,-67.93833333,America/Puerto_Rico
+8461490,New London,CT,41.37166667,-72.095,America/New_York
+8465705,New Haven,CT,41.28333333,-72.90833333,America/New_York
+8467150,Bridgeport,CT,41.175,-73.18333333,America/New_York
+8551762,Delaware City,DE,39.58166667,-75.58833333,America/New_York
+8551910,Reedy Point,DE,39.55833333,-75.57166667,America/New_York
+8555889,Brandywine Shoal Light,DE,38.98666667,-75.11333333,America/New_York
+8557380,Lewes,DE,38.78333333,-75.12,America/New_York
+8594900,Washington,DC,38.87333333,-77.02166667,America/New_York
+8720030,Fernandina Beach,FL,30.67166667,-81.46666667,America/New_York
+8720218,Mayport (Bar Pilots Dock),FL,30.39833333,-81.42833333,America/New_York
+8720219,Dames Point,FL,30.38666667,-81.55833333,America/New_York
+8720226,"Southbank Riverwalk, St Johns River",FL,30.32,-81.65833333,America/New_York
+8720357,I-295 Buckman Bridge,FL,30.19166667,-81.69,America/New_York
+8721604,"Trident Pier, Port Canaveral",FL,28.415,-80.59333333,America/New_York
+8722670,"Lake Worth Pier, Atlantic Ocean",FL,26.61333333,-80.035,America/New_York
+8722956,South Port Everglades,FL,26.08166667,-80.11666667,America/New_York
+8723214,"Virginia Key, Biscayne Bay",FL,25.73166667,-80.16166667,America/New_York
+8723970,"Vaca Key, Florida Bay",FL,24.71166667,-81.10666667,America/New_York
+8724580,Key West,FL,24.555,-81.80833333,America/New_York
+8725110,"Naples, Gulf of Mexico",FL,26.13166667,-81.80833333,America/New_York
+8725520,Fort Myers,FL,26.64833333,-81.87166667,America/New_York
+8726384,Port Manatee,FL,27.63833333,-82.56166667,America/New_York
+8726520,"St. Petersburg, Tampa Bay",FL,27.76166667,-82.62666667,America/New_York
+8726607,Old Port Tampa,FL,27.85833333,-82.55333333,America/New_York
+8726674,East Bay,FL,27.92333333,-82.42166667,America/New_York
+8726724,Clearwater Beach,FL,27.97833333,-82.83166667,America/New_York
+8727520,Cedar Key,FL,29.135,-83.03166667,America/New_York
+8728690,Apalachicola,FL,29.725,-84.98,America/New_York
+8729108,Panama City,FL,30.15,-85.665,America/Chicago
+8729210,Panama City Beach,FL,30.21333333,-85.87833333,America/Chicago
+8729840,Pensacola,FL,30.405,-87.21166667,America/Chicago
+8670870,Fort Pulaski,GA,32.035,-80.90333333,America/New_York
+8679598,Kings Bay MSF Pier,GA,30.77833333,-81.49166667,America/New_York
+9044020,Gibraltar,MI,42.09166667,-83.18666667,America/Detroit
+9044030,Wyandotte,MI,42.20166667,-83.14666667,America/Detroit
+9044036,Fort Wayne,MI,42.29833333,-83.09333333,America/Detroit
+9044049,Windmill Point,MI,42.35833333,-82.93,America/Detroit
+9063020,Buffalo,NY,42.87666667,-78.89,America/New_York
+9063028,Sturgeon Point,NY,42.69166667,-79.04666667,America/New_York
+9063038,"Erie, Lake Erie",PA,42.15333333,-80.075,America/New_York
+9063053,Fairport,OH,41.76,-81.28166667,America/New_York
+9063063,Cleveland,OH,41.54166667,-81.635,America/New_York
+9063079,Marblehead,OH,41.54333333,-82.73166667,America/New_York
+9063085,Toledo,OH,41.69333333,-83.47166667,America/New_York
+9063090,Fermi Power Plant,MI,41.96,-83.25666667,America/Detroit
+9075002,Lakeport,MI,43.14,-82.49333333,America/Detroit
+9075014,Harbor Beach,MI,43.84666667,-82.64333333,America/Detroit
+9075035,Essexville,MI,43.64166667,-83.84666667,America/Detroit
+9075065,Alpena,MI,45.06333333,-83.42833333,America/Detroit
+9075080,Mackinaw City,MI,45.77666667,-84.72166667,America/Detroit
+9075099,De Tour Village,MI,45.99166667,-83.89833333,America/Detroit
+9087023,Ludington,MI,43.94666667,-86.44166667,America/Detroit
+9087031,Holland,MI,42.77333333,-86.21333333,America/Detroit
+9087044,Calumet Harbor,IL,41.73,-87.53833333,America/Chicago
+9087057,Milwaukee,WI,43.00166667,-87.88833333,America/Chicago
+9087068,"Kewaunee, Lake Michigan",WI,44.46333333,-87.51166667,America/Chicago
+9087072,Sturgeon Bay Canal,WI,44.795,-87.31333333,America/Chicago
+9087077,Green Bay East,WI,44.53833333,-88.00166667,America/Chicago
+9087088,Menominee,MI,45.09666667,-87.59,America/Detroit
+9087096,Port Inland,MI,45.97,-85.87166667,America/Detroit
+9052000,Cape Vincent,NY,44.13,-76.33166667,America/New_York
+9052030,Oswego,NY,43.465,-76.51166667,America/New_York
+9052058,Rochester,NY,43.26833333,-77.625,America/New_York
+9052076,Olcott,NY,43.33833333,-78.72666667,America/New_York
+9034052,St Clair Shores,MI,42.47333333,-82.88,America/Detroit
+9099004,Point Iroquois,MI,46.485,-84.63166667,America/Detroit
+9099018,Marquette C.G.,MI,46.545,-87.37833333,America/Detroit
+9099044,Ontonagon,MI,46.875,-89.32333333,America/Detroit
+9099064,Duluth,MN,46.775,-92.09166667,America/Chicago
+9099090,"Grand Marais, Lake Superior",MN,47.74833333,-90.34166667,America/Chicago
+9063007,Ashland Ave,NY,43.1,-79.06,America/New_York
+9063009,American Falls,NY,43.08166667,-79.06166667,America/New_York
+9063012,Niagara Intake,NY,43.07666667,-79.01333333,America/New_York
+9014070,Algonac,MI,42.62166667,-82.52666667,America/Detroit
+9014080,St. Clair State Police,MI,42.81166667,-82.485,America/Detroit
+9014087,Dry Dock,MI,42.945,-82.44333333,America/Detroit
+9014090,Mouth of the Black River,MI,42.975,-82.41833333,America/Detroit
+9014095,"Port Huron, North of Blue Water Bridge",MI,43.00166667,-82.42333333,America/Detroit
+9014098,Fort Gratiot,MI,43.00666667,-82.42166667,America/Detroit
+8311030,Ogdensburg,NY,44.69833333,-75.49833333,America/New_York
+8311062,Alexandria Bay,NY,44.33166667,-75.935,America/New_York
+9076024,Rock Cut,MI,46.265,-84.19166667,America/Detroit
+9076027,West Neebish Island,MI,46.285,-84.21,America/Detroit
+9076033,Little Rapids,MI,46.485,-84.30166667,America/Detroit
+9076060,U.S. Slip,MI,46.5,-84.34,America/Detroit
+9076070,"S.W. Pier, St. Marys River",MI,46.50166667,-84.37333333,America/Detroit
+1611400,Nawiliwili,HI,21.955,-159.3566667,Pacific/Honolulu
+1612340,Honolulu,HI,21.30333333,-157.865,Pacific/Honolulu
+1612401,Pearl Harbor,HI,21.36666667,-157.9633333,Pacific/Honolulu
+1612480,Mokuoloe,HI,21.43333333,-157.79,Pacific/Honolulu
+1615680,"Kahului, Kahului Harbor",HI,20.895,-156.4683333,Pacific/Honolulu
+1617433,Kawaihae,HI,20.03666667,-155.83,Pacific/Honolulu
+1617760,"Hilo, Hilo Bay, Kuhio Bay",HI,19.73,-155.06,Pacific/Honolulu
+8760721,Pilottown,LA,29.18,-89.25833333,America/Chicago
+8760922,"Pilots Station East, S.W. Pass",LA,28.93166667,-89.40666667,America/Chicago
+8761305,Shell Beach,LA,29.86833333,-89.67333333,America/Chicago
+8761724,Grand Isle,LA,29.26333333,-89.95666667,America/Chicago
+8761927,New Canal Station,LA,30.02666667,-90.11333333,America/Chicago
+8761955,Carrollton,LA,29.93333333,-90.135,America/Chicago
+8762075,"Port Fourchon, Belle Pass",LA,29.115,-90.2,America/Chicago
+8762482,"West Bank 1, Bayou Gauche",LA,29.78833333,-90.42,America/Chicago
+8764044,"Berwick, Atchafalaya River",LA,29.66833333,-91.23833333,America/Chicago
+8764227,"LAWMA, Amerada Pass",LA,29.45,-91.33833333,America/Chicago
+8764314,"Eugene Island, North of, Atchafalaya Bay",LA,29.36666667,-91.38333333,America/Chicago
+8766072,Freshwater Canal Locks,LA,29.55166667,-92.305,America/Chicago
+8767816,Lake Charles,LA,30.22333333,-93.22166667,America/Chicago
+8767961,Bulk Terminal,LA,30.19,-93.3,America/Chicago
+8768094,Calcasieu Pass,LA,29.76833333,-93.34333333,America/Chicago
+8410140,Eastport,ME,44.905,-66.98333333,America/New_York
+8411060,Cutler Farris Wharf,ME,44.65666667,-67.205,America/New_York
+8413320,Bar Harbor,ME,44.39166667,-68.205,America/New_York
+8418150,Portland,ME,43.65833333,-70.245,America/New_York
+8419870,Seavey Island,ME,43.08,-70.74166667,America/New_York
+8570283,Ocean City Inlet,MD,38.32833333,-75.09166667,America/New_York
+8571421,Bishops Head,MD,38.22,-76.03833333,America/New_York
+8571892,Cambridge,MD,38.57166667,-76.06166667,America/New_York
+8573364,Tolchester Beach,MD,39.21333333,-76.245,America/New_York
+8573927,Chesapeake City,MD,39.52666667,-75.81,America/New_York
+8574680,Baltimore,MD,39.27,-76.57833333,America/New_York
+8575512,Annapolis,MD,38.98333333,-76.48166667,America/New_York
+8577330,Solomons Island,MD,38.31666667,-76.45,America/New_York
+8443970,Boston,MA,42.35333333,-71.05,America/New_York
+8447386,Fall River,MA,41.705,-71.16333333,America/New_York
+8447435,Chatham,MA,41.68833333,-69.95166667,America/New_York
+8447636,New Bedford Harbor,MA,41.62166667,-70.91333333,America/New_York
+8447930,Woods Hole,MA,41.52333333,-70.67166667,America/New_York
+8449130,Nantucket Island,MA,41.285,-70.09666667,America/New_York
+8741533,Pascagoula NOAA Lab,MS,30.36833333,-88.56333333,America/Chicago
+8747437,Bay Waveland Yacht Club,MS,30.32666667,-89.325,America/Chicago
+8531680,Sandy Hook,NJ,40.46666667,-74.01,America/New_York
+8534720,Atlantic City,NJ,39.35666667,-74.41833333,America/New_York
+8536110,Cape May,NJ,38.96833333,-74.96,America/New_York
+8537121,Ship John Shoal,NJ,39.305,-75.37666667,America/New_York
+8539094,"Burlington, Delaware River",NJ,40.08166667,-74.87,America/New_York
+8510560,Montauk,NY,41.04833333,-71.96,America/New_York
+8516945,Kings Point,NY,40.81,-73.765,America/New_York
+8518750,The Battery,NY,40.7,-74.015,America/New_York
+8518962,Turkey Point Hudson River NERRS,NY,42.015,-73.94,America/New_York
+8519483,Bergen Point West Reach,NY,40.63833333,-74.14666667,America/New_York
+8651370,Duck,NC,36.18333333,-75.74666667,America/New_York
+8652587,Oregon Inlet Marina,NC,35.795,-75.54833333,America/New_York
+8654467,USCG Station Hatteras,NC,35.20833333,-75.705,America/New_York
+8656483,"Beaufort, Duke Marine Lab",NC,34.71833333,-76.67166667,America/New_York
+8658120,Wilmington,NC,34.22666667,-77.95333333,America/New_York
+8658163,Wrightsville Beach,NC,34.21333333,-77.78666667,America/New_York
+9431647,Port Orford,OR,42.73833333,-124.4983333,America/Los_Angeles
+9432780,Charleston,OR,43.345,-124.3216667,America/Los_Angeles
+9435380,South Beach,OR,44.625,-124.045,America/Los_Angeles
+9437540,Garibaldi,OR,45.555,-123.9183333,America/Los_Angeles
+9439040,Astoria,OR,46.20666667,-123.7683333,America/Los_Angeles
+9439099,Wauna,OR,46.16,-123.405,America/Los_Angeles
+9439201,St Helens,OR,45.865,-122.7966667,America/Los_Angeles
+1619910,"Sand Island, Midway Islands",Pacific Islands,28.21166667,-177.36,Pacific/Midway
+1630000,"Apra Harbor, Guam",Pacific Islands,13.44333333,144.6566667,Pacific/Guam
+1631428,"Apra Harbor, Guam",Pacific Islands,13.42833333,144.7983333,Pacific/Guam
+1770000,"Pago Pago, American Samoa",Pacific Islands,-14.28,-170.69,Pacific/Pago_Pago
+1820000,"Kwajalein, Marshall Islands",Pacific Islands,8.731666667,167.7366667,Pacific/Kwajalein
+1890000,"Wake Island, Pacific Ocean",Pacific Islands,19.29,166.6183333,Pacific/Wake
+8540433,Marcus Hook,PA,39.81166667,-75.41,America/New_York
+8545240,Philadelphia,PA,39.93333333,-75.14166667,America/New_York
+8546252,Bridesburg,PA,39.98,-75.08,America/New_York
+8548989,Newbold,PA,40.13666667,-74.75166667,America/New_York
+8452660,Newport,RI,41.505,-71.32666667,America/New_York
+8452944,Conimicut Light,RI,41.71666667,-71.345,America/New_York
+8454000,Providence,RI,41.80666667,-71.4,America/New_York
+8454049,Quonset Point,RI,41.58666667,-71.41,America/New_York
+8661070,Springmaid Pier,SC,33.655,-78.91666667,America/New_York
+8665530,Charleston,SC,32.775,-79.92333333,America/New_York
+8770475,Port Arthur,TX,29.86666667,-93.93,America/Chicago
+8770520,Rainbow Bridge,TX,29.98166667,-93.885,America/Chicago
+8770613,"Morgans Point, Barbours Cut",TX,29.68166667,-94.985,America/Chicago
+8770777,Manchester,TX,29.72666667,-95.265,America/Chicago
+8770808,High Island,TX,29.595,-94.39,America/Chicago
+8770822,"Texas Point, Sabine Pass",TX,29.69,-93.84166667,America/Chicago
+8770971,Rollover Pass,TX,29.515,-94.51333333,America/Chicago
+8771013,"Eagle Point, Galveston Bay",TX,29.48166667,-94.91666667,America/Chicago
+8771341,"Galveston Bay Entrance, North Jetty",TX,29.35666667,-94.725,America/Chicago
+8771367,Sabine Offshore Light,TX,29.46833333,-93.72,America/Chicago
+8771450,Galveston Pier 21,TX,29.31,-94.79333333,America/Chicago
+8771486,Galveston Railroad Bridge,TX,29.30333333,-94.89666667,America/Chicago
+8771972,San Luis Pass,TX,29.08,-95.13,America/Chicago
+8772471,Freeport Harbor,TX,28.935,-95.295,America/Chicago
+8773037,Seadrift,TX,28.40666667,-96.71166667,America/Chicago
+8773146,Matagorda City,TX,28.71,-95.91333333,America/Chicago
+8773259,Port Lavaca,TX,28.64,-96.61,America/Chicago
+8773701,Port O'Connor,TX,28.45166667,-96.38833333,America/Chicago
+8773767,Matagorda Bay Entrance Channel,TX,28.42666667,-96.33,America/Chicago
+8774230,Aransas Wildlife Refuge,TX,28.22833333,-96.795,America/Chicago
+8774770,Rockport,TX,28.02166667,-97.04666667,America/Chicago
+8775132,La Quinta Channel North,TX,27.88,-97.28666667,America/Chicago
+8775222,Viola Turning Basin,TX,27.84666667,-97.52,America/Chicago
+8775237,Port Aransas,TX,27.84,-97.07333333,America/Chicago
+8775241,"Aransas, Aransas Pass",TX,27.83666667,-97.03833333,America/Chicago
+8775244,Nueces Bay,TX,27.83333333,-97.48666667,America/Chicago
+8775283,"Enbridge, Ingleside",TX,27.81833333,-97.20833333,America/Chicago
+8775296,"USS Lexington, Corpus Christi Bay",TX,27.81166667,-97.39,America/Chicago
+8775792,Packery Channel,TX,27.63333333,-97.23666667,America/Chicago
+8776139,S. Bird Island,TX,27.485,-97.31833333,America/Chicago
+8776604,Baffin Bay,TX,27.29666667,-97.405,America/Chicago
+8777812,Rincon Del San Jose,TX,26.80166667,-97.47,America/Chicago
+8778490,Port Mansfield,TX,26.55833333,-97.425,America/Chicago
+8779280,Realitos Peninsula,TX,26.26166667,-97.285,America/Chicago
+8779748,South Padre Island CG Station,TX,26.07166667,-97.16666667,America/Chicago
+8779749,SPI Brazos Santiago,TX,26.06666667,-97.155,America/Chicago
+8779770,Port Isabel,TX,26.06166667,-97.215,America/Chicago
+8631044,Wachapreague,VA,37.60833333,-75.685,America/New_York
+8632200,Kiptopeke,VA,37.165,-75.98833333,America/New_York
+8635027,Dahlgren,VA,38.32,-77.03666667,America/New_York
+8635750,Lewisetta,VA,37.99666667,-76.465,America/New_York
+8636580,Windmill Point,VA,37.615,-76.29,America/New_York
+8637689,Yorktown USCG Training Center,VA,37.22666667,-76.47833333,America/New_York
+8638610,Sewells Point,VA,36.94333333,-76.32833333,America/New_York
+8638901,"CBBT, Chesapeake Channel",VA,37.03333333,-76.08333333,America/New_York
+8639348,Money Point,VA,36.77833333,-76.30166667,America/New_York
+9440083,Vancouver,WA,45.63166667,-122.695,America/Los_Angeles
+9440357,TEMCO Kalama Terminal,WA,45.98333333,-122.835,America/Los_Angeles
+9440422,Longview,WA,46.10666667,-122.955,America/Los_Angeles
+9440569,Skamokawa,WA,46.27,-123.4566667,America/Los_Angeles
+9440581,Cape Disappointment,WA,46.28166667,-124.0466667,America/Los_Angeles
+9440910,Toke Point,WA,46.70833333,-123.9666667,America/Los_Angeles
+9441102,Westport,WA,46.905,-124.105,America/Los_Angeles
+9442396,"La Push, Quillayute River",WA,47.91333333,-124.635,America/Los_Angeles
+9443090,Neah Bay,WA,48.37,-124.6016667,America/Los_Angeles
+9444090,Port Angeles,WA,48.125,-123.44,America/Los_Angeles
+9444900,Port Townsend,WA,48.11166667,-122.76,America/Los_Angeles
+9445958,Bremerton,WA,47.56166667,-122.6233333,America/Los_Angeles
+9446484,Tacoma,WA,47.27,-122.4133333,America/Los_Angeles
+9447130,Seattle,WA,47.60333333,-122.34,America/Los_Angeles
+9449424,Cherry Point,WA,48.86333333,-122.7583333,America/Los_Angeles
+9449880,Friday Harbor,WA,48.545,-123.0133333,America/Los_Angeles
