@@ -77,8 +77,10 @@ def get_timezone(station_id):
                 time_zone_str = row['time_zone']
 
                 # Convert the string to a pytz time zone
+                print(f"get_timezone()\ntime_zone_str: {time_zone_str}")
                 try:
                     time_zone = pytz.timezone(time_zone_str)
+                    print(f"get_timezone()\nconverted to pytz: {time_zone_str}")
                     return time_zone
                 except pytz.UnknownTimeZoneError:
                     return f"Unknown time zone: {time_zone_str}"
@@ -102,7 +104,9 @@ def get_sunrise_sunset(latitude, longitude, date, zone=None):
     sunset = observer.next_setting(ephem.Sun())  
 
     # Get the "previous sunrise" before the midnight that ends the date (technically the next day)
+    print(f"date: {date}")
     observer.date = date + dt.timedelta(days = 1) 
+    print(f"date + dt.timedelta(days = 1): {date + dt.timedelta(days = 1)}")
     sunrise = observer.previous_rising(ephem.Sun())  # Get the most recent sunrise
 
     # Format the results
@@ -386,9 +390,11 @@ if __name__ == "__main__":
     # Extract the station_id value
     station_string = data.get('station_id')
     station_id = extract_number_from_string(station_string)
+    station_id = str(station_id)
 
-    city, state, lat, long = get_station_info(str(station_id))
+    city, state, lat, long = get_station_info(station_id)
     zone = get_timezone(station_id)
+    print(f"ZOOONE: {zone}")
 
     
     now_dtz = dt.datetime.now(zone) # _dtz := date, time, zone
@@ -399,6 +405,22 @@ if __name__ == "__main__":
     yesterday_sunrise, yesterday_sunset = get_sunrise_sunset(lat, long, yesterday_d, zone)
     today_sunrise, today_sunset = get_sunrise_sunset(lat, long, today_d, zone)
     tomorrow_sunrise, tomorrow_sunset = get_sunrise_sunset(lat, long, tomorrow_d, zone)    
+
+    print("City:", city)
+    print("State:", state)
+    print("Latitude:", lat)
+    print("Longitude:", long)
+    print("Timezone:", zone, "\n")
+    print("Now (date, time, zone):", now_dtz)
+    print("Today's Date:", today_d, "\n")
+    print("Yesterday's Date:", yesterday_d)
+    print("Tomorrow's Date:", tomorrow_d, "\n")
+    print("Yesterday's Sunrise:", yesterday_sunrise)
+    print("Yesterday's Sunset:", yesterday_sunset)
+    print("Today's Sunrise:", today_sunrise, "\n")
+    print("Today's Sunset:", today_sunset, "\n")
+    print("Tomorrow's Sunrise:", tomorrow_sunrise)
+    print("Tomorrow's Sunset:", tomorrow_sunset)
 
     data_json = fetch_NOAA_data(station_id, yesterday_d)
 
