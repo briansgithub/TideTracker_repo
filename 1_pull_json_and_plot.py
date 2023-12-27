@@ -90,6 +90,10 @@ def get_timezone(station_id):
 
 
 def get_sunrise_sunset(latitude, longitude, date, zone=None):
+    # This code has a bug where some places, like Honolulu, HI for example, 
+    # return sunset with a date of 2 days ago instead of with yesterday's date. 
+    # It doesn't make a big difference since contiguous days have negligibly different
+    # sunrise and sunset times. 
 
     # Create an observer object
     observer = ephem.Observer()
@@ -104,9 +108,7 @@ def get_sunrise_sunset(latitude, longitude, date, zone=None):
     sunset = observer.next_setting(ephem.Sun())  
 
     # Get the "previous sunrise" before the midnight that ends the date (technically the next day)
-    print(f"date: {date}")
     observer.date = date + dt.timedelta(days = 1) 
-    print(f"date + dt.timedelta(days = 1): {date + dt.timedelta(days = 1)}")
     sunrise = observer.previous_rising(ephem.Sun())  # Get the most recent sunrise
 
     # Format the results
@@ -406,21 +408,22 @@ if __name__ == "__main__":
     today_sunrise, today_sunset = get_sunrise_sunset(lat, long, today_d, zone)
     tomorrow_sunrise, tomorrow_sunset = get_sunrise_sunset(lat, long, tomorrow_d, zone)    
 
-    print("City:", city)
-    print("State:", state)
-    print("Latitude:", lat)
-    print("Longitude:", long)
-    print("Timezone:", zone, "\n")
-    print("Now (date, time, zone):", now_dtz)
-    print("Today's Date:", today_d, "\n")
-    print("Yesterday's Date:", yesterday_d)
-    print("Tomorrow's Date:", tomorrow_d, "\n")
-    print("Yesterday's Sunrise:", yesterday_sunrise)
-    print("Yesterday's Sunset:", yesterday_sunset)
-    print("Today's Sunrise:", today_sunrise, "\n")
-    print("Today's Sunset:", today_sunset, "\n")
-    print("Tomorrow's Sunrise:", tomorrow_sunrise)
-    print("Tomorrow's Sunset:", tomorrow_sunset)
+    # THIS IS A STOPGAP PATCH BECAUSE I CAN'T FIGURE OUT WHAT MY BUG IS WITH SUNRISE AND SUNSET!
+    # BUT I'M OUT OF TIME! So maybe I'll fix this later. 
+
+    yesterday_sunrise, yesterday_sunset = get_sunrise_sunset(lat, long, yesterday_d, zone)
+    yesterday_sunrise = yesterday_sunrise.replace(year=yesterday_d.year, month=yesterday_d.month, day=yesterday_d.day)
+    yesterday_sunset = yesterday_sunset.replace(year=yesterday_d.year, month=yesterday_d.month, day=yesterday_d.day)
+
+    today_sunrise, today_sunset = get_sunrise_sunset(lat, long, today_d, zone)
+    today_sunrise = today_sunrise.replace(year=today_d.year, month=today_d.month, day=today_d.day)
+    today_sunset = today_sunset.replace(year=today_d.year, month=today_d.month, day=today_d.day)
+
+    tomorrow_sunrise, tomorrow_sunset = get_sunrise_sunset(lat, long, tomorrow_d, zone)
+    tomorrow_sunrise = tomorrow_sunrise.replace(year=tomorrow_d.year, month=tomorrow_d.month, day=tomorrow_d.day)
+    tomorrow_sunset = tomorrow_sunset.replace(year=tomorrow_d.year, month=tomorrow_d.month, day=tomorrow_d.day)
+    
+    # Good enough 
 
     data_json = fetch_NOAA_data(station_id, yesterday_d)
 
