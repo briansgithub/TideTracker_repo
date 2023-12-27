@@ -206,7 +206,7 @@ def plot_data(data, now_dtz):
     plt.title(f'Tide Predictions for\n{city}, {state}', weight='bold')
     # plt.xlabel('Time', fontsize=14, weight='bold')  # Bold x-axis label
 
-    plt.ylabel('Deviation from\nAvg. Low Tide', weight='bold')  # Changed y-axis label
+    plt.ylabel('Tide Height (ft)\nAbove Chart Depth', weight='bold')  # Changed y-axis label
     # Add "ft." label to y-axis tick labels
     def add_ft_label(value, _):
         rounded_value = round(value, 1)
