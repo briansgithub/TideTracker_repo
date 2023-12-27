@@ -153,7 +153,23 @@ def RequestHandlerClassFactory(address, ssids, rcode):
 
             # NOW YOU CAN USE NOAA STATION ID 
 
-            
+
+            submitted_station_save_path = os.path.join(
+                os.path.dirname(
+                    os.path.dirname(
+                        os.path.dirname(
+                            os.path.realpath(__file__)
+                        )
+                    )
+                ),
+                'output_to_6.txt'
+            )
+
+            with open(submitted_station_save_path, 'w') as file:
+                file.write(station_id)
+
+            print(f"Station ID ({station_id}) has been saved to {submitted_station_save_path}")
+
 
             # Look up the ssid in the list we sent, to find out its security
             # type for the new connection we have to make
