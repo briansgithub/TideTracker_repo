@@ -17,7 +17,6 @@ import requests
 from PIL import Image
 import csv
 import pytz
-from timezonefinder import TimezoneFinder
 import ephem
 from matplotlib.ticker import FuncFormatter
 import os
@@ -60,18 +59,32 @@ STATIC_TIMEZONE = True #used to set timezone to Fort Myers so get_timezone is av
 # but the sunrise/sunset and the present run of data
 # are affected by the timezoneyou apply
 
-def get_timezone(latitude, longitude):
-    if(STATIC_TIMEZONE):
-        return pytz.timezone('US/Eastern') #Fort Myers
-    else:
-        tf = TimezoneFinder()
-        timezone_str = tf.timezone_at(lng=longitude, lat=latitude)
-        
-        if timezone_str:
-            return pytz.timezone(timezone_str)
-        else:
-            # Return a default timezone if the location is not found
-            return pytz.timezone('UTC')
+
+def get_timezone(station_id):
+    file_path = "stations.csv"
+
+    # Open the CSV file and read its contents
+    with open(file_path, 'r') as csvfile:
+        # Create a CSV reader
+        csv_reader = csv.DictReader(csvfile)
+
+        # Iterate through rows in the CSV file
+        for row in csv_reader:
+            # Check if the station_id is in the 'Station ID' column
+            if row['Station ID'] == station_id:
+                # Retrieve the time_zone for the matching row
+                time_zone_str = row['time_zone']
+
+                # Convert the string to a pytz time zone
+                try:
+                    time_zone = pytz.timezone(time_zone_str)
+                    return time_zone
+                except pytz.UnknownTimeZoneError:
+                    return f"Unknown time zone: {time_zone_str}"
+
+    # Default to UTC if station ID is not found
+    return pytz.utc
+
 
 def get_sunrise_sunset(latitude, longitude, date, zone=None):
 
@@ -110,7 +123,7 @@ def get_station_info(station_id):
                 state = row["State"]
                 decimal_latitude = float(row["decimal_latitude"])
                 decimal_longitude = float(row["decimal_longitude"])
-                return city, state, decimal_latitude, decimal_longitude, get_timezone(decimal_latitude, decimal_longitude)
+                return city, state, decimal_latitude, decimal_longitude
 
 
 def fetch_NOAA_data(station_id, date):
@@ -344,7 +357,7 @@ def plot_data(data, now_dtz):
     img.save(os.path.join(maindir, 'plot_image.bmp')) # Waveshare can display either png or bmp as long as they're <= 800x480 pixels
 
 
-    if DISPLAY_PLOT:
+    if DISPLAY_PLOT and not IS_RPI:
         img.show()
 
     img.close()
@@ -356,7 +369,8 @@ if __name__ == "__main__":
     station_id = "8725520" # Ft Myers
     # station_id = "8738043" # West Fowl River Bridge 
 
-    city, state, lat, long, zone = get_station_info(station_id)
+    city, state, lat, long = get_station_info(station_id)
+    zone = get_timezone(station_id)
     
     now_dtz = dt.datetime.now(zone) # _dtz := date, time, zone
     today_d = now_dtz.date()
