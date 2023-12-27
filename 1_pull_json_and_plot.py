@@ -29,11 +29,14 @@ maindir = os.path.dirname(os.path.realpath(__file__))
 if os.path.exists(libdir):
     sys.path.append(libdir)
 
-from waveshare_epd import epd7in5_V2
-
 
 print("BEGINNING")
 DISPLAY_PLOT = True
+IS_RPI = 
+
+from waveshare_epd import epd7in5_V2
+
+
 
 YEXTEND = 0.175 # y-axis addition to move labels and extend ylim0 and ylim1 to make room for labels and present data
 
