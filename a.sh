@@ -21,12 +21,15 @@ fi
 git pull
 if [ $? -ne 0 ]; then
     print_error "GIT PULL FAILED!"
+    
+    # If git pull fails, set permissions on scripts using find
+    find /home/pi/TideTracker_repo -type f \( -name "*.sh" -o -name "*.py" \) -exec chmod +x {} \;
+    
     exit 1
 fi
 
 # Set permissions on scripts
 find /home/pi/TideTracker_repo -type f \( -name "*.sh" -o -name "*.py" \) -exec chmod +x {} \;
-
 
 # Uncomment the following line if you want to run the Python script
 #python3 0_boot_sense.py
