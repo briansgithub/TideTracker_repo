@@ -114,7 +114,6 @@ def RequestHandlerClassFactory(address, ssids, rcode):
             super().do_GET()
 
 
-        # test with: curl localhost:5000 -d "{'name':'value'}"
         def do_POST(self):
             content_length = int(self.headers['Content-Length'])
             body = self.rfile.read(content_length)
@@ -122,30 +121,39 @@ def RequestHandlerClassFactory(address, ssids, rcode):
             self.end_headers()
             response = BytesIO()
             fields = parse_qs(body.decode('utf-8'))
-            #print(f'POST received: {fields}')
 
-            # Parse the form post
+            # Other form field names
             FORM_SSID = 'ssid'
             FORM_HIDDEN_SSID = 'hidden-ssid'
             FORM_USERNAME = 'identity'
             FORM_PASSWORD = 'passphrase'
 
-            # Brian - adding NOAA station
+            # NOAA Station ID field name
             FORM_STATION = 'station'
 
             if FORM_SSID not in fields:
                 print(f'Error: POST is missing {FORM_SSID} field.')
                 return
 
+            # Extract values from the form data
             ssid = fields[FORM_SSID][0]
             password = None
             username = None
-            if FORM_HIDDEN_SSID in fields: 
-                ssid = fields[FORM_HIDDEN_SSID][0] # override with hidden name
-            if FORM_USERNAME in fields: 
-                username = fields[FORM_USERNAME][0] 
-            if FORM_PASSWORD in fields: 
-                password = fields[FORM_PASSWORD][0] 
+            station_id = None  # Add this line
+
+            if FORM_HIDDEN_SSID in fields:
+                ssid = fields[FORM_HIDDEN_SSID][0]  # override with hidden name
+            if FORM_USERNAME in fields:
+                username = fields[FORM_USERNAME][0]
+            if FORM_PASSWORD in fields:
+                password = fields[FORM_PASSWORD][0]
+            if FORM_STATION in fields:  # Add these lines
+                station_id = fields[FORM_STATION][0]
+
+
+            # NOW YOU CAN USE NOAA STATION ID 
+
+            
 
             # Look up the ssid in the list we sent, to find out its security
             # type for the new connection we have to make
@@ -153,6 +161,10 @@ def RequestHandlerClassFactory(address, ssids, rcode):
 
             if FORM_HIDDEN_SSID in fields: 
                 conn_type = netman.CONN_TYPE_SEC_PASSWORD # Assumption...
+
+
+            # USE THE NOAA STATION ID ABOVE HERE
+
 
             for s in self.ssids:
                 if FORM_SSID in s and ssid == s[FORM_SSID]:
@@ -176,6 +188,8 @@ def RequestHandlerClassFactory(address, ssids, rcode):
                 response.write(b'OK\n')
             else:
                 response.write(b'ERROR\n')
+
+
             self.wfile.write(response.getvalue())
 
             # Handle success or failure of the new connection
