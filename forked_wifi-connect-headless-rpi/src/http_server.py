@@ -166,11 +166,12 @@ def RequestHandlerClassFactory(address, ssids, rcode):
                         )
                     )
                 ),
-                'input_to_6.txt'
+                'tidetracker_persistent_data.json'
             )
 
-            with open(submitted_station_save_path, 'w') as file:
-                file.write(station_id)
+            # Save station_id to a JSON file
+            with open(submitted_station_save_path, 'w') as json_file:
+                json.dump({'station_id': station_id}, json_file)
 
             print(f"\nStation ID ({station_id}) has been saved to {submitted_station_save_path}\n")
 
