@@ -51,15 +51,31 @@
       </div>
     </div>
 
+    <!-- New paragraph of text added here -->
     <div class="row before-submit">
       <div class="col-lg-8 col-lg-offset-1">
-        <h3>Hi! Please choose your WiFi Network from the list.</h3>
+        <p>Welcome to PFC_EDU WiFi Connect. Choose your WiFi network from the list below and follow the instructions to
+          connect your device.</p>
+      </div>
+    </div>
+
+    <div class="row before-submit">
+      <div class="col-lg-8 col-lg-offset-1">
+        <h3>Enter your wifi network info below:</h3>
       </div>
     </div>
 
     <div class="row before-submit">
       <div class="col-lg-8 col-lg-offset-1">
         <form class="form form-horizontal" id='connect-form' action='/connect' method='post'>
+
+          <div class="form-group">
+            <p class="col-lg-8 col-lg-offset-4">Select your WiFi network from the list below:</p>
+            <label for="ssid-select" class="control-label col-lg-4">WiFi Networks</label>
+            <div class="col-lg-4">
+              <select id='ssid-select' class="form-control" name='ssid'></select>
+            </div>
+          </div>
 
           <div class="form-group">
             <label for="ssid-select" class="control-label col-lg-4">WiFi Networks</label>
