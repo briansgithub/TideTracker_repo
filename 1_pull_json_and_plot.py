@@ -30,6 +30,7 @@ if os.path.exists(libdir):
 
 from pathlib import Path
 import re
+import json
 
 def is_raspberry_pi():
     # https://raspberrypi.stackexchange.com/a/139704/540
@@ -364,13 +365,31 @@ def plot_data(data, now_dtz):
 
     return
 
+def extract_number_from_string(input_string):
+    match = re.match(r'^(\d+)', input_string)
+    
+    if match:
+        return int(match.group(1))
+    else:
+        # If no number is found in the line, return the default value 8725520 (Fort Myers station ID number)
+        return 8725520 
+
 # Call the function with a specific station_id when the module is run directly
 if __name__ == "__main__":
-    station_id = "8725520" # Ft Myers
-    # station_id = "8738043" # West Fowl River Bridge 
 
-    city, state, lat, long = get_station_info(station_id)
+    json_file_path = os.path.join(maindir, 'tidetracker_persistent_data.json')
+
+    # Read the JSON data from the file
+    with open(json_file_path, 'r') as file:
+        data = json.load(file)
+
+    # Extract the station_id value
+    station_string = data.get('station_id')
+    station_id = extract_number_from_string(station_string)
+
+    city, state, lat, long = get_station_info(str(station_id))
     zone = get_timezone(station_id)
+
     
     now_dtz = dt.datetime.now(zone) # _dtz := date, time, zone
     today_d = now_dtz.date()
