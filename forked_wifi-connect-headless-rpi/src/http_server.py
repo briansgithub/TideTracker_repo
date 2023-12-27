@@ -153,6 +153,10 @@ def RequestHandlerClassFactory(address, ssids, rcode):
 
             # NOW YOU CAN USE NOAA STATION ID 
 
+            # Check if station_id is None and set it to the default value if True
+            if station_id is None:
+                station_id = "8725520 - Fort Myers, FL"
+ 
 
             submitted_station_save_path = os.path.join(
                 os.path.dirname(
