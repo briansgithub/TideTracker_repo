@@ -52,6 +52,16 @@ $(function(){
         }
     });
 
+    // Function to toggle password visibility
+    function togglePasswordVisibility() {
+        var passwordField = $('#passphrase');
+        var passwordType = passwordField.attr('type');
+        passwordField.attr('type', passwordType === 'password' ? 'text' : 'password');
+    }
+
+    // Event binding for the "Show password" button
+    $('#showPasswordBtn').click(togglePasswordVisibility);
+
     $('#connect-form').submit(function(ev){
         $.post('/connect', $('#connect-form').serialize(), function(data){
             $('.before-submit').hide();
