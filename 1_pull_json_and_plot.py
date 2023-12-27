@@ -77,10 +77,8 @@ def get_timezone(station_id):
                 time_zone_str = row['time_zone']
 
                 # Convert the string to a pytz time zone
-                print(f"get_timezone()\ntime_zone_str: {time_zone_str}")
                 try:
                     time_zone = pytz.timezone(time_zone_str)
-                    print(f"get_timezone()\nconverted to pytz: {time_zone_str}")
                     return time_zone
                 except pytz.UnknownTimeZoneError:
                     return f"Unknown time zone: {time_zone_str}"
@@ -396,7 +394,6 @@ if __name__ == "__main__":
 
     city, state, lat, long = get_station_info(station_id)
     zone = get_timezone(station_id)
-    print(f"ZOOONE: {zone}")
 
     
     now_dtz = dt.datetime.now(zone) # _dtz := date, time, zone
