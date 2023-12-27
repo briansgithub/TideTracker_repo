@@ -80,6 +80,16 @@ $(function(){
             $('.before-submit').hide();
             $('#submit-message').removeClass('hidden');
         });
+
+
+        // Get the selected value from the dropdown
+        var selectedStation = $('#noaa-station-dropdown').val();
+
+        // Set the selected value to the hidden input
+        $('#noaa-station').val(selectedStation);
+
+
+
         ev.preventDefault();
     });
 });
