@@ -29,14 +29,28 @@ maindir = os.path.dirname(os.path.realpath(__file__))
 if os.path.exists(libdir):
     sys.path.append(libdir)
 
+from pathlib import Path
+import re
+
+def is_raspberry_pi():
+    # https://raspberrypi.stackexchange.com/a/139704/540
+    CPUINFO_PATH = Path("/proc/cpuinfo")
+
+    if not CPUINFO_PATH.exists():
+        return False
+    with open(CPUINFO_PATH) as f:
+        cpuinfo = f.read()
+    return re.search(r"^Model\s*:\s*Raspberry Pi", cpuinfo, flags=re.M) is not None 
+
+IS_RPI = is_raspberry_pi()
+
+if(IS_RPI)
+    from waveshare_epd import epd7in5_V2
+
+
+DISPLAY_PLOT = True
 
 print("BEGINNING")
-DISPLAY_PLOT = True
-IS_RPI = 
-
-from waveshare_epd import epd7in5_V2
-
-
 
 YEXTEND = 0.175 # y-axis addition to move labels and extend ylim0 and ylim1 to make room for labels and present data
 
@@ -357,33 +371,33 @@ if __name__ == "__main__":
 
     plot_data(data_json, now_dtz)
 
+    if(IS_RPI):
+        try:
+            epd = epd7in5_V2.EPD()
+            ### logging.info("\ninit and Clear\n")
+            epd.init()
 
-    try:
-        epd = epd7in5_V2.EPD()
-        ### logging.info("\ninit and Clear\n")
-        epd.init()
+            logging.info("\nDisplaying the .bmp on the e-ink display)\n")
+            plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
+            plot_image = plot_image.transpose(Image.ROTATE_180)
+            epd.display(epd.getbuffer(plot_image))
+            #time.sleep(2)
 
-        logging.info("\nDisplaying the .bmp on the e-ink display)\n")
-        plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
-        plot_image = plot_image.transpose(Image.ROTATE_180)
-        epd.display(epd.getbuffer(plot_image))
-        #time.sleep(2)
+            ### # Initialize a canvas. Open a file and display it on the canvas. 
+            ### logging.info("4. Create composite images")
+            ### Himage2 = Image.new('1', (epd.width, epd.height), 255)  # 255: clear the frame
+            ### bmp = Image.open(os.path.join(picdir, '100x100.bmp'))
+            ### Himage2.paste(bmp, (50,10))
+            ### epd.display(epd.getbuffer(Himage2))
+            ### time.sleep(2)
 
-        ### # Initialize a canvas. Open a file and display it on the canvas. 
-        ### logging.info("4. Create composite images")
-        ### Himage2 = Image.new('1', (epd.width, epd.height), 255)  # 255: clear the frame
-        ### bmp = Image.open(os.path.join(picdir, '100x100.bmp'))
-        ### Himage2.paste(bmp, (50,10))
-        ### epd.display(epd.getbuffer(Himage2))
-        ### time.sleep(2)
-
-        logging.info("\nGoto Sleep...\n")
-        epd.sleep()
-        
-    except IOError as e:
-        logging.info(e)
-        
-    except KeyboardInterrupt:    
-        logging.info("ctrl + c:")
-        epd7in5_V2.epdconfig.module_exit()
-        exit()
+            logging.info("\nGoto Sleep...\n")
+            epd.sleep()
+            
+        except IOError as e:
+            logging.info(e)
+            
+        except KeyboardInterrupt:    
+            logging.info("ctrl + c:")
+            epd7in5_V2.epdconfig.module_exit()
+            exit()
