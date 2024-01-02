@@ -62,10 +62,11 @@ STATIC_TIMEZONE = True #used to set timezone to Fort Myers so get_timezone is av
 
 
 def get_timezone(station_id):
-    file_path = "stations.csv"
+    # Open the CSV file and read its contents
+    csv_path = os.path.join(maindir, 'stations.csv')
 
     # Open the CSV file and read its contents
-    with open(file_path, 'r') as csvfile:
+    with open(csv_path, 'r') as csvfile:
         # Create a CSV reader
         csv_reader = csv.DictReader(csvfile)
 
