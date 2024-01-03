@@ -151,7 +151,7 @@ echo -e "\n##### SETUP: RUN SCRIPT ON BOOT - WRITE TO THE CRON TAB FILE #####\n"
 
 # Add cron job to the file
 ##### This command may not work from this script and may need to be run manually!
-(crontab -l; echo "@reboot sleep 60 && /home/pi/TideTracker_repo/script_to_run_on_boot.sh >> /home/pi/TideTracker_repo/cron_log 2>&1") | sort -u | crontab -
+(crontab -l; echo "@reboot sleep 75 && /home/pi/TideTracker_repo/script_to_run_on_boot.sh >> /home/pi/TideTracker_repo/cron_log 2>&1") | sort -u | crontab -
 sudo service cron restart
 
 ##### 
