@@ -23,8 +23,8 @@ import os
 from scipy.signal import find_peaks
 import numpy as np
 
-libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'e-ink_lib')
-maindir = os.path.dirname(os.path.realpath(__file__))
+libdir = '/home/pi/TideTracker_repo/e-ink_lib'
+maindir = '/home/pi/TideTracker_repo'
 if os.path.exists(libdir):
     sys.path.append(libdir)
 
