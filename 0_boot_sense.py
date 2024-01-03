@@ -13,6 +13,7 @@ if os.path.exists(wifi_libdir):
     sys.path.append(wifi_libdir)
 import netman
 
+
 # Define the GPIO pin you want to monitor
 gpio_pin = 16  # Replace with your GPIO pin number
 
