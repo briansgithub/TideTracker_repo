@@ -5,9 +5,10 @@ import RPi.GPIO as GPIO
 import subprocess
 import sys
 
-maindir = os.path.dirname(os.path.realpath(__file__))
 
-wifi_libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'forked_wifi-connect-headless-rpi','src')
+maindir = '/home/pi/TideTracker_repo'
+
+wifi_libdir = os.path.join(maindir, 'forked_wifi-connect-headless-rpi','src')
 if os.path.exists(wifi_libdir):
     sys.path.append(wifi_libdir)
 import netman
