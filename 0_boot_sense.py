@@ -24,7 +24,7 @@ GPIO.setup(gpio_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 # Define script names and their paths
 auto_run_wifi_script_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'forked_wifi-connect-headless-rpi', 'scripts', 'run.sh')
 
-plot_tides_script_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '1_pull_json_and_plot.py')
+plot_tides_script_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '2_pull_json_and_plot_test.py')
 no_wifi_errors_script_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'no_wifi_paste_over.py')
 
 command = "sudo systemctl start NetworkManager"
