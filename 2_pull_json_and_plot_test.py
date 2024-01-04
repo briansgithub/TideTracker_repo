@@ -21,10 +21,7 @@ import os
 from scipy.signal import find_peaks
 import numpy as np
 
-libdir = '/home/pi/TideTracker_repo/e-ink_lib'
-maindir = '/home/pi/TideTracker_repo'
-if os.path.exists(libdir):
-    sys.path.append(libdir)
+
 
 from pathlib import Path
 import re
@@ -46,6 +43,16 @@ IS_RPI = is_raspberry_pi()
 
 if IS_RPI:
     from waveshare_epd import epd7in5_V2
+    libdir = '/home/pi/TideTracker_repo/e-ink_lib'
+    maindir = '/home/pi/TideTracker_repo'
+    if os.path.exists(libdir):
+        sys.path.append(libdir)
+else:
+    libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'e-ink_lib')
+    maindir = os.path.dirname(os.path.realpath(__file__))
+    if os.path.exists(libdir):
+        sys.path.append(libdir)
+    
 
 DISPLAY_PLOT = True
 
