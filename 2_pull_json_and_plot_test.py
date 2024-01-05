@@ -41,11 +41,13 @@ IS_RPI = is_raspberry_pi()
 font_name = "Ubuntu-Bold.ttf"
 
 if IS_RPI:
-    from waveshare_epd import epd7in5_V2
     libdir = '/home/pi/TideTracker_repo/e-ink_lib'
     maindir = '/home/pi/TideTracker_repo'
     if os.path.exists(libdir):
         sys.path.append(libdir)
+
+    from waveshare_epd import epd7in5_V2
+
     font18 = ImageFont.truetype(f'/home/pi/TIdeTracker_repo/{font_name}', 18)
     sun_rise_icon_path = '/home/pi/TideTracker_repo/sun_rise.png'
     sun_set_icon_path = '/home/pi/TideTracker_repo/sun_set.png'
