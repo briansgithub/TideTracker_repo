@@ -3,10 +3,7 @@
 import sys
 import os
 
-import logging
-import time
 from PIL import Image, ImageDraw, ImageFont
-import traceback
 
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -41,17 +38,26 @@ def is_raspberry_pi():
 
 IS_RPI = is_raspberry_pi()
 
+font_name = "Ubuntu-Bold.ttf"
+
 if IS_RPI:
     from waveshare_epd import epd7in5_V2
     libdir = '/home/pi/TideTracker_repo/e-ink_lib'
     maindir = '/home/pi/TideTracker_repo'
     if os.path.exists(libdir):
         sys.path.append(libdir)
+    font18 = ImageFont.truetype(f'/home/pi/TIdeTracker_repo/{font_name}', 18)
+    sun_rise_icon_path = '/home/pi/TideTracker_repo/sun_rise.png'
+    sun_set_icon_path = '/home/pi/TideTracker_repo/sun_set.png'
+
 else:
     libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'e-ink_lib')
     maindir = os.path.dirname(os.path.realpath(__file__))
     if os.path.exists(libdir):
         sys.path.append(libdir)
+    font18 = ImageFont.truetype(os.path.join(maindir, font_name), 18)
+    sun_rise_icon_path = os.path.join(maindir, "sun_rise.png")
+    sun_set_icon_path = os.path.join(maindir, "sun_set.png")
     
 
 DISPLAY_PLOT = True
@@ -319,18 +325,48 @@ def plot_data(data, now_dtz):
 
     plt.tight_layout()
 
+    # Format 'bmp' is not supported (supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff, webp)
+    # plt.savefig("plot_image.png", dpi=600)
+    # plt.show()
+
+    # use a buffer to save plt.savefig to instead of to a file (to reduce wear on the microSD card; and mitigage file path issues...)
     from io import BytesIO
 
     buffer = BytesIO()
     plt.savefig(buffer, format='png', dpi=600)
     buffer.seek(0)
     img = Image.open(buffer)
+
+
     img = img.resize((800, 480))
     img = img.convert('1')
+
+
+    # Add sun rise/set icons
+    sun_icon = Image.open(sun_rise_icon_path).convert('RGB').resize((40, 40))
+
+    y_pos = 11
+    left_x_pos = 100
+    right_x_pos = 585
+    x_buf_space = 5
+    y_buf_space = 1
+
+    img.paste(sun_icon, (right_x_pos,y_pos))
+
+    # Add font
+    draw = ImageDraw.Draw(img)
+
+    draw.text((right_x_pos + sun_icon.width + x_buf_space, y_pos + y_buf_space), 
+              rm_lead_zeros(f'Rise:   {today_sunrise:%I:%M %p}\nSet:     {today_sunset:%I:%M %p}'), 
+              font = font18, 
+              fill = 0)
+    
+
     img.save(os.path.join(maindir, 'plot_image.bmp'))
 
     if DISPLAY_PLOT and not IS_RPI:
         img.show()
+        # plt.show()
 
     img.close()
 
@@ -399,6 +435,9 @@ if __name__ == "__main__":
 
     plot_data(data_json, now_dtz)
 
+    ### PUT THE SUNRISE + SUNSET HERE 
+    
+
     if IS_RPI:
         try:
             print_debug("Initializing e-ink display...")
@@ -411,6 +450,16 @@ if __name__ == "__main__":
             plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
             plot_image = plot_image.transpose(Image.ROTATE_180)
             epd.display(epd.getbuffer(plot_image))
+            #time.sleep(2)
+
+            ### # Initialize a canvas. Open a file and display it on the canvas. 
+            ### logging.info("4. Create composite images")
+            ### Himage2 = Image.new('1', (epd.width, epd.height), 255)  # 255: clear the frame
+            ### bmp = Image.open(os.path.join(picdir, '100x100.bmp'))
+            ### Himage2.paste(bmp, (50,10))
+            ### epd.display(epd.getbuffer(Himage2))
+            ### time.sleep(2)
+
 
             print_debug("Going to sleep...")
 
