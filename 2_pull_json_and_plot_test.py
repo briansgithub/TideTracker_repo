@@ -384,7 +384,7 @@ def plot_data(data, now_dtz):
     # Add sun rise/set icons
     sun_icon = Image.open(sun_rise_icon_path).convert('RGB').resize((40, 40))
 
-    y_pos = 0
+    y_pos = 5
     left_x_pos = 100
     right_x_pos = 585
     x_buf_space = 5
