@@ -14,7 +14,6 @@ import csv
 import pytz
 import ephem
 from matplotlib.ticker import FuncFormatter
-import os
 from scipy.signal import find_peaks
 import numpy as np
 
