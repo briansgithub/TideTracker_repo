@@ -286,6 +286,8 @@ def plot_data(data, now_dtz):
                      arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
                      ha='center', va='center', fontsize=8, weight='bold')
 
+
+
     print_debug("Setting plot labels and formatting...")
 
     plt.title(f'Tide Predictions for\n{city}, {state}', weight='bold')
@@ -332,9 +334,24 @@ def plot_data(data, now_dtz):
     ylim0 = plt.ylim()[0]
     ylim1 = plt.ylim()[1]
 
-    ylim_offset = YEXTEND
+    fudge_factor = deadzone_height/5
+    # Insert sunrise/sunset times on plot
+    plt.annotate(rm_lead_zeros(f'{today_sunrise:%I:%M %p}'),
+                xy=(today_sunrise, ylim1 + 2*YEXTEND - deadzone_height- fudge_factor),
+                xytext=(today_sunrise, ylim1 + 2*YEXTEND - deadzone_height - fudge_factor),  # Adjust text position
+                arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
+                ha='center', va='center', fontsize=10, weight='bold')
 
-    plt.ylim(ylim0 - ylim_offset, ylim1 + ylim_offset)
+    plt.annotate(rm_lead_zeros(f'{today_sunset:%I:%M %p}'),
+                xy=(today_sunset, ylim1 + 2*YEXTEND - deadzone_height - fudge_factor),
+                xytext=(today_sunset, ylim1 + 2*YEXTEND - deadzone_height - fudge_factor),  # Adjust text position
+                arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
+                ha='center', va='center', fontsize=10, weight='bold')
+
+
+    # +2*YEXTEND: +1 for highest tide peak and +1 for sunrise/sunset tiemes to fit above highest tide peak annotation
+    plt.ylim(ylim0 - YEXTEND, ylim1 + 2*YEXTEND)
+
 
     plt.ylim(plt.gca().get_ylim()[0], plt.gca().get_ylim()[1])
 
@@ -363,24 +380,24 @@ def plot_data(data, now_dtz):
     img = img.convert('1')
 
 
-    # Add sun rise/set icons
-    sun_icon = Image.open(sun_rise_icon_path).convert('RGB').resize((40, 40))
+    ### # Add sun rise/set icons
+    ### sun_icon = Image.open(sun_rise_icon_path).convert('RGB').resize((40, 40))
 
-    y_pos = 11
-    left_x_pos = 100
-    right_x_pos = 585
-    x_buf_space = 5
-    y_buf_space = 1
+    ### y_pos = 11
+    ### left_x_pos = 100
+    ### right_x_pos = 585
+    ### x_buf_space = 5
+    ### y_buf_space = 1
 
-    img.paste(sun_icon, (right_x_pos,y_pos))
+    ### img.paste(sun_icon, (right_x_pos,y_pos))
 
-    # Add font
-    draw = ImageDraw.Draw(img)
+    ### # Add font
+    ### draw = ImageDraw.Draw(img)
 
-    draw.text((right_x_pos + sun_icon.width + x_buf_space, y_pos + y_buf_space), 
-              rm_lead_zeros(f'Rise:   {today_sunrise:%I:%M %p}\nSet:     {today_sunset:%I:%M %p}'), 
-              font = font18, 
-              fill = 0)
+    ### draw.text((right_x_pos + sun_icon.width + x_buf_space, y_pos + y_buf_space), 
+              ### rm_lead_zeros(f'Rise:   {today_sunrise:%I:%M %p}\nSet:     {today_sunset:%I:%M %p}'), 
+              ### font = font18, 
+              ### fill = 0)
     
 
     img.save(os.path.join(maindir, 'plot_image.bmp'))
