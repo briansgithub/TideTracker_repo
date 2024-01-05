@@ -382,24 +382,24 @@ def plot_data(data, now_dtz):
     img = img.convert('1')
 
 
-    ### # Add sun rise/set icons
-    ### sun_icon = Image.open(sun_rise_icon_path).convert('RGB').resize((40, 40))
+    # Add sun rise/set icons
+    sun_icon = Image.open(sun_rise_icon_path).convert('RGB').resize((40, 40))
 
-    ### y_pos = 11
-    ### left_x_pos = 100
-    ### right_x_pos = 585
-    ### x_buf_space = 5
-    ### y_buf_space = 1
+    y_pos = 11
+    left_x_pos = 100
+    right_x_pos = 585
+    x_buf_space = 5
+    y_buf_space = 1
 
-    ### img.paste(sun_icon, (right_x_pos,y_pos))
+    img.paste(sun_icon, (right_x_pos,y_pos))
 
-    ### # Add font
-    ### draw = ImageDraw.Draw(img)
+    # Add font
+    draw = ImageDraw.Draw(img)
 
-    ### draw.text((right_x_pos + sun_icon.width + x_buf_space, y_pos + y_buf_space), 
-              ### rm_lead_zeros(f'Rise:   {today_sunrise:%I:%M %p}\nSet:     {today_sunset:%I:%M %p}'), 
-              ### font = font18, 
-              ### fill = 0)
+    draw.text((right_x_pos + sun_icon.width + x_buf_space, y_pos + y_buf_space), 
+              rm_lead_zeros(f'Rise:   {today_sunrise:%I:%M %p}\nSet:     {today_sunset:%I:%M %p}'), 
+              font = font18, 
+              fill = 0)
     
 
     img.save(os.path.join(maindir, 'plot_image.bmp'))
