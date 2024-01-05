@@ -64,7 +64,7 @@ DISPLAY_PLOT = True
 
 print_debug("BEGINNING")
 
-YEXTEND = 0.175  # y-axis addition to move labels and extend ylim0 and ylim1 to make room for labels and present data
+YEXTEND = 0.175*0.6  # y-axis addition to move labels and extend ylim0 and ylim1 to make room for labels and present data
 
 PERIOD = 2  # hours between TPL5110 reloads
 STATIC_TIMEZONE = True  # used to set timezone to Fort Myers so get_timezone is averted
@@ -226,6 +226,7 @@ def plot_data(data, now_dtz):
         y_coord = filtered_values[peak_index]
 
         delta_x = dt.timedelta(hours=0)
+        delta_y = 0
 
         # Check if the annotation is too close to the left edge
         if x_coord - approx_label_width / 2 < start_time:
@@ -235,10 +236,15 @@ def plot_data(data, now_dtz):
         if x_coord + approx_label_width / 2 > filtered_times[-1]:
             delta_x -= approx_label_width / 2  # Move the annotation to the left
 
+        # Check if annotation too close to y=0 .046 = approx text height
+        if abs(y_coord + YEXTEND) <= 0.046 :
+            delta_y += 0.046
+
+
         # Annotate
         plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'),
                      xy=(x_coord, y_coord),
-                     xytext=(x_coord + delta_x, y_coord + YEXTEND),  # Adjust text position
+                     xytext=(x_coord + delta_x, y_coord + YEXTEND + delta_y),  # Adjust text position
                      arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
                      ha='center', va='center', fontsize=8, weight='bold')
 
@@ -250,6 +256,7 @@ def plot_data(data, now_dtz):
         y_coord = filtered_values[valley_index]
 
         delta_x = dt.timedelta(hours=0)
+        delta_y = 0
 
         # Check if the annotation is too close to the left edge
         if x_coord - approx_label_width / 2 < start_time:
@@ -258,10 +265,14 @@ def plot_data(data, now_dtz):
         # Check if the annotation is too close to the right edge
         if x_coord + approx_label_width / 2 > filtered_times[-1]:
             delta_x -= approx_label_width / 2  # Move the annotation to the left
+        
+        # Check if annotation too close to y=0 .046 = approx text height
+        if abs(y_coord - YEXTEND) <= 0.046 :
+            delta_y -= 0.046
 
         plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'),
                      xy=(x_coord, y_coord),
-                     xytext=(x_coord + delta_x, y_coord - YEXTEND),  # Adjust text position
+                     xytext=(x_coord + delta_x, y_coord - YEXTEND + delta_y),  # Adjust text position
                      arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
                      ha='center', va='center', fontsize=8, weight='bold')
 
