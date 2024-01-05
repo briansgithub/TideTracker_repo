@@ -220,6 +220,7 @@ def plot_data(data, now_dtz):
 
     # Annotate peaks on the plot
     approx_label_width = dt.timedelta(hours=4.5)  # eyeballed from graph
+    deadzone_height = 0.055  # .046 = approx text height ; ~ 0.00463ft/px. text is 9px high; 12px deadzone. 
 
     for peak_index in peaks:
         x_coord = filtered_times[peak_index]
@@ -236,15 +237,19 @@ def plot_data(data, now_dtz):
         if x_coord + approx_label_width / 2 > filtered_times[-1]:
             delta_x -= approx_label_width / 2  # Move the annotation to the left
 
-        # Check if annotation too close to y=0 .046 = approx text height
-        if abs(y_coord + YEXTEND) <= 0.046 :
-            delta_y += 0.046
+        text_center = y_coord + YEXTEND
+        # For peak, if text is within half the deadzone above y=0, add half the deadzone
+        if 0 < text_center <= deadzone_height/2:
+            delta_y += deadzone_height/2
+        # For peak, if text is within half the deadzone below y=0, add the deadzone
+        if -(deadzone_height/2) <= text_center <= 0:
+            delta_y += deadzone_height
 
 
         # Annotate
         plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'),
                      xy=(x_coord, y_coord),
-                     xytext=(x_coord + delta_x, y_coord + YEXTEND + delta_y),  # Adjust text position
+                     xytext=(x_coord + delta_x, text_center + delta_y),  # Adjust text position
                      arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
                      ha='center', va='center', fontsize=8, weight='bold')
 
@@ -266,13 +271,18 @@ def plot_data(data, now_dtz):
         if x_coord + approx_label_width / 2 > filtered_times[-1]:
             delta_x -= approx_label_width / 2  # Move the annotation to the left
         
-        # Check if annotation too close to y=0 .046 = approx text height
-        if abs(y_coord - YEXTEND) <= 0.046 :
-            delta_y -= 0.046
+        text_center = y_coord - YEXTEND
+
+        # For valley, if text is within half the deadzone above y=0, subtract the deadzone
+        if 0 <= text_center <= deadzone_height/2:
+            delta_y -= deadzone_height
+        # For valley, if text is within half the deadzone below y=0, subtract half the deadzone
+        if -(deadzone_height/2) <= text_center < 0:
+            delta_y -= deadzone_height/2
 
         plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'),
                      xy=(x_coord, y_coord),
-                     xytext=(x_coord + delta_x, y_coord - YEXTEND + delta_y),  # Adjust text position
+                     xytext=(x_coord + delta_x, text_center + delta_y),  # Adjust text position
                      arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
                      ha='center', va='center', fontsize=8, weight='bold')
 
