@@ -37,7 +37,8 @@ def is_raspberry_pi():
 
 IS_RPI = is_raspberry_pi()
 
-font_name = "Ubuntu-Bold.ttf"
+font_name_bold = "Ubuntu-Bold.ttf"
+font_name_regular = "Ubuntu-Regular.ttf"
 
 if IS_RPI:
     libdir = '/home/pi/TideTracker_repo/e-ink_lib'
@@ -47,7 +48,8 @@ if IS_RPI:
 
     from waveshare_epd import epd7in5_V2
 
-    font18 = ImageFont.truetype(f'/home/pi/TideTracker_repo/{font_name}', 18)
+    font18 = ImageFont.truetype(f'/home/pi/TideTracker_repo/{font_name_bold}', 18)
+    font14 = ImageFont.truetype(f'/home/pi/TideTracker_repo/{font_name_regular}', 14)
     sun_rise_icon_path = '/home/pi/TideTracker_repo/sun_rise.png'
     sun_set_icon_path = '/home/pi/TideTracker_repo/sun_set.png'
 
@@ -56,7 +58,8 @@ else:
     maindir = os.path.dirname(os.path.realpath(__file__))
     if os.path.exists(libdir):
         sys.path.append(libdir)
-    font18 = ImageFont.truetype(os.path.join(maindir, font_name), 18)
+    font18 = ImageFont.truetype(os.path.join(maindir, font_name_bold), 18)
+    font14 = ImageFont.truetype(os.path.join(maindir, font_name_regular), 14)
     sun_rise_icon_path = os.path.join(maindir, "sun_rise.png")
     sun_set_icon_path = os.path.join(maindir, "sun_set.png")
     
@@ -385,7 +388,7 @@ def plot_data(data, now_dtz):
     sun_icon = Image.open(sun_rise_icon_path).convert('RGB').resize((40, 40))
 
     y_pos = 5
-    left_x_pos = 100
+    left_x_pos = 19
     right_x_pos = 585
     x_buf_space = 5
     y_buf_space = 1
@@ -394,6 +397,16 @@ def plot_data(data, now_dtz):
 
     # Add font
     draw = ImageDraw.Draw(img)
+
+    # Refreh time
+    draw.text((left_x_pos, y_pos + 3), 
+        rm_lead_zeros(f'Last Refresh:'), 
+        font = font14, 
+        fill = 0)
+    draw.text((left_x_pos+92, y_pos + 3), 
+            rm_lead_zeros(f'{now_dtz:%I:%M %p}\n{now_dtz:%m/%d/%Y}'), 
+            font = font14, 
+            fill = 0)
 
     draw.text((right_x_pos + sun_icon.width + x_buf_space, y_pos + y_buf_space), 
               rm_lead_zeros(f'Rise:   {today_sunrise:%I:%M %p}\nSet:     {today_sunset:%I:%M %p}'), 
