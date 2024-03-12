@@ -193,7 +193,7 @@ Station ID,City,State,decimal_latitude,decimal_longitude,time_zone
 8741533,Pascagoula NOAA Lab,MS,30.36833333,-88.56333333,America/Chicago
 8747437,Bay Waveland Yacht Club,MS,30.32666667,-89.325,America/Chicago
 8531680,Sandy Hook,NJ,40.46666667,-74.01,America/New_York
-8531833,Navesink River - Red Bank,NJ,40.355,-74.065,America/New_York
+8531833,Navesink - Red Bank,NJ,40.355,-74.065,America/New_York
 8534720,Atlantic City,NJ,39.35666667,-74.41833333,America/New_York
 8536110,Cape May,NJ,38.96833333,-74.96,America/New_York
 8537121,Ship John Shoal,NJ,39.305,-75.37666667,America/New_York
