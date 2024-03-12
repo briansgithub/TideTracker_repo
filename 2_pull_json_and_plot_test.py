@@ -75,6 +75,8 @@ YEXTEND = 0.175*0.6  # y-axis addition to move labels and extend ylim0 and ylim1
 PERIOD = 2  # hours between TPL5110 reloads
 STATIC_TIMEZONE = True  # used to set timezone to Fort Myers so get_timezone is averted
 
+IS_NAVESINK = False
+
 print_debug("Defining functions...")
 
 
@@ -157,7 +159,7 @@ def fetch_NOAA_data(station_id, date):
     RANGE_HOURS = 60
     DATUM = "mllw"
 
-    if(station_id == "8531833"):  # is Navesink
+    if(IS_NAVESINK):  # is Navesink
         date = date - dt.timedelta(days=1)  # Subtract one day from the date
         INTERVAL_MINUTES = "hilo"
         RANGE_HOURS = 90
@@ -197,6 +199,27 @@ def rm_lead_zeros(time_string):
     )
     return time_string
 
+def closest_datetime_value(array, target):
+    """
+    Search a list of datetime objects for the value that is closest to the target datetime.
+
+    Parameters:
+        array (list): List of datetime objects.
+        target (datetime): Target datetime.
+
+    Returns:
+        datetime: Datetime object from the array that is closest to the target datetime.
+    """
+    closest = array[0]  # Initialize closest to the first element of the array
+    min_diff = abs((array[0] - target).total_seconds())  # Initialize min_diff to the absolute difference in seconds between the first element and the target
+
+    for dt in array:
+        diff = abs((dt - target).total_seconds())
+        if diff < min_diff:
+            min_diff = diff
+            closest = dt
+
+    return closest
 
 def plot_data(data, now_dtz):
     print_debug("Plotting data...")
@@ -212,8 +235,11 @@ def plot_data(data, now_dtz):
     filtered_times = [t for t in all_times if t >= start_time]
     filtered_values = [v for t, v in zip(all_times, all_values) if t >= start_time]
     
+    hilo_times = filtered_times
+    hilo_values = filtered_values
+
     ### TESTING
-    if(station_id == "8531833"):  # is Navesink
+    if(IS_NAVESINK):  # is Navesink
 
         # Convert datetime objects to numerical values
         numeric_times = np.array([t.timestamp() for t in all_times])
@@ -256,6 +282,9 @@ def plot_data(data, now_dtz):
     # Set x-axis range to start at 12:00 PM and go to the last time in the list
     plt.xlim(start_time, filtered_times[-1])
 
+    if(IS_NAVESINK): # Fixes the last x-axis label not appearing. Maybe I should just do this for all cases. 
+        plt.xlim(start_time, end_time)
+
     # Find peaks in the data
     peaks, _ = find_peaks(filtered_values)
     valleys, _ = find_peaks(-np.array(filtered_values))  # Find minima by inverting the values
@@ -292,6 +321,8 @@ def plot_data(data, now_dtz):
         if -(deadzone_height/2) <= text_center <= 0:
             delta_y += deadzone_height
 
+        if(IS_NAVESINK):
+            x_coord = closest_datetime_value(hilo_times, x_coord)
 
         # Annotate
         plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'),
@@ -326,6 +357,9 @@ def plot_data(data, now_dtz):
         # For valley, if text is within half the deadzone below y=0, subtract half the deadzone
         if -(deadzone_height/2) <= text_center < 0:
             delta_y -= deadzone_height/2
+
+        if(IS_NAVESINK):
+            x_coord = closest_datetime_value(hilo_times, x_coord)
 
         plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'),
                      xy=(x_coord, y_coord),
@@ -491,6 +525,9 @@ if __name__ == "__main__":
     station_id = extract_number_from_string(station_string)
 
     station_id = str(station_id)
+
+    if(station_id == "8531833"):
+        IS_NAVESINK = True
 
     print_debug(f"Getting station information for ID: {station_id}...")
 
