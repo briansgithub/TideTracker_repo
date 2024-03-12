@@ -152,15 +152,19 @@ def get_station_info(station_id):
 
 
 def fetch_NOAA_data(station_id, date):
-    print_debug(f"Fetching NOAA data for station ID {station_id} on date {date}")
+
+    INTERVAL_MINUTES = 5
     RANGE_HOURS = 60
     DATUM = "mllw"
 
-    INTERVAL_MINUTES = 5
+    if(station_id == "8531833"):  # is Navesink
+        date = date - dt.timedelta(days=1)  # Subtract one day from the date
+        INTERVAL_MINUTES = "hilo"
+        RANGE_HOURS = 90
+        
     yesterday_date_string = date.strftime("%Y%m%d")
 
-    if(station_id == "8531833"):  # is Navesink
-        INTERVAL_MINUTES = "hilo"
+    print_debug(f"Fetching NOAA data for station ID {station_id} on date {date}")
 
     try:
         # Modify the URL with yesterday's date and the station ID variable
@@ -207,15 +211,13 @@ def plot_data(data, now_dtz):
     # Filter data points that occurred after the start time
     filtered_times = [t for t in all_times if t >= start_time]
     filtered_values = [v for t, v in zip(all_times, all_values) if t >= start_time]
-
+    
     ### TESTING
     if(station_id == "8531833"):  # is Navesink
-        filtered_times = all_times
-        filtered_values = all_values
 
         # Convert datetime objects to numerical values
-        numeric_times = np.array([t.timestamp() for t in filtered_times])
-        numeric_values = np.array(filtered_values)
+        numeric_times = np.array([t.timestamp() for t in all_times])
+        numeric_values = np.array(all_values)
 
         # Sort the points based on time
         sorted_indices = np.argsort(numeric_times)
@@ -226,7 +228,7 @@ def plot_data(data, now_dtz):
         spline_interpolator = CubicSpline(sorted_times, sorted_values)
 
         # Define new time points for interpolation
-        interpolation_times = np.linspace(min(sorted_times), max(sorted_times), 100)  # Adjust the number of points as needed
+        interpolation_times = np.linspace(min(sorted_times), max(sorted_times), 10000)  # Adjust the number of points as needed
 
         # Interpolate values for the new time points
         interpolated_values = spline_interpolator(interpolation_times)
@@ -234,12 +236,14 @@ def plot_data(data, now_dtz):
         # Convert interpolated time values back to datetime
         interpolated_times = [dt.datetime.fromtimestamp(t) for t in interpolation_times]
 
-        filtered_times = interpolated_times
-        filtered_times = [_.replace(tzinfo=now_dtz.tzinfo) for _ in filtered_times]
-        filtered_values = interpolated_values
-        
+        # Define end time as start time plus 48 hours
+        end_time = start_time + dt.timedelta(hours=48)
 
-    # Plotting. Size of 7.5in e-ink is 163.2mm x
+        # Filter data points that occurred after the start time and before end time
+
+        interpolated_times = [_.replace(tzinfo=now_dtz.tzinfo) for _ in interpolated_times]
+        filtered_times = [t for t in interpolated_times if start_time <= t <= end_time]
+        filtered_values = [v for t, v in zip(interpolated_times, interpolated_values) if start_time <= t <= end_time]
 
     # Plotting. Size of 7.5in e-ink is 163.2mm x 97.92mm. Converted to in: 6.425 x 3.855
     print_debug("Creating plot figure...")
@@ -260,7 +264,10 @@ def plot_data(data, now_dtz):
 
     # Annotate peaks on the plot
     approx_label_width = dt.timedelta(hours=4.5)  # eyeballed from graph
-    deadzone_height = 0.055  # .046 = approx text height ; ~ 0.00463ft/px. text is 9px high; 12px deadzone. 
+    ylim0 = plt.ylim()[0]
+    ylim1 = plt.ylim()[1] 
+    deadzone_height = .05*(ylim1 - ylim0)  # 5% of y-axis height
+    YEXTEND = 1.5*deadzone_height  # y-axis addition to move labels and extend ylim0 and ylim1 to make room for labels and present data
 
     for peak_index in peaks:
         x_coord = filtered_times[peak_index]
