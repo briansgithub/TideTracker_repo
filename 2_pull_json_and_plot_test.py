@@ -16,6 +16,8 @@ import ephem
 from matplotlib.ticker import FuncFormatter
 from scipy.signal import find_peaks
 import numpy as np
+from scipy.interpolate import CubicSpline
+
 
 
 
@@ -157,6 +159,9 @@ def fetch_NOAA_data(station_id, date):
     INTERVAL_MINUTES = 5
     yesterday_date_string = date.strftime("%Y%m%d")
 
+    if(station_id == "8531833"):  # is Navesink
+        INTERVAL_MINUTES = "hilo"
+
     try:
         # Modify the URL with yesterday's date and the station ID variable
         url = f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date={yesterday_date_string}&range={RANGE_HOURS}&product=predictions&datum={DATUM}&interval={INTERVAL_MINUTES}&format=json&units=english&time_zone=lst_ldt&station={station_id}"
@@ -202,6 +207,37 @@ def plot_data(data, now_dtz):
     # Filter data points that occurred after the start time
     filtered_times = [t for t in all_times if t >= start_time]
     filtered_values = [v for t, v in zip(all_times, all_values) if t >= start_time]
+
+    ### TESTING
+    if(station_id == "8531833"):  # is Navesink
+        filtered_times = all_times
+        filtered_values = all_values
+
+        # Convert datetime objects to numerical values
+        numeric_times = np.array([t.timestamp() for t in filtered_times])
+        numeric_values = np.array(filtered_values)
+
+        # Sort the points based on time
+        sorted_indices = np.argsort(numeric_times)
+        sorted_times = numeric_times[sorted_indices]
+        sorted_values = numeric_values[sorted_indices]
+
+        # Perform cubic spline interpolation
+        spline_interpolator = CubicSpline(sorted_times, sorted_values)
+
+        # Define new time points for interpolation
+        interpolation_times = np.linspace(min(sorted_times), max(sorted_times), 100)  # Adjust the number of points as needed
+
+        # Interpolate values for the new time points
+        interpolated_values = spline_interpolator(interpolation_times)
+
+        # Convert interpolated time values back to datetime
+        interpolated_times = [dt.datetime.fromtimestamp(t) for t in interpolation_times]
+
+        filtered_times = interpolated_times
+        filtered_times = [_.replace(tzinfo=now_dtz.tzinfo) for _ in filtered_times]
+        filtered_values = interpolated_values
+        
 
     # Plotting. Size of 7.5in e-ink is 163.2mm x
 
@@ -446,6 +482,7 @@ if __name__ == "__main__":
     station_string = data.get('station_id')
 
     station_id = extract_number_from_string(station_string)
+
     station_id = str(station_id)
 
     print_debug(f"Getting station information for ID: {station_id}...")
