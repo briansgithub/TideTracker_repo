@@ -68,7 +68,6 @@ DISPLAY_PLOT = True
 
 print_debug("BEGINNING")
 
-YEXTEND = 0.175*0.6  # y-axis addition to move labels and extend ylim0 and ylim1 to make room for labels and present data
 
 PERIOD = 2  # hours between TPL5110 reloads
 STATIC_TIMEZONE = True  # used to set timezone to Fort Myers so get_timezone is averted
@@ -224,7 +223,12 @@ def plot_data(data, now_dtz):
 
     # Annotate peaks on the plot
     approx_label_width = dt.timedelta(hours=4.5)  # eyeballed from graph
-    deadzone_height = 0.055  # .046 = approx text height ; ~ 0.00463ft/px. text is 9px high; 12px deadzone. 
+    
+    ylim0 = plt.ylim()[0]
+    ylim1 = plt.ylim()[1] 
+    deadzone_height = .05*(ylim1 - ylim0)  # 5% of y-axis height
+    YEXTEND = 1.5*deadzone_height  # y-axis addition to move labels and extend ylim0 and ylim1 to make room for labels and present data
+
 
     for peak_index in peaks:
         x_coord = filtered_times[peak_index]
