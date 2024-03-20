@@ -295,6 +295,12 @@ def string_to_int(s, default):
 #------------------------------------------------------------------------------
 # Entry point and command line argument processing.
 if __name__ == "__main__":
+    try:
+        cleanup()
+    except: 
+        # continutiong
+        pass
+
     atexit.register(cleanup)
 
     address = ADDRESS

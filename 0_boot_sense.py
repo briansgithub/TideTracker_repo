@@ -66,13 +66,17 @@ try:
         ### command = "sudo systemctl start NetworkManager"
         ### subprocess.run(command, shell=True, check=True)
         # sleep time removed. Cron job set to start 50s after boot
+        ''' deleteme - Testing of killing PIDs before running the wifi script
+        try:
+            # Define the terminal command
+            command = "ps aux | grep -i 'forked_wifi-connect-headless-rpi' | grep -v grep | awk '{print $2}' | xargs sudo kill"
+            # Execute the terminal command using subprocess
+            subprocess.run(['sudo', 'bash', command], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Kill command failed with exit code:\r\n {e.returncode}. \r\nContinuing...\r\n")
 
-        # Define the terminal command
-        command = "ps aux | grep -i 'forked_wifi-connect-headless-rpi' | grep -v grep | awk '{print $2}' | xargs sudo kill"
-        
-        # Execute the terminal command using subprocess
-        subprocess.run(command, shell=True, check=True)
         time.sleep(1)  # 1 second delay
+        '''
 
         exit_code = subprocess.run(['sudo', 'bash', auto_run_wifi_script_path], check=True)
     else:
