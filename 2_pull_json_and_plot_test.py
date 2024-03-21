@@ -162,7 +162,7 @@ def fetch_NOAA_data(station_id, date):
     if(IS_NAVESINK):  # is Navesink
         date = date - dt.timedelta(days=1)  # Subtract one day from the date
         INTERVAL_MINUTES = "hilo"
-        RANGE_HOURS = 90
+        RANGE_HOURS = 120
         
     yesterday_date_string = date.strftime("%Y%m%d")
 
@@ -230,6 +230,8 @@ def plot_data(data, now_dtz):
     all_values = [float(entry['v']) for entry in data['predictions']]
 
     start_time = (now_dtz - dt.timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
+    # Define end time as start time plus 48 hours
+    end_time = start_time + dt.timedelta(hours=48)
 
     # Filter data points that occurred after the start time
     filtered_times = [t for t in all_times if t >= start_time]
@@ -262,15 +264,13 @@ def plot_data(data, now_dtz):
         # Convert interpolated time values back to datetime
         interpolated_times = [dt.datetime.fromtimestamp(t) for t in interpolation_times]
 
-        # Define end time as start time plus 48 hours
-        end_time = start_time + dt.timedelta(hours=48)
-
         # Filter data points that occurred after the start time and before end time
 
         interpolated_times = [_.replace(tzinfo=now_dtz.tzinfo) for _ in interpolated_times]
         filtered_times = [t for t in interpolated_times if start_time <= t <= end_time]
         filtered_values = [v for t, v in zip(interpolated_times, interpolated_values) if start_time <= t <= end_time]
-
+    
+    
     # Plotting. Size of 7.5in e-ink is 163.2mm x 97.92mm. Converted to in: 6.425 x 3.855
     print_debug("Creating plot figure...")
 
