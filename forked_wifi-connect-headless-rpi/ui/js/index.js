@@ -92,14 +92,44 @@ $(function(){
 	}
     });
 
+    // Helper: render the connection status spans from a status object
+    function renderStatus(status) {
+        var ssid = (status.ssid) ? status.ssid : 'None';
+        if (status.testing) {
+            $('#wifi-status-ssid').text('Currently connected to: ' + ssid);
+            $('#wifi-status-internet').text('Testing connection...').css('color', '#888');
+        } else {
+            $('#wifi-status-ssid').text('Currently connected to: ' + ssid);
+            if (status.has_internet) {
+                $('#wifi-status-internet').text('Has internet access').css('color', 'green');
+            } else {
+                $('#wifi-status-internet').text('No internet access').css('color', 'red');
+            }
+        }
+    }
+
+    // Helper: poll /status until testing is complete, then call callback
+    function pollUntilTestDone(onDone) {
+        var pollTimer = setInterval(function() {
+            $.get('/status', function(data) {
+                var status = JSON.parse(data);
+                renderStatus(status);
+                if (!status.testing) {
+                    clearInterval(pollTimer);
+                    if (onDone) onDone(status);
+                }
+            }).fail(function() {
+                // Server may be temporarily unreachable while hotspot restarts — keep polling
+            });
+        }, 2000);
+    }
+
     $.get("/status", function(data){
         var status = JSON.parse(data);
-        var ssid = status.ssid ? status.ssid : 'None';
-        $('#wifi-status-ssid').text('Currently connected to: ' + ssid);
-        if (status.has_internet) {
-            $('#wifi-status-internet').text('Has internet access').css('color', 'green');
-        } else {
-            $('#wifi-status-internet').text('No internet access').css('color', 'red');
+        renderStatus(status);
+        // If the page was loaded during an active test (e.g. page refresh), keep polling
+        if (status.testing) {
+            pollUntilTestDone(null);
         }
     }).fail(function(){
         $('#wifi-status-ssid').text('Currently connected to: Unknown');
@@ -137,10 +167,16 @@ $(function(){
 
     $('#connect-form').submit(function(ev){
         ev.preventDefault();
+        $('#wifi-confirm-msg').hide();
         $.post('/connect', $('#connect-form').serialize(), function(data){
-            $('#wifi-confirm-msg').fadeIn();
-            // Auto-hide after 5 seconds
-            setTimeout(function(){ $('#wifi-confirm-msg').fadeOut(); }, 5000);
+            // Show "Testing..." immediately, then poll until test finishes
+            var ssid = $('#ssid-select option:selected').text();
+            renderStatus({ ssid: ssid, has_internet: null, testing: true });
+            pollUntilTestDone(function(status) {
+                // Test done — show confirmation and auto-hide it
+                $('#wifi-confirm-msg').fadeIn();
+                setTimeout(function(){ $('#wifi-confirm-msg').fadeOut(); }, 5000);
+            });
         });
     });
 
