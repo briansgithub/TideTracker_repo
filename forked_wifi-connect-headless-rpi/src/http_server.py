@@ -208,9 +208,6 @@ def RequestHandlerClassFactory(address, ssids, rcode):
             FORM_USERNAME = 'identity'
             FORM_PASSWORD = 'passphrase'
 
-            # NOAA Station ID field name
-            FORM_STATION = 'station'
-
             if FORM_SSID not in fields:
                 print(f'Error: POST is missing {FORM_SSID} field.')
                 return
@@ -219,7 +216,6 @@ def RequestHandlerClassFactory(address, ssids, rcode):
             ssid = fields[FORM_SSID][0]
             password = None
             username = None
-            station_id = None  # Add this line
 
             if FORM_HIDDEN_SSID in fields:
                 ssid = fields[FORM_HIDDEN_SSID][0]  # override with hidden name
@@ -227,33 +223,6 @@ def RequestHandlerClassFactory(address, ssids, rcode):
                 username = fields[FORM_USERNAME][0]
             if FORM_PASSWORD in fields:
                 password = fields[FORM_PASSWORD][0]
-            if FORM_STATION in fields:  # Add these lines
-                station_id = fields[FORM_STATION][0]
-
-
-            # NOW YOU CAN USE NOAA STATION ID 
-
-            # Check if station_id is None and set it to the default value if True
-            if station_id is None:
-                station_id = "8531833 - Navesink - Red Bank, NJ"
- 
-
-            submitted_station_save_path = os.path.join(
-                os.path.dirname(
-                    os.path.dirname(
-                        os.path.dirname(
-                            os.path.realpath(__file__)
-                        )
-                    )
-                ),
-                'tidetracker_persistent_data.json'
-            )
-
-            # Save station_id to a JSON file
-            with open(submitted_station_save_path, 'w') as json_file:
-                json.dump({'station_id': station_id}, json_file)
-
-            print(f"\nStation ID ({station_id}) has been saved to {submitted_station_save_path}\n")
 
 
             # Look up the ssid in the list we sent, to find out its security
