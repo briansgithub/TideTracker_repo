@@ -199,96 +199,141 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
             response = BytesIO()
             fields = parse_qs(body.decode('utf-8'))
 
+            persistent_data_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+                'tidetracker_persistent_data.json'
+            )
+
+            # ----------------------------------------------------------
+            # /update_station — Save NOAA station ID (merge with existing data)
+            # ----------------------------------------------------------
             if self.path == '/update_station':
                 FORM_STATION = 'station'
                 if FORM_STATION in fields:
                     station_id = fields[FORM_STATION][0]
-                    submitted_station_save_path = os.path.join(
-                        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
-                        'tidetracker_persistent_data.json'
-                    )
-                    with open(submitted_station_save_path, 'w') as json_file:
-                        json.dump({'station_id': station_id}, json_file)
-                    print(f"\nStation ID ({station_id}) has been saved to {submitted_station_save_path}\n")
+                    # Read existing data and merge
+                    existing_data = {}
+                    if os.path.exists(persistent_data_path):
+                        try:
+                            with open(persistent_data_path, 'r') as f:
+                                existing_data = json.load(f)
+                        except Exception:
+                            pass
+                    existing_data['station_id'] = station_id
+                    with open(persistent_data_path, 'w') as json_file:
+                        json.dump(existing_data, json_file)
+                    print(f"\nStation ID ({station_id}) has been saved to {persistent_data_path}\n")
                     response.write(b'OK\n')
                 else:
                     response.write(b'ERROR: Missing station\n')
                 self.wfile.write(response.getvalue())
                 return
 
+            # ----------------------------------------------------------
+            # /connect — Save WiFi credentials (does NOT stop the hotspot)
+            # ----------------------------------------------------------
+            if self.path == '/connect':
+                FORM_SSID = 'ssid'
+                FORM_HIDDEN_SSID = 'hidden-ssid'
+                FORM_USERNAME = 'identity'
+                FORM_PASSWORD = 'passphrase'
 
-            # Other form field names
-            FORM_SSID = 'ssid'
-            FORM_HIDDEN_SSID = 'hidden-ssid'
-            FORM_USERNAME = 'identity'
-            FORM_PASSWORD = 'passphrase'
+                if FORM_SSID not in fields:
+                    print(f'Error: POST /connect is missing {FORM_SSID} field.')
+                    response.write(b'ERROR: Missing ssid\n')
+                    self.wfile.write(response.getvalue())
+                    return
 
-            if FORM_SSID not in fields:
-                print(f'Error: POST is missing {FORM_SSID} field.')
+                ssid = fields[FORM_SSID][0]
+                password = None
+                username = None
+
+                if FORM_HIDDEN_SSID in fields:
+                    ssid = fields[FORM_HIDDEN_SSID][0]
+                if FORM_USERNAME in fields:
+                    username = fields[FORM_USERNAME][0]
+                if FORM_PASSWORD in fields:
+                    password = fields[FORM_PASSWORD][0]
+
+                # Determine connection type from scanned SSIDs
+                conn_type = netman.CONN_TYPE_SEC_NONE
+                if FORM_HIDDEN_SSID in fields:
+                    conn_type = netman.CONN_TYPE_SEC_PASSWORD
+
+                for s in self.ssids:
+                    if FORM_SSID in s and ssid == s[FORM_SSID]:
+                        if s['security'] == "ENTERPRISE":
+                            conn_type = netman.CONN_TYPE_SEC_ENTERPRISE
+                        elif s['security'] == "NONE":
+                            conn_type = netman.CONN_TYPE_SEC_NONE
+                        else:
+                            conn_type = netman.CONN_TYPE_SEC_PASSWORD
+                        break
+
+                # Read existing data and merge
+                existing_data = {}
+                if os.path.exists(persistent_data_path):
+                    try:
+                        with open(persistent_data_path, 'r') as f:
+                            existing_data = json.load(f)
+                    except Exception:
+                        pass
+                existing_data['wifi_ssid'] = ssid
+                existing_data['wifi_password'] = password
+                existing_data['wifi_username'] = username
+                existing_data['wifi_conn_type'] = conn_type
+                with open(persistent_data_path, 'w') as json_file:
+                    json.dump(existing_data, json_file)
+
+                print(f"\nWiFi credentials for '{ssid}' saved to {persistent_data_path}\n")
+                response.write(b'OK\n')
+                self.wfile.write(response.getvalue())
                 return
 
-            # Extract values from the form data
-            ssid = fields[FORM_SSID][0]
-            password = None
-            username = None
+            # ----------------------------------------------------------
+            # /exit — Stop hotspot, connect to saved WiFi, re-launch AP on failure
+            # ----------------------------------------------------------
+            if self.path == '/exit':
+                # Read saved WiFi credentials
+                saved_data = {}
+                if os.path.exists(persistent_data_path):
+                    try:
+                        with open(persistent_data_path, 'r') as f:
+                            saved_data = json.load(f)
+                    except Exception:
+                        pass
 
-            if FORM_HIDDEN_SSID in fields:
-                ssid = fields[FORM_HIDDEN_SSID][0]  # override with hidden name
-            if FORM_USERNAME in fields:
-                username = fields[FORM_USERNAME][0]
-            if FORM_PASSWORD in fields:
-                password = fields[FORM_PASSWORD][0]
+                ssid = saved_data.get('wifi_ssid')
+                password = saved_data.get('wifi_password')
+                username = saved_data.get('wifi_username')
+                conn_type = saved_data.get('wifi_conn_type', netman.CONN_TYPE_SEC_NONE)
 
-
-            # Look up the ssid in the list we sent, to find out its security
-            # type for the new connection we have to make
-            conn_type = netman.CONN_TYPE_SEC_NONE # Open, no auth AP
-
-            if FORM_HIDDEN_SSID in fields: 
-                conn_type = netman.CONN_TYPE_SEC_PASSWORD # Assumption...
-
-
-            # USE THE NOAA STATION ID ABOVE HERE
-
-
-            for s in self.ssids:
-                if FORM_SSID in s and ssid == s[FORM_SSID]:
-                    if s['security'] == "ENTERPRISE":
-                        conn_type = netman.CONN_TYPE_SEC_ENTERPRISE
-                    elif s['security'] == "NONE":
-                        conn_type = netman.CONN_TYPE_SEC_NONE 
-                    else:
-                        # all others need a password
-                        conn_type = netman.CONN_TYPE_SEC_PASSWORD
-                    break
-
-            # Stop the hotspot
-            netman.stop_hotspot()
-
-            # Connect to the user's selected AP
-            success = netman.connect_to_AP(conn_type=conn_type, ssid=ssid, \
-                    username=username, password=password)
-
-            if success:
+                # Send response before tearing down the hotspot (client will disconnect)
                 response.write(b'OK\n')
-            else:
-                response.write(b'ERROR\n')
+                self.wfile.write(response.getvalue())
 
+                if ssid:
+                    print(f"\nExiting setup: stopping hotspot and connecting to '{ssid}'...")
 
-            self.wfile.write(response.getvalue())
+                    # Stop the hotspot
+                    netman.stop_hotspot()
 
-            # Handle success or failure of the new connection
-            if success:
-                print(f'Connected!  Exiting app.')
-                sys.exit()
-            else:
-                print(f'Connection failed, restarting the hotspot.')
+                    # Attempt to connect with saved credentials
+                    success = netman.connect_to_AP(conn_type=conn_type, ssid=ssid,
+                            username=username, password=password)
 
-                # Update the list of SSIDs since we are not connected
-                self.ssids = netman.get_list_of_access_points()
+                    if success:
+                        print(f'Connected to {ssid}! Exiting setup.')
+                        sys.exit()
+                    else:
+                        print(f'Connection to {ssid} failed, restarting the hotspot.')
+                        self.ssids = netman.get_list_of_access_points()
+                        netman.start_hotspot()
+                else:
+                    print(f"\nNo saved WiFi credentials found. Keeping hotspot active.")
+                    response.write(b'No WiFi credentials saved\n')
 
-                # Start the hotspot again
-                netman.start_hotspot() 
+                return
 
     return  MyHTTPReqHandler # the class our factory just created.
 

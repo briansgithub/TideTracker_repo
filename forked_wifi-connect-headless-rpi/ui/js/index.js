@@ -138,8 +138,9 @@ $(function(){
     $('#connect-form').submit(function(ev){
         ev.preventDefault();
         $.post('/connect', $('#connect-form').serialize(), function(data){
-            $('.before-submit').hide();
-            $('#submit-message').removeClass('hidden');
+            $('#wifi-confirm-msg').fadeIn();
+            // Auto-hide after 5 seconds
+            setTimeout(function(){ $('#wifi-confirm-msg').fadeOut(); }, 5000);
         });
     });
 
@@ -153,17 +154,18 @@ $(function(){
         $('#noaa-station').val(selectedStationText);
 
         $.post('/update_station', $('#station-form').serialize(), function(data){
-            alert("Station updated successfully!");
+            $('#station-confirm-msg').fadeIn();
+            // Auto-hide after 5 seconds
+            setTimeout(function(){ $('#station-confirm-msg').fadeOut(); }, 5000);
         });
     });
 
     $('#exitBtn').click(function() {
+        // Show the "applying changes" message and hide the forms
         $('.before-submit').hide();
-        $('#exit-message').removeClass('hidden');
-        
-        // Attempt to close the window. 
-        // Note: Modern browsers and captive portals often block this unless the window was opened by script.
-        window.open('', '_self', ''); 
-        window.close();
+        $('#submit-message').removeClass('hidden');
+
+        // POST to /exit to stop the hotspot and connect to saved WiFi
+        $.post('/exit');
     });
 });
