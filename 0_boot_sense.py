@@ -79,8 +79,17 @@ try:
         ### subprocess.run(command, shell=True, check=True)
         # sleep time removed. Cron job set to start 50s after boot
         logging.info(f'SETUP mode: launching wifi setup script: {auto_run_wifi_script_path}')
-        exit_code = subprocess.run(['sudo', 'bash', auto_run_wifi_script_path, '-f'], check=True)
-        logging.info(f'SETUP mode: wifi setup script exited with code {exit_code.returncode}')
+        result = subprocess.run(
+            ['sudo', 'bash', auto_run_wifi_script_path, '-f'],
+            stderr=subprocess.PIPE, text=True
+        )
+        exit_code = result
+        if result.returncode != 0:
+            err_msg = result.stderr.strip() if result.stderr else '(no stderr)'
+            logging.error(f'SETUP mode: wifi setup script FAILED with code {result.returncode}: {err_msg}')
+            print(f"Setup script stderr: {err_msg}")
+            raise subprocess.CalledProcessError(result.returncode, result.args)
+        logging.info(f'SETUP mode: wifi setup script exited with code {result.returncode}')
     else:
 
         # sleep time removed. Cron job set to start 50s after boot

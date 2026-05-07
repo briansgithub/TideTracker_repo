@@ -189,12 +189,20 @@ def get_hotspot_SSID():
 
 #------------------------------------------------------------------------------
 # Wait for the wifi device to reach a DISCONNECTED (or equivalent ready) state.
-def _wait_for_wifi_device_ready(timeout=15):
+# NM device states: 0=UNKNOWN, 10=UNMANAGED, 20=UNAVAILABLE, 30=DISCONNECTED,
+#   40=PREPARE, 50=CONFIG, 60=NEED_AUTH, 70=IP_CONFIG, 80=IP_CHECK,
+#   90=SECONDARIES, 100=ACTIVATED, 110=DEACTIVATING, 120=FAILED
+def _wait_for_wifi_device_ready(timeout=20):
+    # States where the device is idle enough to accept a new connection.
+    # Includes FAILED (120) because after deactivation the device often
+    # transitions DEACTIVATING(110) -> FAILED(120) -> DISCONNECTED(30),
+    # and FAILED is a stable/idle state from which we can activate.
     READY_STATES = (
         NetworkManager.NM_DEVICE_STATE_DISCONNECTED,  # 30
         NetworkManager.NM_DEVICE_STATE_UNKNOWN,        # 0
         NetworkManager.NM_DEVICE_STATE_UNMANAGED,      # 10
         NetworkManager.NM_DEVICE_STATE_UNAVAILABLE,    # 20
+        120,  # NM_DEVICE_STATE_FAILED — not always in python-networkmanager
     )
     try:
         for dev in NetworkManager.NetworkManager.GetDevices():
@@ -205,7 +213,8 @@ def _wait_for_wifi_device_ready(timeout=15):
                     time.sleep(1)
                     elapsed += 1
                 if elapsed > 0:
-                    time.sleep(1)  # extra settle time
+                    time.sleep(2)  # extra settle time after transition
+                print(f'wlan0 device state: {dev.State} (waited {elapsed}s)')
                 return
     except Exception as e:
         print(f'Error waiting for wifi device: {e}')
@@ -216,6 +225,11 @@ def _wait_for_wifi_device_ready(timeout=15):
 # Returns True for success, False for error.
 def start_hotspot():
     stop_hotspot()  # Remove any stale hotspot connection from previous runs
+    # Always ensure the wifi device is ready before creating the hotspot.
+    # A previous run's cleanup may have already removed the connection profile
+    # (so stop_hotspot finds nothing), but the device could still be
+    # transitioning (DEACTIVATING/FAILED) from that cleanup.
+    _wait_for_wifi_device_ready()
     return connect_to_AP(CONN_TYPE_HOTSPOT, HOTSPOT_CONNECTION_NAME, \
             get_hotspot_SSID())
 

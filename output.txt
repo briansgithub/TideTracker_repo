@@ -1,0 +1,25 @@
+Address=192.168.42.1
+Port=80
+UI path=/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/ui/
+Device registration code=
+Delete Connections=False
+Force Setup=True
+Available SSIDs: [{'ssid': 'TP-Link_57F8', 'security': 'WPA2'}, {'ssid': 'Verizon_K7GB63', 'security': 'WPA2'}, {'ssid': 'Fios-W6pQL', 'security': 'WPA2'}, {'ssid': 'Clouds', 'security': 'WPA2'}, {'ssid': 'DIRECT-25-HP Envy 6500e series', 'security': 'WPA2'}, {'ssid': 'Verizon_77Q3SL', 'security': 'WPA2'}, {'ssid': 'Qingping Air Monitor Lite-31819', 'security': 'NONE'}, {'ssid': 'Enter a hidden WiFi name', 'security': 'HIDDEN'}]
+Added connection hotspot of type HOTSPOT
+Activated connection=hotspot.
+Waiting for connection to become active...
+Connection hotspot is live.
+Killed dnsmasq process(es)
+Started dnsmasq, PID=1795
+HTTP serving directory: /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/ui/ on 192.168.42.1:80
+[91mWaiting for a connection to our hotspot tide-tracker ...[0m
+Cleaning up prior to exit.
+Killed dnsmasq process(es)
+Deactivating active connection: hotspot
+Deleting connection profile: hotspot
+Waiting for wlan0 to become ready (state=110)...
+
+
+GPIO Pin BCM# 16 is 1
+
+Error running subprocess: Command '['sudo', 'bash', '/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh', '-f']' returned non-zero exit status 1.
