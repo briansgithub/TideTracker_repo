@@ -6,7 +6,17 @@ import subprocess
 import sys
 import time
 import re
+import logging
 from pathlib import Path
+
+# Set up logging to file for boot debugging
+log_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'boot_sense.log')
+logging.basicConfig(
+    filename=log_path,
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s: %(message)s'
+)
+logging.info('========== boot_sense.py starting ==========')
 
 
 def is_raspberry_pi():
@@ -57,9 +67,11 @@ no_wifi_errors_script_path = os.path.join(os.path.dirname(os.path.realpath(__fil
 
 command = "sudo systemctl start NetworkManager"
 subprocess.run(command, shell=True, check=True)
+logging.info('NetworkManager started')
 
 try:
     pin_state = GPIO.input(run_mode_pin)
+    logging.info(f'GPIO Pin BCM# {run_mode_pin} is {pin_state} ({"SETUP" if pin_state == GPIO.HIGH else "RUN"} mode)')
     print(f"\n\nGPIO Pin BCM# {run_mode_pin} is {pin_state}\n")
     if pin_state == GPIO.HIGH:
         
@@ -67,31 +79,42 @@ try:
         ### subprocess.run(command, shell=True, check=True)
 
         # sleep time removed. Cron job set to start 50s after boot
-
-        exit_code = subprocess.run(['sudo', 'bash', auto_run_wifi_script_path], check=True)
+        logging.info(f'SETUP mode: launching wifi setup script: {auto_run_wifi_script_path}')
+        exit_code = subprocess.run(['sudo', 'bash', auto_run_wifi_script_path, '-f'], check=True)
+        logging.info(f'SETUP mode: wifi setup script exited with code {exit_code.returncode}')
     else:
 
         # sleep time removed. Cron job set to start 50s after boot
         
         if netman.have_active_internet_connection():
+            logging.info(f'RUN mode: internet available, running tides script')
             print(f"--------- \nRunning the tides script located at:\n\t{plot_tides_script_path} ---------")
             exit_code = subprocess.run(['sudo', 'python3', plot_tides_script_path], check=True)
         else: 
+            logging.info(f'RUN mode: no internet, running no-wifi script')
             print(f"--------- \nRunning the no-wifi script :\n\t{no_wifi_errors_script_path} ---------")
             exit_code = subprocess.run(['sudo', 'python3', no_wifi_errors_script_path], check=True)
 
 
 except subprocess.CalledProcessError as e:
+    logging.error(f"Error running subprocess: {e}")
     print(f"Error running subprocess: {e}")
 except netman.InternetConnectionError as e:
+    logging.error(f"Internet connection error: {e}")
     print(f"Internet connection error: {e}")
 except Exception as e:
+    logging.error(f"An unexpected error occurred: {e}")
     print(f"An unexpected error occurred: {e}")
 
 finally:
     # Cleanup GPIO settings
-
-    http_server.cleanup()
+    # Only cleanup hotspot/dnsmasq if we're NOT in setup mode.
+    # The setup subprocess (http_server.py) handles its own cleanup via atexit.
+    if pin_state != GPIO.HIGH:
+        logging.info('RUN mode cleanup: stopping hotspot/dnsmasq if present')
+        http_server.cleanup()
+    else:
+        logging.info('SETUP mode: skipping cleanup (subprocess handles its own)')
     
     GPIO.output(done_pin, GPIO.LOW)
     time.sleep(0.5)  # 500 ms delay
@@ -99,10 +122,8 @@ finally:
     time.sleep(0.5)  # 500 ms delay
     GPIO.output(done_pin, GPIO.LOW)
 
-    GPIO.cleanup() # Never going to get called?
-    
-    # call function to geracefully stop the wifi hotspot? 
-    # httpserver.py cleanup() ?
+    GPIO.cleanup()
+    logging.info('========== boot_sense.py finished ==========')
 
 
 print(f"\nExit code: {exit_code}\n")
