@@ -1,0 +1,50 @@
+2026-05-07 17:03:45,973 INFO: ========== boot_sense.py starting ==========
+2026-05-07 17:03:48,005 INFO: NetworkManager started
+2026-05-07 17:03:48,012 INFO: GPIO Pin BCM# 16 is 1 (SETUP mode)
+2026-05-07 17:03:48,018 INFO: SETUP mode: launching wifi setup script: /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh
+2026-05-07 17:04:10,490 INFO: ========== boot_sense.py starting ==========
+2026-05-07 17:04:12,094 INFO: NetworkManager started
+2026-05-07 17:04:12,096 INFO: GPIO Pin BCM# 16 is 1 (SETUP mode)
+2026-05-07 17:04:12,097 INFO: SETUP mode: launching wifi setup script: /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh
+2026-05-07 17:04:27,308 ERROR: Error running subprocess: Command '['sudo', 'bash', '/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh', '-f']' returned non-zero exit status 1.
+2026-05-07 17:04:27,310 INFO: SETUP mode: skipping cleanup (subprocess handles its own)
+2026-05-07 17:04:28,313 INFO: ========== boot_sense.py finished ==========
+2026-05-07 17:15:38,764 INFO: ========== boot_sense.py starting ==========
+2026-05-07 17:15:40,829 INFO: NetworkManager started
+2026-05-07 17:15:40,831 INFO: GPIO Pin BCM# 16 is 1 (SETUP mode)
+2026-05-07 17:15:40,833 INFO: SETUP mode: launching wifi setup script: /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh
+2026-05-07 17:16:03,376 INFO: ========== boot_sense.py starting ==========
+2026-05-07 17:16:04,964 INFO: NetworkManager started
+2026-05-07 17:16:04,966 INFO: GPIO Pin BCM# 16 is 1 (SETUP mode)
+2026-05-07 17:16:04,967 INFO: SETUP mode: launching wifi setup script: /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh
+2026-05-07 17:16:19,730 ERROR: Error running subprocess: Command '['sudo', 'bash', '/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh', '-f']' returned non-zero exit status 1.
+2026-05-07 17:16:19,733 INFO: SETUP mode: skipping cleanup (subprocess handles its own)
+2026-05-07 17:16:20,736 INFO: ========== boot_sense.py finished ==========
+2026-05-07 17:18:23,588 INFO: ========== boot_sense.py starting ==========
+2026-05-07 17:18:25,234 INFO: NetworkManager started
+2026-05-07 17:18:25,236 INFO: GPIO Pin BCM# 16 is 1 (SETUP mode)
+2026-05-07 17:18:25,254 INFO: SETUP mode: launching wifi setup script: /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh
+2026-05-07 17:18:38,056 ERROR: Error running subprocess: Command '['sudo', 'bash', '/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh', '-f']' returned non-zero exit status 1.
+2026-05-07 17:18:38,064 INFO: SETUP mode: skipping cleanup (subprocess handles its own)
+2026-05-07 17:18:39,067 INFO: ========== boot_sense.py finished ==========
+2026-05-07 17:24:13,385 INFO: ========== boot_sense.py starting ==========
+2026-05-07 17:24:15,044 INFO: NetworkManager started
+2026-05-07 17:24:15,046 INFO: GPIO Pin BCM# 16 is 1 (SETUP mode)
+2026-05-07 17:24:15,047 INFO: SETUP mode: launching wifi setup script: /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh
+2026-05-07 17:24:27,237 ERROR: Error running subprocess: Command '['sudo', 'bash', '/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh', '-f']' returned non-zero exit status 1.
+2026-05-07 17:24:27,239 INFO: SETUP mode: skipping cleanup (subprocess handles its own)
+2026-05-07 17:24:28,242 INFO: ========== boot_sense.py finished ==========
+2026-05-07 17:55:48,586 INFO: ========== boot_sense.py starting ==========
+2026-05-07 17:55:50,350 INFO: NetworkManager started
+2026-05-07 17:55:50,352 INFO: GPIO Pin BCM# 16 is 1 (SETUP mode)
+2026-05-07 17:55:50,370 INFO: SETUP mode: launching wifi setup script: /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh
+2026-05-07 17:56:03,492 ERROR: Error running subprocess: Command '['sudo', 'bash', '/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh', '-f']' returned non-zero exit status 1.
+2026-05-07 17:56:03,511 INFO: SETUP mode: skipping cleanup (subprocess handles its own)
+2026-05-07 17:56:04,514 INFO: ========== boot_sense.py finished ==========
+2026-05-07 17:56:49,009 INFO: ========== boot_sense.py starting ==========
+2026-05-07 17:56:50,654 INFO: NetworkManager started
+2026-05-07 17:56:50,656 INFO: GPIO Pin BCM# 16 is 1 (SETUP mode)
+2026-05-07 17:56:50,658 INFO: SETUP mode: launching wifi setup script: /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh
+2026-05-07 17:57:04,159 ERROR: Error running subprocess: Command '['sudo', 'bash', '/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh', '-f']' returned non-zero exit status 1.
+2026-05-07 17:57:04,166 INFO: SETUP mode: skipping cleanup (subprocess handles its own)
+2026-05-07 17:57:05,169 INFO: ========== boot_sense.py finished ==========
