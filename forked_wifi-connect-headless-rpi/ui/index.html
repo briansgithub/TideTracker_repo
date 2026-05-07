@@ -35,8 +35,9 @@
 <body>
   <nav class="navbar navbar-inverse navbar-fixed-top">
     <div class="container">
-      <div class="navbar-header">
+      <div class="navbar-header" style="width: 100%;">
         <a class="navbar-brand"><img id="logo" height=30 src="/img/logo.svg"></img></a>
+        <button id="exitBtn" class="btn btn-danger pull-right" style="margin-top: 10px;">Exit</button>
       </div>
     </div>
   </nav>
@@ -53,7 +54,7 @@
 
     <div class="row before-submit">
       <div class="col-lg-8 col-lg-offset-1">
-        <h3>Tide Tracker - 2024</h3>
+        <h3>Tide Tracker</h3>
       </div>
     </div>
 
@@ -62,7 +63,7 @@
       <div class="col-lg-8 col-lg-offset-1">
         <p>Please enjoy using this to keep an eye on the tides &#128064;&#127754;
           <br>
-          <br>-Brian
+          <br>- Brian E.
         </p>
       </div>
     </div>
@@ -102,6 +103,11 @@
             <label for="passphrase" class="control-label col-lg-4">WiFi Password</label>
             <div class="col-lg-4">
               <input type='password' class="form-control" name='passphrase' id='passphrase'>
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" id="no-password-checkbox"> No password
+                </label>
+              </div>
             </div>
             <div class="col-lg-4 text-right">
               <button type="button" id="showPasswordBtn" class="btn btn-default">Show Password</button>
@@ -109,7 +115,7 @@
           </div>
           <div class="form-group">
             <div class="col-lg-6 col-lg-offset-1 text-center">
-              <button type='submit' class='btn btn-success'>Update WiFi</button>
+              <button type='submit' id='wifiSubmitBtn' class='btn btn-success' disabled>Update WiFi</button>
             </div>
           </div>
         </form>
@@ -473,6 +479,11 @@
       <div class="col-lg-8 col-lg-offset-1">
         <h3>No wifi networks available</h3>
         <p>Please ensure there is a network within range and reboot the device.</p>
+      </div>
+    <div class="row hidden" id='exit-message'>
+      <div class="col-lg-8 col-lg-offset-1">
+        <h3>Page Closed</h3>
+        <p>The setup page is now closed. The setup network is still active if you need to reconnect later.</p>
       </div>
     </div>
 
