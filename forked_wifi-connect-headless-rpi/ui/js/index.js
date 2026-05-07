@@ -73,20 +73,24 @@ $(function(){
     $('#showPasswordBtn').click(togglePasswordVisibility);
 
     $('#connect-form').submit(function(ev){
+        ev.preventDefault();
         $.post('/connect', $('#connect-form').serialize(), function(data){
             $('.before-submit').hide();
             $('#submit-message').removeClass('hidden');
         });
+    });
 
-
-        // Get the selected value from the dropdown
-        var selectedStation = $('#noaa-station-dropdown').val();
-
-        // Set the selected value to the hidden input
-        $('#noaa-station').val(selectedStation);
-
-
-
+    $('#station-form').submit(function(ev){
         ev.preventDefault();
+        
+        // Get the selected text from the dropdown
+        var selectedStationText = $('#noaa-station-dropdown option:selected').text();
+
+        // Set the selected text to the hidden input
+        $('#noaa-station').val(selectedStationText);
+
+        $.post('/update_station', $('#station-form').serialize(), function(data){
+            alert("Station updated successfully!");
+        });
     });
 });
