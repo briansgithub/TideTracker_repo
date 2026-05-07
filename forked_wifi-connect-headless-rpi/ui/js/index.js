@@ -8,11 +8,20 @@ $(function(){
         $('#passphrase-group').addClass('hidden');
         $('#hidden-ssid-group').addClass('hidden');
         if(security === 'NONE') {
+            updateWifiSubmitButton();
             return; // nothing to do
         }
         if(security === 'ENTERPRISE') {
             $('#identity-group').removeClass('hidden');
             $('#passphrase-group').removeClass('hidden');
+            
+            // Uncheck the no-password checkbox when switching networks
+            $('#no-password-checkbox').prop('checked', false);
+            $('#passphrase').prop('disabled', false);
+            $('#passphrase').show();
+            $('#showPasswordBtn').show();
+            
+            updateWifiSubmitButton();
             return;
         } 
         if(security === 'HIDDEN') {
@@ -21,7 +30,47 @@ $(function(){
         } 
         // otherwise security is HIDDEN, WEP, WPA, or WPA2 which need password
         $('#passphrase-group').removeClass('hidden');
+        
+        // Uncheck the no-password checkbox when switching networks
+        $('#no-password-checkbox').prop('checked', false);
+        $('#passphrase').prop('disabled', false);
+        $('#passphrase').show();
+        $('#showPasswordBtn').show();
+        
+        updateWifiSubmitButton();
     }
+
+    function updateWifiSubmitButton() {
+        var isPasswordGroupHidden = $('#passphrase-group').hasClass('hidden');
+        var isNoPasswordChecked = $('#no-password-checkbox').is(':checked');
+        var passwordValue = $('#passphrase').val().trim();
+        
+        if (isPasswordGroupHidden) {
+            $('#wifiSubmitBtn').prop('disabled', false);
+        } else {
+            if (isNoPasswordChecked || passwordValue.length > 0) {
+                $('#wifiSubmitBtn').prop('disabled', false);
+            } else {
+                $('#wifiSubmitBtn').prop('disabled', true);
+            }
+        }
+    }
+
+    $('#no-password-checkbox').change(function() {
+        if ($(this).is(':checked')) {
+            $('#passphrase').val('');
+            $('#passphrase').hide();
+            $('#showPasswordBtn').hide();
+        } else {
+            $('#passphrase').show();
+            $('#showPasswordBtn').show();
+        }
+        updateWifiSubmitButton();
+    });
+
+    $('#passphrase').on('input', function() {
+        updateWifiSubmitButton();
+    });
 
 
 
@@ -92,5 +141,11 @@ $(function(){
         $.post('/update_station', $('#station-form').serialize(), function(data){
             alert("Station updated successfully!");
         });
+    });
+
+    $('#exitBtn').click(function() {
+        $('.before-submit').hide();
+        $('#exit-message').removeClass('hidden');
+        window.close(); // Note: might not work in all browsers/captive portals
     });
 });
