@@ -35,6 +35,28 @@ def have_active_internet_connection(host="8.8.8.8", port=53, timeout=2):
 
 
 #------------------------------------------------------------------------------
+# Returns the SSID of the currently active WiFi client connection, or None.
+def get_connected_ssid():
+    try:
+        for active in NetworkManager.NetworkManager.ActiveConnections:
+            try:
+                settings = active.Connection.GetSettings()
+                conn_type = settings.get('connection', {}).get('type', '')
+                wifi_settings = settings.get('802-11-wireless', {})
+                mode = wifi_settings.get('mode', '')
+                # Only report infrastructure (client) connections, not our own hotspot
+                if conn_type == '802-11-wireless' and mode == 'infrastructure':
+                    ssid = wifi_settings.get('ssid', None)
+                    if ssid:
+                        return ssid
+            except Exception:
+                pass
+    except Exception as e:
+        print(f'get_connected_ssid() error: {e}')
+    return None
+
+
+#------------------------------------------------------------------------------
 # Remove ALL wifi connections - to start clean or before running the hotspot.
 def delete_all_wifi_connections():
     # Get all known connections
@@ -369,6 +391,12 @@ def connect_to_AP(conn_type=None, conn_name=GENERIC_CONNECTION_NAME, \
             return False
 
         #print(f"new connection {conn_dict} type={conn_str}")
+
+        # Delete any stale profile with the same name before adding a new one.
+        # This prevents duplicate profiles from accumulating across setup runs
+        # and ensures credentials are always fresh from the explicit submit.
+        if conn_type != CONN_TYPE_HOTSPOT:
+            stop_connection(conn_name)
 
         NetworkManager.Settings.AddConnection(conn_dict)
         print(f"Added connection {conn_name} of type {conn_str}")
