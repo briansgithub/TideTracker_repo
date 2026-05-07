@@ -92,6 +92,20 @@ $(function(){
 	}
     });
 
+    $.get("/status", function(data){
+        var status = JSON.parse(data);
+        var ssid = status.ssid ? status.ssid : 'None';
+        $('#wifi-status-ssid').text('Currently connected to: ' + ssid);
+        if (status.has_internet) {
+            $('#wifi-status-internet').text('Has internet access').css('color', 'green');
+        } else {
+            $('#wifi-status-internet').text('No internet access').css('color', 'red');
+        }
+    }).fail(function(){
+        $('#wifi-status-ssid').text('Currently connected to: Unknown');
+        $('#wifi-status-internet').text('Status unavailable').css('color', '#888');
+    });
+
     $.get("/networks", function(data){
         if(data.length === 0){
             $('.before-submit').hide();

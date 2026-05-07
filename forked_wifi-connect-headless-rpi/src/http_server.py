@@ -98,7 +98,7 @@ class MyHTTPServer(HTTPServer):
 # A custom http request handler class factory.
 # Handle the GET and POST requests from the UI form and JS.
 # The class factory allows us to pass custom arguments to the handler.
-def RequestHandlerClassFactory(address, ssids, rcode):
+def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
 
     class MyHTTPReqHandler(SimpleHTTPRequestHandler):
 
@@ -108,6 +108,7 @@ def RequestHandlerClassFactory(address, ssids, rcode):
             self.address = address
             self.ssids = ssids
             self.rcode = rcode
+            self.pre_status = pre_status  # Snapshot taken BEFORE hotspot started
             super(MyHTTPReqHandler, self).__init__(*args, **kwargs)
 
         # See if this is a specific request, otherwise let the server handle it.
@@ -163,6 +164,20 @@ def RequestHandlerClassFactory(address, ssids, rcode):
                 """
                 response.write(json.dumps(ssids).encode('utf-8'))
                 print(f'GET {self.path} returning: {response.getvalue()}')
+                self.wfile.write(response.getvalue())
+                return
+
+            # Handle a REST API request for current connection status.
+            # We serve the pre-captured snapshot taken BEFORE the hotspot
+            # was started, since the radio is now in AP mode and can no
+            # longer report a client connection.
+            if '/status' == self.path:
+                self.send_response(200)
+                self.end_headers()
+                response = BytesIO()
+                status = self.pre_status if self.pre_status else {'ssid': None, 'has_internet': False}
+                response.write(json.dumps(status).encode('utf-8'))
+                print(f'GET /status returning: {status}')
                 self.wfile.write(response.getvalue())
                 return
 
@@ -301,6 +316,14 @@ def main(address, port, ui_path, rcode, delete_connections, force_setup):
     # in the list).
     ssids = netman.get_list_of_access_points()
 
+    # Capture WiFi status BEFORE starting the hotspot, while the radio is
+    # still in client mode and can report the current connection.
+    pre_status = {
+        'ssid': netman.get_connected_ssid(),
+        'has_internet': netman.have_active_internet_connection()
+    }
+    print(f'Pre-hotspot status snapshot: {pre_status}')
+
     # Start the hotspot
     if not netman.start_hotspot():
         print('Error starting hotspot, exiting.')
@@ -322,7 +345,7 @@ def main(address, port, ui_path, rcode, delete_connections, force_setup):
     server_address = (address, port)
 
     # Custom request handler class (so we can pass in our own args)
-    MyRequestHandlerClass = RequestHandlerClassFactory(address, ssids, rcode)
+    MyRequestHandlerClass = RequestHandlerClassFactory(address, ssids, rcode, pre_status)
 
     # Start an HTTP server to serve the content in the ui dir and handle the 
     # POST request in the handler class.
