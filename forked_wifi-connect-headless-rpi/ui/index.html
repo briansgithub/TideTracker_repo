@@ -37,7 +37,6 @@
     <div class="container">
       <div class="navbar-header" style="width: 100%;">
         <a class="navbar-brand" href="/"><img id="logo" height=30 src="/img/logo.svg"></img></a>
-        <button id="exitBtn" class="btn btn-danger pull-right" style="margin-top: 10px;">Exit</button>
       </div>
     </div>
   </nav>
@@ -122,6 +121,7 @@
           <div class="form-group">
             <div class="col-lg-6 col-lg-offset-1 text-center">
               <button type='submit' id='wifiSubmitBtn' class='btn btn-success' disabled>Update WiFi</button>
+              <span id="wifi-confirm-msg" style="display: none; color: green; font-weight: bold; margin-left: 15px;">WiFi settings updated!</span>
             </div>
           </div>
         </form>
@@ -449,6 +449,7 @@
           <div class="form-group">
             <div class="col-lg-6 col-lg-offset-1 text-center">
               <button type='submit' class='btn btn-success'>Update Station</button>
+              <span id="station-confirm-msg" style="display: none; color: green; font-weight: bold; margin-left: 15px;">NOAA station updated!</span>
             </div>
           </div>
 
@@ -473,6 +474,13 @@
       </div>
     </div>
 
+    <div class="row before-submit">
+      <div class="col-lg-8 col-lg-offset-1 text-center" style="margin-top: 30px; margin-bottom: 30px;">
+        <button id="exitBtn" class="btn btn-danger btn-lg">Exit Setup</button>
+        <p style="margin-top: 10px; color: #888; font-size: 13px;">Closes the setup hotspot and connects to the saved WiFi network.</p>
+      </div>
+    </div>
+
     <div class="row hidden" id='submit-message'>
       <div class="col-lg-8 col-lg-offset-1">
         <h3>Applying changes...</h3>
@@ -485,12 +493,6 @@
       <div class="col-lg-8 col-lg-offset-1">
         <h3>No wifi networks available</h3>
         <p>Please ensure there is a network within range and reboot the device.</p>
-      </div>
-    <div class="row hidden" id='exit-message'>
-      <div class="col-lg-8 col-lg-offset-1">
-        <h3>Page Closed</h3>
-        <p>The setup page is now closed. The setup network is still active if you need to reconnect later.</p>
-        <p><a href="/">Go back to setup</a></p>
       </div>
     </div>
 
