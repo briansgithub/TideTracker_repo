@@ -146,6 +146,10 @@ $(function(){
     $('#exitBtn').click(function() {
         $('.before-submit').hide();
         $('#exit-message').removeClass('hidden');
-        window.close(); // Note: might not work in all browsers/captive portals
+        
+        // Attempt to close the window. 
+        // Note: Modern browsers and captive portals often block this unless the window was opened by script.
+        window.open('', '_self', ''); 
+        window.close();
     });
 });
