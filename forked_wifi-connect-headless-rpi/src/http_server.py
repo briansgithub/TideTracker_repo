@@ -1,6 +1,6 @@
 # Our main wifi-connect application, which is based around an HTTP server.
 
-import os, getopt, sys, json, atexit
+import os, getopt, sys, json, atexit, subprocess, time
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import parse_qs
 from io import BytesIO
@@ -21,6 +21,66 @@ def cleanup():
     print("Cleaning up prior to exit.")
     dnsmasq.stop()
     netman.stop_hotspot()
+
+
+#------------------------------------------------------------------------------
+# Kill any previous http_server / dnsmasq processes from a prior run.
+# This ensures a completely fresh setup every time, even if the previous
+# instance was launched with sudo.
+def kill_previous_setup_processes(port=80):
+    killed_something = False
+
+    # --- 1. Kill anything bound to our HTTP port (e.g. a stale http_server) ---
+    #     fuser -k sends SIGKILL to every process using the port.
+    try:
+        result = subprocess.run(
+            ['fuser', '-k', f'{port}/tcp'],
+            capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            print(f'Killed process(es) on port {port} via fuser')
+            killed_something = True
+    except FileNotFoundError:
+        # fuser not installed — fall back to lsof
+        try:
+            result = subprocess.run(
+                ['lsof', '-ti', f':{port}'],
+                capture_output=True, text=True
+            )
+            pids = result.stdout.strip().split('\n')
+            for pid in pids:
+                pid = pid.strip()
+                if pid and pid != str(os.getpid()):
+                    subprocess.run(['kill', '-9', pid], capture_output=True)
+                    print(f'Killed PID {pid} on port {port} via lsof')
+                    killed_something = True
+        except Exception as e:
+            print(f'Note: lsof fallback failed: {e}')
+    except Exception as e:
+        print(f'Note: fuser failed: {e}')
+
+    # --- 2. Belt-and-suspenders: kill any lingering http_server.py process ---
+    #     Catches cases where the process exists but somehow isn't bound yet.
+    #     We use pgrep + manual kill (not pkill) to exclude our own PID.
+    try:
+        result = subprocess.run(
+            ['pgrep', '-f', 'http_server.py'],
+            capture_output=True, text=True
+        )
+        for pid in result.stdout.strip().split('\n'):
+            pid = pid.strip()
+            if pid and pid != str(os.getpid()):
+                subprocess.run(['kill', '-9', pid], capture_output=True)
+                print(f'Killed lingering http_server.py process PID {pid}')
+                killed_something = True
+    except Exception:
+        pass
+
+    # --- 3. Kill any lingering dnsmasq from a previous run ---
+    dnsmasq.stop()
+
+    if killed_something:
+        time.sleep(1)  # Give OS time to release sockets
 
 
 #------------------------------------------------------------------------------
@@ -234,6 +294,10 @@ def RequestHandlerClassFactory(address, ssids, rcode):
 #------------------------------------------------------------------------------
 # Create the hotspot, start dnsmasq, start the HTTP server.
 def main(address, port, ui_path, rcode, delete_connections, force_setup):
+
+    # Kill any lingering http_server, dnsmasq, or other setup processes from a
+    # previous run.  This is the direct fix for "Address already in use" errors.
+    kill_previous_setup_processes(port)
 
     # See if caller wants to delete all existing connections first
     if delete_connections:

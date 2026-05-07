@@ -48,3 +48,45 @@
 2026-05-07 17:57:04,159 ERROR: Error running subprocess: Command '['sudo', 'bash', '/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh', '-f']' returned non-zero exit status 1.
 2026-05-07 17:57:04,166 INFO: SETUP mode: skipping cleanup (subprocess handles its own)
 2026-05-07 17:57:05,169 INFO: ========== boot_sense.py finished ==========
+2026-05-07 18:06:40,492 INFO: ========== boot_sense.py starting ==========
+2026-05-07 18:06:42,254 INFO: NetworkManager started
+2026-05-07 18:06:42,256 INFO: GPIO Pin BCM# 16 is 1 (SETUP mode)
+2026-05-07 18:06:42,258 INFO: SETUP mode: launching wifi setup script: /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh
+2026-05-07 18:07:19,363 ERROR: SETUP mode: wifi setup script FAILED with code 1: Traceback (most recent call last):
+  File "/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/src/http_server.py", line 354, in <module>
+    main(address, port, ui_path, rcode, delete_connections, force_setup)
+  File "/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/src/http_server.py", line 279, in main
+    httpd = MyHTTPServer(web_dir, server_address, MyRequestHandlerClass)
+  File "/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/src/http_server.py", line 34, in __init__
+    HTTPServer.__init__(self, server_address, RequestHandlerClass)
+  File "/usr/lib/python3.9/socketserver.py", line 452, in __init__
+    self.server_bind()
+  File "/usr/lib/python3.9/http/server.py", line 138, in server_bind
+    socketserver.TCPServer.server_bind(self)
+  File "/usr/lib/python3.9/socketserver.py", line 466, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 98] Address already in use
+2026-05-07 18:07:19,365 ERROR: Error running subprocess: Command '['sudo', 'bash', '/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh', '-f']' returned non-zero exit status 1.
+2026-05-07 18:07:19,367 INFO: SETUP mode: skipping cleanup (subprocess handles its own)
+2026-05-07 18:07:20,370 INFO: ========== boot_sense.py finished ==========
+2026-05-07 18:07:35,693 INFO: ========== boot_sense.py starting ==========
+2026-05-07 18:07:37,348 INFO: NetworkManager started
+2026-05-07 18:07:37,350 INFO: GPIO Pin BCM# 16 is 1 (SETUP mode)
+2026-05-07 18:07:37,370 INFO: SETUP mode: launching wifi setup script: /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh
+2026-05-07 18:08:14,551 ERROR: SETUP mode: wifi setup script FAILED with code 1: Traceback (most recent call last):
+  File "/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/src/http_server.py", line 354, in <module>
+    main(address, port, ui_path, rcode, delete_connections, force_setup)
+  File "/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/src/http_server.py", line 279, in main
+    httpd = MyHTTPServer(web_dir, server_address, MyRequestHandlerClass)
+  File "/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/src/http_server.py", line 34, in __init__
+    HTTPServer.__init__(self, server_address, RequestHandlerClass)
+  File "/usr/lib/python3.9/socketserver.py", line 452, in __init__
+    self.server_bind()
+  File "/usr/lib/python3.9/http/server.py", line 138, in server_bind
+    socketserver.TCPServer.server_bind(self)
+  File "/usr/lib/python3.9/socketserver.py", line 466, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 98] Address already in use
+2026-05-07 18:08:14,602 ERROR: Error running subprocess: Command '['sudo', 'bash', '/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh', '-f']' returned non-zero exit status 1.
+2026-05-07 18:08:14,608 INFO: SETUP mode: skipping cleanup (subprocess handles its own)
+2026-05-07 18:08:15,611 INFO: ========== boot_sense.py finished ==========
