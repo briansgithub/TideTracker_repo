@@ -8,16 +8,17 @@ DEFAULT_INTERFACE="wlan0" # use 'ip link show' to see list of interfaces
 
 
 def stop():
-    ps = subprocess.Popen("ps -e | grep ' dnsmasq' | cut -c 1-6", shell=True, stdout=subprocess.PIPE)
-    pid = ps.stdout.read()
-    ps.stdout.close()
-    ps.wait()
-    pid = pid.decode('utf-8')
-    pid = pid.strip()
-    if 0 < len(pid):
-        print(f"Killing dnsmasq, PID='{pid}'")
-        ps = subprocess.Popen(f"kill -9 {pid}", shell=True)
-        ps.wait()
+    try:
+        result = subprocess.run(
+            ["pkill", "-9", "dnsmasq"],
+            capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            print("Killed dnsmasq process(es)")
+        else:
+            print("No dnsmasq process found to kill")
+    except Exception as e:
+        print(f"Error stopping dnsmasq: {e}")
 
 
 def start():
