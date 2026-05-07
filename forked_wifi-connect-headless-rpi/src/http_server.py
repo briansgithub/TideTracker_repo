@@ -184,6 +184,24 @@ def RequestHandlerClassFactory(address, ssids, rcode):
             response = BytesIO()
             fields = parse_qs(body.decode('utf-8'))
 
+            if self.path == '/update_station':
+                FORM_STATION = 'station'
+                if FORM_STATION in fields:
+                    station_id = fields[FORM_STATION][0]
+                    submitted_station_save_path = os.path.join(
+                        os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+                        'tidetracker_persistent_data.json'
+                    )
+                    with open(submitted_station_save_path, 'w') as json_file:
+                        json.dump({'station_id': station_id}, json_file)
+                    print(f"\nStation ID ({station_id}) has been saved to {submitted_station_save_path}\n")
+                    response.write(b'OK\n')
+                else:
+                    response.write(b'ERROR: Missing station\n')
+                self.wfile.write(response.getvalue())
+                return
+
+
             # Other form field names
             FORM_SSID = 'ssid'
             FORM_HIDDEN_SSID = 'hidden-ssid'
