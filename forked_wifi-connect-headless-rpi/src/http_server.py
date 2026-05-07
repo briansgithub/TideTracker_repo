@@ -27,6 +27,8 @@ def cleanup():
 # A custom http server class in which we can set the default path it serves
 # when it gets a GET request.
 class MyHTTPServer(HTTPServer):
+    allow_reuse_address = True  # Prevent "Address already in use" errors
+
     def __init__(self, base_path, server_address, RequestHandlerClass):
         self.base_path = base_path
         HTTPServer.__init__(self, server_address, RequestHandlerClass)
@@ -231,14 +233,14 @@ def RequestHandlerClassFactory(address, ssids, rcode):
 
 #------------------------------------------------------------------------------
 # Create the hotspot, start dnsmasq, start the HTTP server.
-def main(address, port, ui_path, rcode, delete_connections):
+def main(address, port, ui_path, rcode, delete_connections, force_setup):
 
     # See if caller wants to delete all existing connections first
     if delete_connections:
         netman.delete_all_wifi_connections()
 
     # Check if we are already connected, if so we are done.
-    if netman.have_active_internet_connection():
+    if not force_setup and netman.have_active_internet_connection():
         print('Already connected to the internet, nothing to do, exiting.')
         sys.exit()
 
@@ -301,6 +303,7 @@ if __name__ == "__main__":
     port = PORT
     ui_path = UI_PATH
     delete_connections = False
+    force_setup = False
     rcode = ''
 
     usage = ''\
@@ -309,11 +312,12 @@ f'  -a <HTTP server address>     Default: {address} \n'\
 f'  -p <HTTP server port>        Default: {port} \n'\
 f'  -u <UI directory to serve>   Default: "{ui_path}" \n'\
 f'  -d Delete Connections First  Default: {delete_connections} \n'\
+f'  -f Force Setup Mode          Default: {force_setup} \n'\
 f'  -r Device Registration Code  Default: "" \n'\
 f'  -h Show help.\n'
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "a:p:u:r:dh")
+        opts, args = getopt.getopt(sys.argv[1:], "a:p:u:r:dfh")
     except getopt.GetoptError:
         print(usage)
         sys.exit(2)
@@ -325,6 +329,9 @@ f'  -h Show help.\n'
 
         elif opt in ("-d"):
            delete_connections = True
+
+        elif opt in ("-f"):
+           force_setup = True
 
         elif opt in ("-r"):
             rcode = arg
@@ -343,6 +350,7 @@ f'  -h Show help.\n'
     print(f'UI path={ui_path}')
     print(f'Device registration code={rcode}')
     print(f'Delete Connections={delete_connections}')
-    main(address, port, ui_path, rcode, delete_connections)
+    print(f'Force Setup={force_setup}')
+    main(address, port, ui_path, rcode, delete_connections, force_setup)
 
 

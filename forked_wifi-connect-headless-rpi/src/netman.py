@@ -24,8 +24,10 @@ def have_active_internet_connection(host="8.8.8.8", port=53, timeout=2):
    Service: domain (DNS/TCP)
    """
    try:
-     socket.setdefaulttimeout(timeout)
-     socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+     s.settimeout(timeout)
+     s.connect((host, port))
+     s.close()
      return True
    except Exception as e:
      #print(f"Exception: {e}")
@@ -164,6 +166,7 @@ def get_hotspot_SSID():
 # Start a local hotspot on the wifi interface.
 # Returns True for success, False for error.
 def start_hotspot():
+    stop_hotspot()  # Remove any stale hotspot connection from previous runs
     return connect_to_AP(CONN_TYPE_HOTSPOT, HOTSPOT_CONNECTION_NAME, \
             get_hotspot_SSID())
 
