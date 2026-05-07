@@ -59,18 +59,43 @@ def stop_hotspot():
 
 #------------------------------------------------------------------------------
 # Generic connection stopper / deleter.
+# Deactivates any active instance first, then deletes ALL matching profiles.
 def stop_connection(conn_name=GENERIC_CONNECTION_NAME):
-    # Find the hotspot connection
+    found_any = False
+
+    # 1. Deactivate any active connection with this name
+    try:
+        active_connections = NetworkManager.NetworkManager.ActiveConnections
+        for active in active_connections:
+            try:
+                if active.Connection.GetSettings()['connection']['id'] == conn_name:
+                    print(f'Deactivating active connection: {conn_name}')
+                    NetworkManager.NetworkManager.DeactivateConnection(active)
+                    found_any = True
+            except Exception:
+                pass  # Active connection may have gone away
+    except Exception as e:
+        print(f'Error listing active connections: {e}')
+
+    # 2. Delete ALL saved connection profiles with this name (handles duplicates)
     try:
         connections = NetworkManager.Settings.ListConnections()
-        connections = dict([(x.GetSettings()['connection']['id'], x) for x in connections])
-        conn = connections[conn_name]
-        conn.Delete()
+        for conn in connections:
+            try:
+                if conn.GetSettings()['connection']['id'] == conn_name:
+                    print(f'Deleting connection profile: {conn_name}')
+                    conn.Delete()
+                    found_any = True
+            except Exception:
+                pass  # Connection may have been removed already
     except Exception as e:
-        #print(f'stop_hotspot error {e}')
-        return False
-    time.sleep(2)
-    return True
+        print(f'Error listing connections: {e}')
+
+    # 3. Wait for wifi device to reach a ready state
+    if found_any:
+        _wait_for_wifi_device_ready()
+
+    return found_any
 
 
 #------------------------------------------------------------------------------
@@ -160,6 +185,30 @@ def get_list_of_access_points():
 # Get hotspot SSID name.
 def get_hotspot_SSID():
     return os.uname()[1]
+
+
+#------------------------------------------------------------------------------
+# Wait for the wifi device to reach a DISCONNECTED (or equivalent ready) state.
+def _wait_for_wifi_device_ready(timeout=15):
+    READY_STATES = (
+        NetworkManager.NM_DEVICE_STATE_DISCONNECTED,  # 30
+        NetworkManager.NM_DEVICE_STATE_UNKNOWN,        # 0
+        NetworkManager.NM_DEVICE_STATE_UNMANAGED,      # 10
+        NetworkManager.NM_DEVICE_STATE_UNAVAILABLE,    # 20
+    )
+    try:
+        for dev in NetworkManager.NetworkManager.GetDevices():
+            if dev.DeviceType == NetworkManager.NM_DEVICE_TYPE_WIFI:
+                elapsed = 0
+                while dev.State not in READY_STATES and elapsed < timeout:
+                    print(f'Waiting for wlan0 to become ready (state={dev.State})...')
+                    time.sleep(1)
+                    elapsed += 1
+                if elapsed > 0:
+                    time.sleep(1)  # extra settle time
+                return
+    except Exception as e:
+        print(f'Error waiting for wifi device: {e}')
 
 
 #------------------------------------------------------------------------------
