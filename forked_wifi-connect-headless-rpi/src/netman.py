@@ -225,10 +225,37 @@ def _wait_for_wifi_device_ready(timeout=20):
 # Returns True for success, False for error.
 def start_hotspot():
     stop_hotspot()  # Remove any stale hotspot connection from previous runs
-    # Always ensure the wifi device is ready before creating the hotspot.
-    # A previous run's cleanup may have already removed the connection profile
-    # (so stop_hotspot finds nothing), but the device could still be
-    # transitioning (DEACTIVATING/FAILED) from that cleanup.
+
+    # If the wifi device is still ACTIVATED (state=100) — e.g. the previous
+    # run's atexit deleted the 'hotspot' profile but the device stayed up —
+    # we must force it down before we can create a new hotspot.
+    try:
+        for dev in NetworkManager.NetworkManager.GetDevices():
+            if dev.DeviceType == NetworkManager.NM_DEVICE_TYPE_WIFI:
+                if dev.State == 100:  # NM_DEVICE_STATE_ACTIVATED
+                    print(f'wlan0 still ACTIVATED — disconnecting all active wifi connections')
+                    # Deactivate ALL active wifi connections
+                    try:
+                        for ac in NetworkManager.NetworkManager.ActiveConnections:
+                            try:
+                                for ac_dev in ac.Devices:
+                                    if ac_dev.DeviceType == NetworkManager.NM_DEVICE_TYPE_WIFI:
+                                        print(f'  Deactivating: {ac.Connection.GetSettings()["connection"]["id"]}')
+                                        NetworkManager.NetworkManager.DeactivateConnection(ac)
+                                        break
+                            except Exception:
+                                pass
+                    except Exception as e:
+                        print(f'  Error deactivating wifi connections: {e}')
+                    # Also try to disconnect the device directly
+                    try:
+                        dev.Disconnect()
+                    except Exception:
+                        pass
+                break
+    except Exception as e:
+        print(f'Error checking wifi device state: {e}')
+
     _wait_for_wifi_device_ready()
     return connect_to_AP(CONN_TYPE_HOTSPOT, HOTSPOT_CONNECTION_NAME, \
             get_hotspot_SSID())
