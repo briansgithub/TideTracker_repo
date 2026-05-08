@@ -1,0 +1,100 @@
+
+
+GPIO Pin BCM# 16 is 1
+
+Address=192.168.42.1
+Port=80
+UI path=/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/ui/
+Device registration code=
+Delete Connections=False
+Force Setup=True
+No dnsmasq process found to kill
+Available SSIDs: [{'ssid': 'TP-Link_57F8', 'security': 'WPA2'}, {'ssid': 'Verizon_K7GB63', 'security': 'WPA2'}, {'ssid': 'Fios-W6pQL', 'security': 'WPA2'}, {'ssid': 'Clouds', 'security': 'WPA2'}, {'ssid': 'DIRECT-25-HP Envy 6500e series', 'security': 'WPA2'}, {'ssid': 'Fios-FEXBB', 'security': 'WPA2'}, {'ssid': 'DIRECT-99-HP OfficeJet 6950', 'security': 'WPA2'}, {'ssid': 'Verizon_77Q3SL', 'security': 'WPA2'}, {'ssid': '7A65P2', 'security': 'WPA2'}, {'ssid': 'Qingping Air Monitor Lite-31819', 'security': 'NONE'}, {'ssid': 'Verizon_NTC4WR', 'security': 'WPA2'}, {'ssid': 'Verizon_F7XBP3', 'security': 'WPA2'}, {'ssid': 'TMonkey', 'security': 'WPA2'}, {'ssid': 'CasaLobo_Guest', 'security': 'WPA2'}, {'ssid': '7A65P2-G', 'security': 'WPA2'}, {'ssid': 'Enter a hidden WiFi name', 'security': 'HIDDEN'}]
+Pre-hotspot status snapshot: {'ssid': None, 'has_internet': False}
+wlan0 device state: 30 (waited 0s)
+Added connection hotspot of type HOTSPOT
+Activated connection=hotspot.
+Waiting for connection to become active...
+Connection hotspot is live.
+No dnsmasq process found to kill
+Started dnsmasq, PID=3797
+HTTP serving directory: /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/ui/ on 192.168.42.1:80
+[91mWaiting for a connection to our hotspot tide-tracker ...[0m
+do_GET /generate_204
+redirecting to http://192.168.42.1/
+do_GET /
+do_GET /css/bootstrap.min.css
+do_GET /js/jquery.min.js
+do_GET /js/bootstrap.min.js
+do_GET /js/index.js
+do_GET /img/logo.svg
+do_GET /generate_204
+redirecting to http://192.168.42.1/
+do_GET /regcode
+GET /regcode returning: b''
+do_GET /status
+GET /status returning: {'ssid': None, 'has_internet': False}
+do_GET /networks
+GET /networks returning: b'[{"ssid": "TP-Link_57F8", "security": "WPA2"}, {"ssid": "Verizon_K7GB63", "security": "WPA2"}, {"ssid": "Fios-W6pQL", "security": "WPA2"}, {"ssid": "Clouds", "security": "WPA2"}, {"ssid": "DIRECT-25-HP Envy 6500e series", "security": "WPA2"}, {"ssid": "Fios-FEXBB", "security": "WPA2"}, {"ssid": "DIRECT-99-HP OfficeJet 6950", "security": "WPA2"}, {"ssid": "Verizon_77Q3SL", "security": "WPA2"}, {"ssid": "7A65P2", "security": "WPA2"}, {"ssid": "Qingping Air Monitor Lite-31819", "security": "NONE"}, {"ssid": "Verizon_NTC4WR", "security": "WPA2"}, {"ssid": "Verizon_F7XBP3", "security": "WPA2"}, {"ssid": "TMonkey", "security": "WPA2"}, {"ssid": "CasaLobo_Guest", "security": "WPA2"}, {"ssid": "7A65P2-G", "security": "WPA2"}, {"ssid": "Enter a hidden WiFi name", "security": "HIDDEN"}]'
+do_GET /img/favicon.ico
+do_GET /generate_204
+redirecting to http://192.168.42.1/
+
+WiFi credentials for 'TP-Link_57F8' saved to /home/pi/TideTracker_repo/tidetracker_persistent_data.json
+
+
+[WiFi Test] Stopping hotspot to test credentials for 'TP-Link_57F8'...
+Deactivating active connection: hotspot
+Deleting connection profile: hotspot
+Waiting for wlan0 to become ready (state=110)...
+wlan0 device state: 30 (waited 1s)
+Added connection python-wifi-connect of type WEP/WPA/WPA2
+Activated connection=python-wifi-connect.
+Waiting for connection to become active...
+Connection python-wifi-connect is live.
+[WiFi Test] Connected. Has internet: True
+Deactivating active connection: python-wifi-connect
+Deleting connection profile: python-wifi-connect
+wlan0 device state: 30 (waited 0s)
+[WiFi Test] Restarting hotspot...
+wlan0 device state: 30 (waited 0s)
+Added connection hotspot of type HOTSPOT
+Activated connection=hotspot.
+Waiting for connection to become active...
+Connection hotspot is live.
+[WiFi Test] Done. Status: {'ssid': 'TP-Link_57F8', 'has_internet': True, 'testing': False}
+do_GET /generate_204
+redirecting to http://192.168.42.1/
+do_GET /
+do_GET /css/bootstrap.min.css
+do_GET /js/jquery.min.js
+do_GET /js/bootstrap.min.js
+do_GET /js/index.js
+do_GET /img/logo.svg
+do_GET /generate_204
+redirecting to http://192.168.42.1/
+do_GET /regcode
+GET /regcode returning: b''
+do_GET /status
+GET /status returning: {'ssid': 'TP-Link_57F8', 'has_internet': True, 'testing': False}
+do_GET /networks
+GET /networks returning: b'[{"ssid": "TP-Link_57F8", "security": "WPA2"}, {"ssid": "Verizon_K7GB63", "security": "WPA2"}, {"ssid": "Fios-W6pQL", "security": "WPA2"}, {"ssid": "Clouds", "security": "WPA2"}, {"ssid": "DIRECT-25-HP Envy 6500e series", "security": "WPA2"}, {"ssid": "Fios-FEXBB", "security": "WPA2"}, {"ssid": "DIRECT-99-HP OfficeJet 6950", "security": "WPA2"}, {"ssid": "Verizon_77Q3SL", "security": "WPA2"}, {"ssid": "7A65P2", "security": "WPA2"}, {"ssid": "Qingping Air Monitor Lite-31819", "security": "NONE"}, {"ssid": "Verizon_NTC4WR", "security": "WPA2"}, {"ssid": "Verizon_F7XBP3", "security": "WPA2"}, {"ssid": "TMonkey", "security": "WPA2"}, {"ssid": "CasaLobo_Guest", "security": "WPA2"}, {"ssid": "7A65P2-G", "security": "WPA2"}, {"ssid": "Enter a hidden WiFi name", "security": "HIDDEN"}]'
+do_GET /generate_204
+redirecting to http://192.168.42.1/
+do_GET /img/favicon.ico
+
+Exiting setup: stopping hotspot and connecting to 'TP-Link_57F8'...
+Deactivating active connection: hotspot
+Deleting connection profile: hotspot
+Waiting for wlan0 to become ready (state=110)...
+wlan0 device state: 30 (waited 1s)
+Added connection python-wifi-connect of type WEP/WPA/WPA2
+Activated connection=python-wifi-connect.
+Waiting for connection to become active...
+Connection python-wifi-connect is live.
+Connected to TP-Link_57F8! Exiting setup.
+Cleaning up prior to exit.
+Killed dnsmasq process(es)
+
+Exit code: CompletedProcess(args=['sudo', 'bash', '/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh', '-f'], returncode=0, stderr='192.168.42.137 - - [08/May/2026 16:15:07] "GET /generate_204 HTTP/1.1" 301 -\n192.168.42.137 - - [08/May/2026 16:15:07] code 404, message File not found\n192.168.42.137 - - [08/May/2026 16:15:07] "GET /generate_204 HTTP/1.1" 404 -\n192.168.42.137 - - [08/May/2026 16:15:08] "GET / HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:08] "GET /css/bootstrap.min.css HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:08] "GET /js/jquery.min.js HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:08] "GET /js/bootstrap.min.js HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:08] "GET /js/index.js HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:08] "GET /img/logo.svg HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:08] "GET /generate_204 HTTP/1.1" 301 -\n192.168.42.137 - - [08/May/2026 16:15:08] code 404, message File not found\n192.168.42.137 - - [08/May/2026 16:15:08] "GET /generate_204 HTTP/1.1" 404 -\n192.168.42.137 - - [08/May/2026 16:15:08] "GET /regcode HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:08] "GET /status HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:08] "GET /networks HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:08] "GET /img/favicon.ico HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:08] "GET /generate_204 HTTP/1.1" 301 -\n192.168.42.137 - - [08/May/2026 16:15:08] code 404, message File not found\n192.168.42.137 - - [08/May/2026 16:15:08] "GET /generate_204 HTTP/1.1" 404 -\n192.168.42.137 - - [08/May/2026 16:15:16] "POST /connect HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:43] "GET /generate_204 HTTP/1.1" 301 -\n192.168.42.137 - - [08/May/2026 16:15:43] code 404, message File not found\n192.168.42.137 - - [08/May/2026 16:15:43] "GET /generate_204 HTTP/1.1" 404 -\n192.168.42.137 - - [08/May/2026 16:15:45] "GET / HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:45] "GET /css/bootstrap.min.css HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:45] "GET /js/jquery.min.js HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:45] "GET /js/bootstrap.min.js HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:45] "GET /js/index.js HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:45] "GET /img/logo.svg HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:45] "GET /generate_204 HTTP/1.1" 301 -\n192.168.42.137 - - [08/May/2026 16:15:45] code 404, message File not found\n192.168.42.137 - - [08/May/2026 16:15:45] "GET /generate_204 HTTP/1.1" 404 -\n192.168.42.137 - - [08/May/2026 16:15:45] "GET /regcode HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:45] "GET /status HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:45] "GET /networks HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:45] "GET /generate_204 HTTP/1.1" 301 -\n192.168.42.137 - - [08/May/2026 16:15:45] code 404, message File not found\n192.168.42.137 - - [08/May/2026 16:15:45] "GET /generate_204 HTTP/1.1" 404 -\n192.168.42.137 - - [08/May/2026 16:15:45] "GET /img/favicon.ico HTTP/1.1" 200 -\n192.168.42.137 - - [08/May/2026 16:15:47] "POST /exit HTTP/1.1" 200 -\n')
+

@@ -175,24 +175,18 @@ $(function(){
         $('#wifi-status-internet').text('Checking...').css('color', 'orange');
         $('#wifi-confirm-msg').text('WiFi settings saved! Testing connection...').css('color', 'orange').fadeIn();
 
-        var startTime = Date.now();
         $.post('/connect', $('#connect-form').serialize(), function(data){
             // The server is now testing credentials in the background.
             // The hotspot will go down briefly and come back up.
             // Poll /status until the test completes.
             pollUntilTestDone(function(status) {
-                var elapsed = Date.now() - startTime;
-                var delay = Math.max(0, 10000 - elapsed);
-                
-                setTimeout(function() {
-                    // Test done — update confirmation message
-                    if (status.has_internet) {
-                        $('#wifi-confirm-msg').text('WiFi settings updated!').css('color', 'green').fadeIn();
-                    } else {
-                        $('#wifi-confirm-msg').text('WiFi settings saved — no internet detected.').css('color', 'red').fadeIn();
-                    }
-                    setTimeout(function(){ $('#wifi-confirm-msg').fadeOut(); }, 8000);
-                }, delay);
+                // Test done — update confirmation message
+                if (status.has_internet) {
+                    $('#wifi-confirm-msg').text('WiFi settings updated!').css('color', 'green').fadeIn();
+                } else {
+                    $('#wifi-confirm-msg').text('WiFi settings saved — no internet detected.').css('color', 'red').fadeIn();
+                }
+                setTimeout(function(){ $('#wifi-confirm-msg').fadeOut(); }, 8000);
             });
         });
     });
