@@ -1,6 +1,6 @@
 # Our main wifi-connect application, which is based around an HTTP server.
 
-import os, getopt, sys, json, atexit, subprocess, time, threading
+import os, getopt, sys, json, atexit
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import parse_qs
 from io import BytesIO
@@ -24,66 +24,6 @@ def cleanup():
 
 
 #------------------------------------------------------------------------------
-# Kill any previous http_server / dnsmasq processes from a prior run.
-# This ensures a completely fresh setup every time, even if the previous
-# instance was launched with sudo.
-def kill_previous_setup_processes(port=80):
-    killed_something = False
-
-    # --- 1. Kill anything bound to our HTTP port (e.g. a stale http_server) ---
-    #     fuser -k sends SIGKILL to every process using the port.
-    try:
-        result = subprocess.run(
-            ['fuser', '-k', f'{port}/tcp'],
-            capture_output=True, text=True
-        )
-        if result.returncode == 0:
-            print(f'Killed process(es) on port {port} via fuser')
-            killed_something = True
-    except FileNotFoundError:
-        # fuser not installed — fall back to lsof
-        try:
-            result = subprocess.run(
-                ['lsof', '-ti', f':{port}'],
-                capture_output=True, text=True
-            )
-            pids = result.stdout.strip().split('\n')
-            for pid in pids:
-                pid = pid.strip()
-                if pid and pid != str(os.getpid()):
-                    subprocess.run(['kill', '-9', pid], capture_output=True)
-                    print(f'Killed PID {pid} on port {port} via lsof')
-                    killed_something = True
-        except Exception as e:
-            print(f'Note: lsof fallback failed: {e}')
-    except Exception as e:
-        print(f'Note: fuser failed: {e}')
-
-    # --- 2. Belt-and-suspenders: kill any lingering http_server.py process ---
-    #     Catches cases where the process exists but somehow isn't bound yet.
-    #     We use pgrep + manual kill (not pkill) to exclude our own PID.
-    try:
-        result = subprocess.run(
-            ['pgrep', '-f', 'http_server.py'],
-            capture_output=True, text=True
-        )
-        for pid in result.stdout.strip().split('\n'):
-            pid = pid.strip()
-            if pid and pid != str(os.getpid()):
-                subprocess.run(['kill', '-9', pid], capture_output=True)
-                print(f'Killed lingering http_server.py process PID {pid}')
-                killed_something = True
-    except Exception:
-        pass
-
-    # --- 3. Kill any lingering dnsmasq from a previous run ---
-    dnsmasq.stop()
-
-    if killed_something:
-        time.sleep(1)  # Give OS time to release sockets
-
-
-#------------------------------------------------------------------------------
 # A custom http server class in which we can set the default path it serves
 # when it gets a GET request.
 class MyHTTPServer(HTTPServer):
@@ -98,7 +38,7 @@ class MyHTTPServer(HTTPServer):
 # A custom http request handler class factory.
 # Handle the GET and POST requests from the UI form and JS.
 # The class factory allows us to pass custom arguments to the handler.
-def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
+def RequestHandlerClassFactory(address, ssids, rcode, status_snapshot):
 
     class MyHTTPReqHandler(SimpleHTTPRequestHandler):
 
@@ -108,7 +48,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
             self.address = address
             self.ssids = ssids
             self.rcode = rcode
-            self.pre_status = pre_status  # Snapshot taken BEFORE hotspot started
+            self.status_snapshot = status_snapshot
             super(MyHTTPReqHandler, self).__init__(*args, **kwargs)
 
         # See if this is a specific request, otherwise let the server handle it.
@@ -132,6 +72,14 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                 print(f'redirecting to {new_path}')
                 self.send_header('Location', new_path)
                 self.end_headers()
+
+            # Handle a REST API request to return the connection status snapshot
+            if '/status' == self.path:
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(self.status_snapshot).encode('utf-8'))
+                return
 
             # Handle a REST API request to return the device registration code
             if '/regcode' == self.path:
@@ -167,20 +115,6 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                 self.wfile.write(response.getvalue())
                 return
 
-            # Handle a REST API request for current connection status.
-            # We serve the pre-captured snapshot taken BEFORE the hotspot
-            # was started, since the radio is now in AP mode and can no
-            # longer report a client connection.
-            if '/status' == self.path:
-                self.send_response(200)
-                self.end_headers()
-                response = BytesIO()
-                status = self.pre_status if self.pre_status else {'ssid': None, 'has_internet': False}
-                response.write(json.dumps(status).encode('utf-8'))
-                print(f'GET /status returning: {status}')
-                self.wfile.write(response.getvalue())
-                return
-
             # Not sure if this is just OSX hitting the captured portal,
             # but we need to exit if we get it.
             if '/bag' == self.path:
@@ -192,46 +126,41 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
 
 
         def do_POST(self):
-            content_length = int(self.headers.get('Content-Length', 0))
+            content_length = int(self.headers['Content-Length'])
             body = self.rfile.read(content_length)
             self.send_response(200)
             self.end_headers()
             response = BytesIO()
             fields = parse_qs(body.decode('utf-8'))
 
-            persistent_data_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
-                'tidetracker_persistent_data.json'
-            )
+            print(f'do_POST {self.path} fields: {fields.keys()}')
 
-            # ----------------------------------------------------------
-            # /update_station — Save NOAA station ID (merge with existing data)
-            # ----------------------------------------------------------
+            if self.path == '/exit':
+                print('Exit request received. Stopping hotspot and exiting.')
+                response.write(b'OK\n')
+                self.wfile.write(response.getvalue())
+                sys.exit()
+
+            # NOAA Station ID field name
+            FORM_STATION = 'station'
+
             if self.path == '/update_station':
-                FORM_STATION = 'station'
-                if FORM_STATION in fields:
-                    station_id = fields[FORM_STATION][0]
-                    # Read existing data and merge
-                    existing_data = {}
-                    if os.path.exists(persistent_data_path):
-                        try:
-                            with open(persistent_data_path, 'r') as f:
-                                existing_data = json.load(f)
-                        except Exception:
-                            pass
-                    existing_data['station_id'] = station_id
-                    with open(persistent_data_path, 'w') as json_file:
-                        json.dump(existing_data, json_file)
-                    print(f"\nStation ID ({station_id}) has been saved to {persistent_data_path}\n")
-                    response.write(b'OK\n')
-                else:
-                    response.write(b'ERROR: Missing station\n')
+                if FORM_STATION not in fields:
+                    print(f'Error: /update_station missing {FORM_STATION} field.')
+                    return
+                
+                station_id = fields[FORM_STATION][0]
+                submitted_station_save_path = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+                    'tidetracker_persistent_data.json'
+                )
+                with open(submitted_station_save_path, 'w') as json_file:
+                    json.dump({'station_id': station_id}, json_file)
+                print(f"Station ID ({station_id}) saved to {submitted_station_save_path}")
+                response.write(b'OK\n')
                 self.wfile.write(response.getvalue())
                 return
 
-            # ----------------------------------------------------------
-            # /connect — Save WiFi credentials (does NOT stop the hotspot)
-            # ----------------------------------------------------------
             if self.path == '/connect':
                 FORM_SSID = 'ssid'
                 FORM_HIDDEN_SSID = 'hidden-ssid'
@@ -239,116 +168,54 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                 FORM_PASSWORD = 'passphrase'
 
                 if FORM_SSID not in fields:
-                    print(f'Error: POST /connect is missing {FORM_SSID} field.')
-                    response.write(b'ERROR: Missing ssid\n')
-                    self.wfile.write(response.getvalue())
+                    print(f'Error: /connect missing {FORM_SSID} field.')
                     return
 
                 ssid = fields[FORM_SSID][0]
-                password = None
-                username = None
-
+                password = fields[FORM_PASSWORD][0] if FORM_PASSWORD in fields else None
+                username = fields[FORM_USERNAME][0] if FORM_USERNAME in fields else None
+                
                 if FORM_HIDDEN_SSID in fields:
                     ssid = fields[FORM_HIDDEN_SSID][0]
-                if FORM_USERNAME in fields:
-                    username = fields[FORM_USERNAME][0]
-                if FORM_PASSWORD in fields:
-                    password = fields[FORM_PASSWORD][0]
 
-                # Determine connection type from scanned SSIDs
+                # Look up the ssid in the list we sent, to find out its security type
                 conn_type = netman.CONN_TYPE_SEC_NONE
-                if FORM_HIDDEN_SSID in fields:
+                if FORM_HIDDEN_SSID in fields: 
                     conn_type = netman.CONN_TYPE_SEC_PASSWORD
 
                 for s in self.ssids:
-                    if FORM_SSID in s and ssid == s[FORM_SSID]:
+                    if 'ssid' in s and ssid == s['ssid']:
                         if s['security'] == "ENTERPRISE":
                             conn_type = netman.CONN_TYPE_SEC_ENTERPRISE
                         elif s['security'] == "NONE":
-                            conn_type = netman.CONN_TYPE_SEC_NONE
+                            conn_type = netman.CONN_TYPE_SEC_NONE 
                         else:
                             conn_type = netman.CONN_TYPE_SEC_PASSWORD
                         break
 
-                # Read existing data and merge
-                existing_data = {}
-                if os.path.exists(persistent_data_path):
-                    try:
-                        with open(persistent_data_path, 'r') as f:
-                            existing_data = json.load(f)
-                    except Exception:
-                        pass
-                existing_data['wifi_ssid'] = ssid
-                existing_data['wifi_password'] = password
-                existing_data['wifi_username'] = username
-                existing_data['wifi_conn_type'] = conn_type
-                with open(persistent_data_path, 'w') as json_file:
-                    json.dump(existing_data, json_file)
+                # Stop the hotspot and connect to the user's selected AP
+                netman.stop_hotspot()
+                success = netman.connect_to_AP(conn_type=conn_type, ssid=ssid, \
+                        username=username, password=password)
 
-                print(f"\nWiFi credentials for '{ssid}' saved to {persistent_data_path}\n")
-
-                # Simply acknowledge — the hotspot stays up.
-                # Connection testing happens only when the user clicks "Exit Setup".
-                response.write(b'OK\n')
-                self.wfile.write(response.getvalue())
-                return
-
-
-            # ----------------------------------------------------------
-            # /exit — Stop hotspot, connect to saved WiFi, re-launch AP on failure
-            # ----------------------------------------------------------
-            if self.path == '/exit':
-                # Read saved WiFi credentials
-                saved_data = {}
-                if os.path.exists(persistent_data_path):
-                    try:
-                        with open(persistent_data_path, 'r') as f:
-                            saved_data = json.load(f)
-                    except Exception:
-                        pass
-
-                ssid = saved_data.get('wifi_ssid')
-                password = saved_data.get('wifi_password')
-                username = saved_data.get('wifi_username')
-                conn_type = saved_data.get('wifi_conn_type', netman.CONN_TYPE_SEC_NONE)
-
-                # Send response before tearing down the hotspot (client will disconnect)
-                response.write(b'OK\n')
-                self.wfile.write(response.getvalue())
-
-                if ssid:
-                    print(f"\nExiting setup: stopping hotspot and connecting to '{ssid}'...")
-
-                    # Stop the hotspot
-                    netman.stop_hotspot()
-
-                    # Attempt to connect with saved credentials
-                    success = netman.connect_to_AP(conn_type=conn_type, ssid=ssid,
-                            username=username, password=password)
-
-                    if success:
-                        print(f'Connected to {ssid}! Exiting setup.')
-                        sys.exit()
-                    else:
-                        print(f'Connection to {ssid} failed, restarting the hotspot.')
-                        self.ssids = netman.get_list_of_access_points()
-                        netman.start_hotspot()
+                if success:
+                    response.write(b'OK\n')
+                    print(f'Connected! Exiting app.')
+                    self.wfile.write(response.getvalue())
+                    sys.exit()
                 else:
-                    print(f"\nNo saved WiFi credentials found. Keeping hotspot active.")
-                    response.write(b'No WiFi credentials saved\n')
+                    response.write(b'ERROR\n')
+                    self.wfile.write(response.getvalue())
+                    print(f'Connection failed, restarting the hotspot.')
+                    self.ssids = netman.get_list_of_access_points()
+                    netman.start_hotspot() 
 
-                return
-
-    return  MyHTTPReqHandler # the class our factory just created.
+    return MyHTTPReqHandler
 
 
 #------------------------------------------------------------------------------
 # Create the hotspot, start dnsmasq, start the HTTP server.
 def main(address, port, ui_path, rcode, delete_connections, force_setup):
-
-    # Kill any lingering http_server, dnsmasq, or other setup processes from a
-    # previous run.  This is the direct fix for "Address already in use" errors.
-    kill_previous_setup_processes(port)
 
     # See if caller wants to delete all existing connections first
     if delete_connections:
@@ -359,45 +226,34 @@ def main(address, port, ui_path, rcode, delete_connections, force_setup):
         print('Already connected to the internet, nothing to do, exiting.')
         sys.exit()
 
-    # Get list of available AP from net man.  
-    # Must do this AFTER deleting any existing connections (above),
-    # and BEFORE starting our hotspot (or the hotspot will be the only thing
-    # in the list).
-    ssids = netman.get_list_of_access_points()
-
-    # Capture WiFi status BEFORE starting the hotspot, while the radio is
-    # still in client mode and can report the current connection.
-    pre_status = {
-        'ssid': netman.get_connected_ssid(),
-        'has_internet': netman.have_active_internet_connection()
+    # Capture WiFi status BEFORE starting the hotspot
+    status_snapshot = {
+        'ssid': netman.get_connected_ssid() or 'None',
+        'internet': netman.have_active_internet_connection()
     }
-    print(f'Pre-hotspot status snapshot: {pre_status}')
+    print(f'Pre-hotspot status snapshot: {status_snapshot}')
+
+    # Get list of available AP from net man.  
+    ssids = netman.get_list_of_access_points()
 
     # Start the hotspot
     if not netman.start_hotspot():
         print('Error starting hotspot, exiting.')
         sys.exit(1)
 
-    # Start dnsmasq (to advertise us as a router so captured portal pops up
-    # on the users machine to vend our UI in our http server)
+    # Start dnsmasq
     dnsmasq.start()
 
-    # Find the ui directory which is up one from where this file is located.
+    # Find the ui directory
     web_dir = os.path.join(os.path.dirname(__file__), ui_path)
-    print(f'HTTP serving directory: {web_dir} on {address}:{port}')
-
-    # Change to this directory so the HTTPServer returns the index.html in it 
-    # by default when it gets a GET.
     os.chdir(web_dir)
 
-    # Host:Port our HTTP server listens on
     server_address = (address, port)
 
-    # Custom request handler class (so we can pass in our own args)
-    MyRequestHandlerClass = RequestHandlerClassFactory(address, ssids, rcode, pre_status)
+    # Custom request handler class
+    MyRequestHandlerClass = RequestHandlerClassFactory(address, ssids, rcode, status_snapshot)
 
-    # Start an HTTP server to serve the content in the ui dir and handle the 
-    # POST request in the handler class.
+    # Start an HTTP server
     print(f'\033[91mWaiting for a connection to our hotspot {netman.get_hotspot_SSID()} ...\033[0m')
     httpd = MyHTTPServer(web_dir, server_address, MyRequestHandlerClass)
     try:
@@ -475,5 +331,3 @@ f'  -h Show help.\n'
     print(f'Delete Connections={delete_connections}')
     print(f'Force Setup={force_setup}')
     main(address, port, ui_path, rcode, delete_connections, force_setup)
-
-
