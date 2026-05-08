@@ -78,7 +78,18 @@ def RequestHandlerClassFactory(address, ssids, rcode, status_snapshot):
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                self.wfile.write(json.dumps(self.status_snapshot).encode('utf-8'))
+                
+                # Check if there was a recent connection failure
+                failed_ssid = None
+                if os.path.exists('/tmp/wifi_failed.txt'):
+                    with open('/tmp/wifi_failed.txt', 'r') as f:
+                        failed_ssid = f.read().strip()
+                
+                response_data = self.status_snapshot.copy()
+                if failed_ssid:
+                    response_data['failed_ssid'] = failed_ssid
+
+                self.wfile.write(json.dumps(response_data).encode('utf-8'))
                 return
 
             # Handle a REST API request to return the device registration code
@@ -193,22 +204,35 @@ def RequestHandlerClassFactory(address, ssids, rcode, status_snapshot):
                             conn_type = netman.CONN_TYPE_SEC_PASSWORD
                         break
 
-                # Stop the hotspot and connect to the user's selected AP
-                netman.stop_hotspot()
-                success = netman.connect_to_AP(conn_type=conn_type, ssid=ssid, \
-                        username=username, password=password)
+                # Send response immediately so the webpage doesn't hang or show error
+                response.write(b'OK\n')
+                self.wfile.write(response.getvalue())
+                
+                def test_wifi():
+                    print(f'Testing connection to {ssid}...')
+                    # Stop the hotspot and connect to the user's selected AP
+                    netman.stop_hotspot()
+                    success = netman.connect_to_AP(conn_type=conn_type, ssid=ssid, \
+                            username=username, password=password)
 
-                if success:
-                    response.write(b'OK\n')
-                    print(f'Connected! Exiting app.')
-                    self.wfile.write(response.getvalue())
-                    sys.exit()
-                else:
-                    response.write(b'ERROR\n')
-                    self.wfile.write(response.getvalue())
-                    print(f'Connection failed, restarting the hotspot.')
-                    self.ssids = netman.get_list_of_access_points()
-                    netman.start_hotspot() 
+                    if success:
+                        print(f'Connected! Exiting app.')
+                        if os.path.exists('/tmp/wifi_failed.txt'):
+                            os.remove('/tmp/wifi_failed.txt')
+                        os._exit(0)
+                    else:
+                        print(f'Connection failed, restarting the hotspot.')
+                        with open('/tmp/wifi_failed.txt', 'w') as f:
+                            f.write(ssid)
+                        global_ssids = netman.get_list_of_access_points()
+                        self.ssids.clear()
+                        self.ssids.extend(global_ssids)
+                        netman.start_hotspot()
+
+                import threading
+                t = threading.Thread(target=test_wifi)
+                t.start()
+                return
 
     return MyHTTPReqHandler
 
@@ -329,5 +353,8 @@ f'  -h Show help.\n'
     print(f'UI path={ui_path}')
     print(f'Device registration code={rcode}')
     print(f'Delete Connections={delete_connections}')
+    print(f'Force Setup={force_setup}')
+    main(address, port, ui_path, rcode, delete_connections, force_setup)
+nections={delete_connections}')
     print(f'Force Setup={force_setup}')
     main(address, port, ui_path, rcode, delete_connections, force_setup)

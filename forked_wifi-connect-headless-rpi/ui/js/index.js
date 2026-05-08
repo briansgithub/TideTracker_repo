@@ -112,12 +112,17 @@ $(function(){
 
     // Fetch current status on load
     $.get("/status", function(data) {
-        var ssid = (data.ssid) ? data.ssid : 'None';
-        $('#wifi-status-ssid').text('Currently connected to: ' + ssid);
-        if (data.internet) {
-            $('#wifi-status-internet').text('Has internet access').css('color', 'green');
+        if (data.failed_ssid) {
+            $('#wifi-status-ssid').text('Connection failed: ' + data.failed_ssid).css('color', 'red').css('font-weight', 'bold');
+            $('#wifi-status-internet').text('Invalid password or network issue. Please try again.').css('color', 'red');
         } else {
-            $('#wifi-status-internet').text('No internet access').css('color', 'red');
+            var ssid = (data.ssid) ? data.ssid : 'None';
+            $('#wifi-status-ssid').text('Currently connected to: ' + ssid).css('color', '#555').css('font-weight', 'normal');
+            if (data.internet) {
+                $('#wifi-status-internet').text('Has internet access').css('color', 'green');
+            } else {
+                $('#wifi-status-internet').text('No internet access').css('color', 'red');
+            }
         }
     });
 
@@ -126,14 +131,20 @@ $(function(){
         e.preventDefault();
         $('#wifi-confirm-msg').hide();
         $('#wifi-status-internet').text('Checking...').css('color', 'orange');
+        $('#wifiSubmitBtn').prop('disabled', true);
         
-        $.post('/connect', $(this).serialize(), function() {
-            $('#wifi-confirm-msg').fadeIn();
-            setTimeout(function() {
-                $('#wifi-status-internet').text('Please refresh page').css('color', 'orange');
-            }, 10000);
-            setTimeout(function(){ $('#wifi-confirm-msg').fadeOut(); }, 5000);
+        // Send the request in the background
+        $.post('/connect', $(this).serialize()).fail(function() {
+            // Ignore failure because the AP will likely go down
         });
+        
+        // Pause for 10 seconds displaying "Checking...", then show result
+        setTimeout(function() {
+            $('#wifi-status-internet').text('Please refresh page or reconnect to setup hotspot').css('color', 'orange');
+            $('#wifi-confirm-msg').text('WiFi settings submitted.').fadeIn();
+            setTimeout(function(){ $('#wifi-confirm-msg').fadeOut(); }, 5000);
+            $('#wifiSubmitBtn').prop('disabled', false);
+        }, 10000);
     });
 
     // Handle Station form submission
@@ -151,9 +162,5 @@ $(function(){
             $.post('/exit');
             $('body').html('<div style="padding:20px; text-align:center;"><h1>Connecting...</h1><p>The hotspot is closing. Please wait for the Pi to join your WiFi network.</p></div>');
         }
-    });
-
-    $.get("/regcode", function(data) {
-        if(data) $('#regcode').val(data);
     });
 });
