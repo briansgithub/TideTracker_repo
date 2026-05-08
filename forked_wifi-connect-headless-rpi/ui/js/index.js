@@ -82,37 +82,14 @@ $(function(){
 
 
 
-    $('#ssid-select').change(showHideFormFields);
-
-    $.get("/regcode", function(data){
-        if(data.length !== 0){
-            $('#regcode').val(data);
-        } else { 
-            $('.reg-row').hide(); // no reg code, so hide that part of the UI
-	}
-    });
-
-    $.get("/status", function(data){
-        var status = JSON.parse(data);
-        var ssid = (status.ssid) ? status.ssid : 'None';
-        $('#wifi-status-ssid').text('Currently connected to: ' + ssid);
-        if (status.has_internet) {
-            $('#wifi-status-internet').text('Has internet access').css('color', 'green');
-        } else {
-            $('#wifi-status-internet').text('No internet access').css('color', 'red');
-        }
-    }).fail(function(){
-        $('#wifi-status-ssid').text('Currently connected to: Unknown');
-        $('#wifi-status-internet').text('Status unavailable').css('color', '#888');
-    });
-
-    $.get("/networks", function(data){
-        if(data.length === 0){
+    // Fetch networks and populate dropdown
+    $.get("/networks", function(data) {
+        if(data.length === 0) {
             $('.before-submit').hide();
             $('#no-networks-message').removeClass('hidden');
         } else {
             networks = JSON.parse(data);
-            $.each(networks, function(i, val){
+            $.each(networks, function(i, val) {
                 $('#ssid-select').append(
                     $('<option>')
                         .text(val.ssid)
@@ -120,64 +97,63 @@ $(function(){
                         .attr('data-security', val.security.toUpperCase())
                 );
             });
-
-            jQuery.proxy(showHideFormFields, $('#ssid-select'))();
+            showHideFormFields.call($('#ssid-select'));
         }
     });
 
+    $('#ssid-select').change(showHideFormFields);
+
     // Function to toggle password visibility
-    function togglePasswordVisibility() {
+    $('#showPasswordBtn').click(function() {
         var passwordField = $('#passphrase');
         var passwordType = passwordField.attr('type');
         passwordField.attr('type', passwordType === 'password' ? 'text' : 'password');
-    }
+    });
 
-    // Event binding for the "Show password" button
-    $('#showPasswordBtn').click(togglePasswordVisibility);
+    // Fetch current status on load
+    $.get("/status", function(data) {
+        var ssid = (data.ssid) ? data.ssid : 'None';
+        $('#wifi-status-ssid').text('Currently connected to: ' + ssid);
+        if (data.internet) {
+            $('#wifi-status-internet').text('Has internet access').css('color', 'green');
+        } else {
+            $('#wifi-status-internet').text('No internet access').css('color', 'red');
+        }
+    });
 
-    $('#connect-form').submit(function(ev){
-        ev.preventDefault();
+    // Handle WiFi form submission
+    $('#connect-form').submit(function(e) {
+        e.preventDefault();
         $('#wifi-confirm-msg').hide();
-        
-        // Change status to yellow "Checking..."
         $('#wifi-status-internet').text('Checking...').css('color', 'orange');
-
-        $.post('/connect', $('#connect-form').serialize(), function(data){
-            // Show confirmation message
+        
+        $.post('/connect', $(this).serialize(), function() {
             $('#wifi-confirm-msg').fadeIn();
-            
-            // Wait 10 seconds, then show "Please refresh page"
-            setTimeout(function(){
+            setTimeout(function() {
                 $('#wifi-status-internet').text('Please refresh page').css('color', 'orange');
             }, 10000);
-
-            // Auto-hide confirmation after 5 seconds
             setTimeout(function(){ $('#wifi-confirm-msg').fadeOut(); }, 5000);
         });
     });
 
-    $('#station-form').submit(function(ev){
-        ev.preventDefault();
-        
-        // Get the selected text from the dropdown
-        var selectedStationText = $('#noaa-station-dropdown option:selected').text();
-
-        // Set the selected text to the hidden input
-        $('#noaa-station').val(selectedStationText);
-
-        $.post('/update_station', $('#station-form').serialize(), function(data){
+    // Handle Station form submission
+    $('#station-form').submit(function(e) {
+        e.preventDefault();
+        $.post('/update_station', $(this).serialize(), function() {
             $('#station-confirm-msg').fadeIn();
-            // Auto-hide after 5 seconds
             setTimeout(function(){ $('#station-confirm-msg').fadeOut(); }, 5000);
         });
     });
 
+    // Handle Exit Setup
     $('#exitBtn').click(function() {
-        // Show the "applying changes" message and hide the forms
-        $('.before-submit').hide();
-        $('#submit-message').removeClass('hidden');
-
-        // POST to /exit to stop the hotspot and connect to saved WiFi
-        $.post('/exit');
+        if(confirm("The Pi will now attempt to connect to WiFi and the hotspot will close. Proceed?")) {
+            $.post('/exit');
+            $('body').html('<div style="padding:20px; text-align:center;"><h1>Connecting...</h1><p>The hotspot is closing. Please wait for the Pi to join your WiFi network.</p></div>');
+        }
     });
-});
+
+    $.get("/regcode", function(data) {
+        if(data) $('#regcode').val(data);
+    });
+});
