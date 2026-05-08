@@ -287,44 +287,12 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
 
                 print(f"\nWiFi credentials for '{ssid}' saved to {persistent_data_path}\n")
 
-                # Mark status as 'testing' immediately so the UI can update
-                pre_status.update({'ssid': ssid, 'has_internet': None, 'testing': True})
-
-                # Respond to the client before the hotspot is torn down
-                response.write(b'TESTING\n')
+                # Simply acknowledge — the hotspot stays up.
+                # Connection testing happens only when the user clicks "Exit Setup".
+                response.write(b'OK\n')
                 self.wfile.write(response.getvalue())
-
-                # Run the connection test in the background so the HTTP response
-                # is delivered before the hotspot goes down.
-                def _run_wifi_test():
-                    print(f"\n[WiFi Test] Stopping hotspot to test credentials for '{ssid}'...")
-                    netman.stop_hotspot()
-
-                    # Attempt to connect with the submitted credentials
-                    connected = netman.connect_to_AP(
-                        conn_type=conn_type, ssid=ssid,
-                        username=username, password=password
-                    )
-
-                    has_internet = False
-                    if connected:
-                        has_internet = netman.have_active_internet_connection()
-                        print(f"[WiFi Test] Connected. Has internet: {has_internet}")
-                        # Tear down the test connection so we can restart the hotspot
-                        netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
-                    else:
-                        print(f"[WiFi Test] Could not connect to '{ssid}'.")
-
-                    # Restart the hotspot so the user can reconnect
-                    print(f"[WiFi Test] Restarting hotspot...")
-                    netman.start_hotspot()
-
-                    # Update the shared status dict in-place so /status reflects the result
-                    pre_status.update({'ssid': ssid, 'has_internet': has_internet, 'testing': False})
-                    print(f"[WiFi Test] Done. Status: {pre_status}")
-
-                threading.Thread(target=_run_wifi_test, daemon=True).start()
                 return
+
 
             # ----------------------------------------------------------
             # /exit — Stop hotspot, connect to saved WiFi, re-launch AP on failure
