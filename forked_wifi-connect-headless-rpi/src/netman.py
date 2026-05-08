@@ -429,7 +429,7 @@ def connect_to_AP(conn_type=None, conn_name=GENERIC_CONNECTION_NAME, \
             #print(f'dev.State={dev.State}')
             time.sleep(1)
             loop_count += 1
-            if loop_count > 10: # only wait 10 seconds max
+            if loop_count > 15: # only wait 15 seconds max
                 break
 
         if dev.State == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
