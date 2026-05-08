@@ -95,11 +95,10 @@ $(function(){
     // Helper: render the connection status spans from a status object
     function renderStatus(status) {
         var ssid = (status.ssid) ? status.ssid : 'None';
+        $('#wifi-status-ssid').text('Currently connected to: ' + ssid);
         if (status.testing) {
-            $('#wifi-status-ssid').text('Currently connected to: ' + ssid);
-            $('#wifi-status-internet').text('Testing connection...').css('color', '#888');
+            $('#wifi-status-internet').text('Checking...').css('color', 'orange');
         } else {
-            $('#wifi-status-ssid').text('Currently connected to: ' + ssid);
             if (status.has_internet) {
                 $('#wifi-status-internet').text('Has internet access').css('color', 'green');
             } else {
@@ -119,7 +118,7 @@ $(function(){
                     if (onDone) onDone(status);
                 }
             }).fail(function() {
-                // Server may be temporarily unreachable while hotspot restarts — keep polling
+                // Server temporarily unreachable while hotspot restarts — keep polling
             });
         }, 2000);
     }
@@ -168,14 +167,25 @@ $(function(){
     $('#connect-form').submit(function(ev){
         ev.preventDefault();
         $('#wifi-confirm-msg').hide();
+
+        // Immediately show yellow "Checking..." in the status area
+        var ssid = $('#ssid-select option:selected').text();
+        $('#wifi-status-ssid').text('Currently connected to: ' + ssid);
+        $('#wifi-status-internet').text('Checking...').css('color', 'orange');
+        $('#wifi-confirm-msg').text('WiFi settings saved! Testing connection...').css('color', 'orange').fadeIn();
+
         $.post('/connect', $('#connect-form').serialize(), function(data){
-            // Show "Testing..." immediately, then poll until test finishes
-            var ssid = $('#ssid-select option:selected').text();
-            renderStatus({ ssid: ssid, has_internet: null, testing: true });
+            // The server is now testing credentials in the background.
+            // The hotspot will go down briefly and come back up.
+            // Poll /status until the test completes.
             pollUntilTestDone(function(status) {
-                // Test done — show confirmation and auto-hide it
-                $('#wifi-confirm-msg').fadeIn();
-                setTimeout(function(){ $('#wifi-confirm-msg').fadeOut(); }, 5000);
+                // Test done — update confirmation message
+                if (status.has_internet) {
+                    $('#wifi-confirm-msg').text('WiFi settings updated!').css('color', 'green').fadeIn();
+                } else {
+                    $('#wifi-confirm-msg').text('WiFi settings saved — no internet detected.').css('color', 'red').fadeIn();
+                }
+                setTimeout(function(){ $('#wifi-confirm-msg').fadeOut(); }, 8000);
             });
         });
     });
