@@ -69,6 +69,9 @@ command = "sudo systemctl start NetworkManager"
 subprocess.run(command, shell=True, check=True)
 logging.info('NetworkManager started')
 
+exit_code = None
+pin_state = GPIO.LOW
+
 try:
     pin_state = GPIO.input(run_mode_pin)
     logging.info(f'GPIO Pin BCM# {run_mode_pin} is {pin_state} ({"SETUP" if pin_state == GPIO.HIGH else "RUN"} mode)')
@@ -107,12 +110,15 @@ try:
 except subprocess.CalledProcessError as e:
     logging.error(f"Error running subprocess: {e}")
     print(f"Error running subprocess: {e}")
-except netman.InternetConnectionError as e:
-    logging.error(f"Internet connection error: {e}")
-    print(f"Internet connection error: {e}")
+    exit_code = e.returncode
+except KeyboardInterrupt:
+    logging.info("KeyboardInterrupt received, exiting.")
+    print("\nStopping by user request (Ctrl+C).")
+    exit_code = 130  # Standard exit code for SIGINT
 except Exception as e:
     logging.error(f"An unexpected error occurred: {e}")
     print(f"An unexpected error occurred: {e}")
+    exit_code = 1
 
 finally:
     # Cleanup GPIO settings
