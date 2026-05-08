@@ -297,7 +297,8 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                 # Run the connection test in the background so the HTTP response
                 # is delivered before the hotspot goes down.
                 def _run_wifi_test():
-                    print(f"\n[WiFi Test] Stopping hotspot to test credentials for '{ssid}'...")
+                    print(f"\n[WiFi Test] Stopping hotspot and dnsmasq to test credentials for '{ssid}'...")
+                    dnsmasq.stop()
                     netman.stop_hotspot()
 
                     # Attempt to connect with the submitted credentials
@@ -315,9 +316,10 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                     else:
                         print(f"[WiFi Test] Could not connect to '{ssid}'.")
 
-                    # Restart the hotspot so the user can reconnect
-                    print(f"[WiFi Test] Restarting hotspot...")
+                    # Restart the hotspot and dnsmasq so the user can reconnect
+                    print(f"[WiFi Test] Restarting hotspot and dnsmasq...")
                     netman.start_hotspot()
+                    dnsmasq.start()
 
                     # Update the shared status dict in-place so /status reflects the result
                     pre_status.update({'ssid': ssid, 'has_internet': has_internet, 'testing': False})
@@ -362,9 +364,10 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                         print(f'Connected to {ssid}! Exiting setup.')
                         sys.exit()
                     else:
-                        print(f'Connection to {ssid} failed, restarting the hotspot.')
+                        print(f'Connection to {ssid} failed, restarting the hotspot and dnsmasq.')
                         self.ssids = netman.get_list_of_access_points()
                         netman.start_hotspot()
+                        dnsmasq.start()
                 else:
                     print(f"\nNo saved WiFi credentials found. Keeping hotspot active.")
                     response.write(b'No WiFi credentials saved\n')
