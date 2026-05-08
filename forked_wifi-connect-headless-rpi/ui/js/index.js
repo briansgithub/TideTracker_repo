@@ -58,10 +58,11 @@ $(function(){
 
     $('#no-password-checkbox').change(function() {
         if ($(this).is(':checked')) {
-            $('#passphrase').val('');
+            $('#passphrase').prop('disabled', true);
             $('#passphrase').hide();
             $('#showPasswordBtn').hide();
         } else {
+            $('#passphrase').prop('disabled', false);
             $('#passphrase').show();
             $('#showPasswordBtn').show();
         }
