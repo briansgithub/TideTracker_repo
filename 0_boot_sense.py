@@ -69,6 +69,13 @@ command = "sudo systemctl start NetworkManager"
 subprocess.run(command, shell=True, check=True)
 logging.info('NetworkManager started')
 
+# Ensure we aren't stuck in a stale hotspot state from a previous ungraceful shutdown
+try:
+    logging.info('Pre-run cleanup: stopping any stale hotspot/dnsmasq')
+    http_server.cleanup()
+except Exception as e:
+    logging.warning(f"Pre-run cleanup encountered an issue (non-fatal): {e}")
+
 exit_code = None
 pin_state = GPIO.LOW
 
@@ -121,21 +128,20 @@ except Exception as e:
     exit_code = 1
 
 finally:
-    # Cleanup GPIO settings
-    # Only cleanup hotspot/dnsmasq if we're NOT in setup mode.
-    # The setup subprocess (http_server.py) handles its own cleanup via atexit.
-    if pin_state != GPIO.HIGH:
-        logging.info('RUN mode cleanup: stopping hotspot/dnsmasq if present')
-        http_server.cleanup()
-    else:
-        logging.info('SETUP mode: skipping cleanup (subprocess handles its own)')
-    
-    GPIO.output(done_pin, GPIO.LOW)
-    time.sleep(0.5)  # 500 ms delay
-    GPIO.output(done_pin, GPIO.HIGH)
-    time.sleep(0.5)  # 500 ms delay
-    GPIO.output(done_pin, GPIO.LOW)
+    # 1. ALWAYS pulse the DONE pin as early as possible to respect the TPL5110's 2-minute window.
+    # We do this before potentially slow cleanup tasks.
+    try:
+        logging.info('Sending DONE pulse to TPL5110')
+        GPIO.output(done_pin, GPIO.LOW)
+        time.sleep(0.5)  # 500 ms delay
+        GPIO.output(done_pin, GPIO.HIGH)
+        time.sleep(0.5)  # 500 ms delay
+        GPIO.output(done_pin, GPIO.LOW)
+    except Exception as e:
+        logging.error(f"Failed to pulse DONE pin: {e}")
 
+    # 2. Cleanup GPIO and resources
+    # Setup mode subprocess handles its own cleanup; in RUN mode we've already cleaned up at the start.
     GPIO.cleanup()
     logging.info('========== boot_sense.py finished ==========')
 

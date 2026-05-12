@@ -171,8 +171,8 @@ def fetch_NOAA_data(station_id, date):
         # Modify the URL with yesterday's date and the station ID variable
         url = f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date={yesterday_date_string}&range={RANGE_HOURS}&product=predictions&datum={DATUM}&interval={INTERVAL_MINUTES}&format=json&units=english&time_zone=lst_ldt&station={station_id}"
 
-        # Retrieve data from the URL
-        response = requests.get(url)
+        # Retrieve data from the URL with a 15-second timeout to prevent hanging the boot script
+        response = requests.get(url, timeout=15)
         response.raise_for_status()  # Raise an exception for HTTP errors
 
         return response.json()
