@@ -124,6 +124,7 @@ def stop_connection(conn_name=GENERIC_CONNECTION_NAME):
 # Return a list of available SSIDs and their security type, 
 # or [] for none available or error.
 def get_list_of_access_points():
+    print(f'DEBUG: Entering get_list_of_access_points()')
     # bit flags we use when decoding what we get back from NetMan for each AP
     NM_SECURITY_NONE       = 0x0
     NM_SECURITY_WEP        = 0x1
@@ -136,9 +137,13 @@ def get_list_of_access_points():
     ssids = [] # list we return
 
     for dev in NetworkManager.NetworkManager.GetDevices():
+        print(f'DEBUG: Checking device: {dev.Interface} (Type: {dev.DeviceType})')
         if dev.DeviceType != NetworkManager.NM_DEVICE_TYPE_WIFI:
             continue
-        for ap in dev.GetAccessPoints():
+        
+        aps = dev.GetAccessPoints()
+        print(f'DEBUG: Found {len(aps)} access points on {dev.Interface}')
+        for ap in aps:
 
             # Get Flags, WpaFlags and RsnFlags, all are bit OR'd combinations 
             # of the NM_802_11_AP_SEC_* bit flags.
@@ -185,6 +190,7 @@ def get_list_of_access_points():
                 security_str = 'ENTERPRISE'
 
             entry = {"ssid": ap.Ssid, "security": security_str}
+            print(f'DEBUG: AP Found - SSID: "{ap.Ssid}", Security: {security_str}')
 
             # Don't add duplicates to the list, issue #8
             if ssids.__contains__(entry):
@@ -199,7 +205,7 @@ def get_list_of_access_points():
     # always add a hidden place holder
     ssids.append({"ssid": "Enter a hidden WiFi name", "security": "HIDDEN"})
 
-    print(f'Available SSIDs: {ssids}')
+    print(f'DEBUG: Returning available SSIDs: {ssids}')
     return ssids
 
 
