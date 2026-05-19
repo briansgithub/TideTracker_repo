@@ -114,7 +114,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
         # See if this is a specific request, otherwise let the server handle it.
         def do_GET(self):
 
-            print(f'do_GET {self.path}')
+            print(f'DEBUG: do_GET request path: {self.path}')
 
             # Handle the hotspot starting and a computer connecting to it,
             # we have to return a redirect to the gateway to get the 
@@ -145,10 +145,12 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
 
             # Handle a REST API request to return the list of SSIDs
             if '/networks' == self.path:
+                print(f'DEBUG: Handling /networks request')
                 self.send_response(200)
                 self.end_headers()
                 response = BytesIO()
                 ssids = self.ssids # passed in to the class factory
+                print(f'DEBUG: Serving {len(ssids)} SSIDs: {ssids}')
                 """ map whatever we get from net man to our constants:
                 Security:
                     NONE         
@@ -194,6 +196,9 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
         def do_POST(self):
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length)
+            print(f'DEBUG: do_POST request path: {self.path}')
+            print(f'DEBUG: do_POST body: {body.decode("utf-8")}')
+            
             self.send_response(200)
             self.end_headers()
             response = BytesIO()
@@ -208,23 +213,31 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
             # /update_station — Save NOAA station ID (merge with existing data)
             # ----------------------------------------------------------
             if self.path == '/update_station':
+                print(f'DEBUG: Handling /update_station')
                 FORM_STATION = 'station'
                 if FORM_STATION in fields:
                     station_id = fields[FORM_STATION][0]
+                    print(f'DEBUG: Received station_id: {station_id}')
                     # Read existing data and merge
                     existing_data = {}
                     if os.path.exists(persistent_data_path):
                         try:
                             with open(persistent_data_path, 'r') as f:
                                 existing_data = json.load(f)
-                        except Exception:
-                            pass
+                            print(f'DEBUG: Loaded existing data: {existing_data}')
+                        except Exception as e:
+                            print(f'DEBUG: Error loading existing data: {e}')
                     existing_data['station_id'] = station_id
-                    with open(persistent_data_path, 'w') as json_file:
-                        json.dump(existing_data, json_file)
+                    try:
+                        with open(persistent_data_path, 'w') as json_file:
+                            json.dump(existing_data, json_file)
+                        print(f"DEBUG: Station ID ({station_id}) saved successfully to {persistent_data_path}")
+                    except Exception as e:
+                        print(f'DEBUG: Error saving station_id: {e}')
                     print(f"\nStation ID ({station_id}) has been saved to {persistent_data_path}\n")
                     response.write(b'OK\n')
                 else:
+                    print(f'DEBUG: Error - Missing station in fields: {fields}')
                     response.write(b'ERROR: Missing station\n')
                 self.wfile.write(response.getvalue())
                 return
@@ -233,18 +246,20 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
             # /connect — Save WiFi credentials (does NOT stop the hotspot)
             # ----------------------------------------------------------
             if self.path == '/connect':
+                print(f'DEBUG: Handling /connect')
                 FORM_SSID = 'ssid'
                 FORM_HIDDEN_SSID = 'hidden-ssid'
                 FORM_USERNAME = 'identity'
                 FORM_PASSWORD = 'passphrase'
 
                 if FORM_SSID not in fields:
-                    print(f'Error: POST /connect is missing {FORM_SSID} field.')
+                    print(f'DEBUG: Error - POST /connect is missing {FORM_SSID} field. Fields: {fields}')
                     response.write(b'ERROR: Missing ssid\n')
                     self.wfile.write(response.getvalue())
                     return
 
                 ssid = fields[FORM_SSID][0]
+                print(f'DEBUG: SSID from form: {ssid}')
                 password = None
                 username = None
 
@@ -276,14 +291,20 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                     try:
                         with open(persistent_data_path, 'r') as f:
                             existing_data = json.load(f)
-                    except Exception:
-                        pass
+                        print(f'DEBUG: Loaded existing data for connect: {existing_data}')
+                    except Exception as e:
+                        print(f'DEBUG: Error loading existing data for connect: {e}')
                 existing_data['wifi_ssid'] = ssid
                 existing_data['wifi_password'] = password
                 existing_data['wifi_username'] = username
                 existing_data['wifi_conn_type'] = conn_type
-                with open(persistent_data_path, 'w') as json_file:
-                    json.dump(existing_data, json_file)
+                
+                try:
+                    with open(persistent_data_path, 'w') as json_file:
+                        json.dump(existing_data, json_file)
+                    print(f"DEBUG: WiFi credentials for '{ssid}' saved successfully to {persistent_data_path}")
+                except Exception as e:
+                    print(f'DEBUG: Error saving WiFi credentials: {e}')
 
                 print(f"\nWiFi credentials for '{ssid}' saved to {persistent_data_path}\n")
 
