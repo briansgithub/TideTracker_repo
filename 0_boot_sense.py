@@ -10,12 +10,11 @@ import logging
 import json
 from pathlib import Path
 
-# Set up logging to file for boot debugging
-log_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'boot_sense.log')
+# Set up logging to terminal
 logging.basicConfig(
-    filename=log_path,
     level=logging.DEBUG,
-    format='%(asctime)s %(levelname)s: %(message)s'
+    format='%(asctime)s %(levelname)s: %(message)s',
+    stream=sys.stdout
 )
 logging.info('========== boot_sense.py starting ==========')
 
