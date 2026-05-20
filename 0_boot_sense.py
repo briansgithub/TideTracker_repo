@@ -7,6 +7,7 @@ import sys
 import time
 import re
 import logging
+import json
 from pathlib import Path
 
 # Set up logging to file for boot debugging
@@ -29,6 +30,27 @@ def is_raspberry_pi():
     return re.search(r"^Model\s*:\s*Raspberry Pi", cpuinfo, flags=re.M) is not None
 
 IS_RPI = is_raspberry_pi()
+
+def reconnect_to_saved_wifi():
+    """Attempts to reconnect to saved WiFi credentials on graceful exit."""
+    persistent_data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'tidetracker_persistent_data.json')
+    if os.path.exists(persistent_data_path):
+        try:
+            with open(persistent_data_path, 'r') as f:
+                data = json.load(f)
+            ssid = data.get('wifi_ssid')
+            password = data.get('wifi_password')
+            username = data.get('wifi_username')
+            conn_type = data.get('wifi_conn_type', 'NONE')
+            
+            if ssid:
+                logging.info(f"Graceful exit: Reconnecting to saved WiFi '{ssid}'...")
+                # Note: netman.connect_to_AP will stop the hotspot if it's currently active.
+                netman.connect_to_AP(conn_type=conn_type, ssid=ssid, username=username, password=password)
+            else:
+                logging.info("Graceful exit: No saved WiFi SSID found to reconnect to.")
+        except Exception as e:
+            logging.error(f"Error reconnecting to WiFi on exit: {e}")
 
 if IS_RPI:
     wifi_libdir = '/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/src'
@@ -69,13 +91,6 @@ command = "sudo systemctl start NetworkManager"
 subprocess.run(command, shell=True, check=True)
 logging.info('NetworkManager started')
 
-# Ensure we aren't stuck in a stale hotspot state from a previous ungraceful shutdown
-try:
-    logging.info('Pre-run cleanup: stopping any stale hotspot/dnsmasq')
-    http_server.cleanup()
-except Exception as e:
-    logging.warning(f"Pre-run cleanup encountered an issue (non-fatal): {e}")
-
 exit_code = None
 pin_state = GPIO.LOW
 
@@ -84,9 +99,10 @@ try:
     logging.info(f'GPIO Pin BCM# {run_mode_pin} is {pin_state} ({"SETUP" if pin_state == GPIO.HIGH else "RUN"} mode)')
     print(f"\n\nGPIO Pin BCM# {run_mode_pin} is {pin_state}\n")
     if pin_state == GPIO.HIGH:
+        # User wants cleanup right before the setup script (although http_server.py does it too)
+        logging.info('SETUP mode: cleaning up hotspot before launching script')
+        http_server.cleanup()
         
-        ### command = "sudo systemctl start NetworkManager"
-        ### subprocess.run(command, shell=True, check=True)
         # sleep time removed. Cron job set to start 50s after boot
         logging.info(f'SETUP mode: launching wifi setup script: {auto_run_wifi_script_path}')
         result = subprocess.run(
@@ -101,6 +117,9 @@ try:
             raise subprocess.CalledProcessError(result.returncode, result.args)
         logging.info(f'SETUP mode: wifi setup script exited with code {result.returncode}')
     else:
+        # User wants cleanup right before the run script to clear any stale hotspot from a crash
+        logging.info('RUN mode: cleaning up hotspot before internet check')
+        http_server.cleanup()
 
         # sleep time removed. Cron job set to start 50s after boot
         
@@ -140,8 +159,11 @@ finally:
     except Exception as e:
         logging.error(f"Failed to pulse DONE pin: {e}")
 
-    # 2. Cleanup GPIO and resources
-    # Setup mode subprocess handles its own cleanup; in RUN mode we've already cleaned up at the start.
+    # 2. Reconnect to saved WiFi if we exited gracefully
+    # This ensures the Pi returns to a client state if it doesn't lose power immediately.
+    reconnect_to_saved_wifi()
+
+    # 3. Cleanup GPIO and resources
     GPIO.cleanup()
     logging.info('========== boot_sense.py finished ==========')
 
