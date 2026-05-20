@@ -346,20 +346,6 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                         print(f'DEBUG: Loaded existing data for connect: {existing_data}')
                     except Exception as e:
                         print(f'DEBUG: Error loading existing data for connect: {e}')
-                existing_data['wifi_ssid'] = ssid
-                existing_data['wifi_password'] = password
-                existing_data['wifi_username'] = username
-                existing_data['wifi_conn_type'] = conn_type
-                
-                try:
-                    with open(persistent_data_path, 'w') as json_file:
-                        json.dump(existing_data, json_file)
-                    print(f"DEBUG: WiFi credentials for '{ssid}' saved successfully to {persistent_data_path}")
-                except Exception as e:
-                    print(f'DEBUG: Error saving WiFi credentials: {e}')
-
-                print(f"\nWiFi credentials for '{ssid}' saved to {persistent_data_path}\n")
-
                 # Mark status as 'testing' immediately so the UI can update
                 pre_status.update({'ssid': ssid, 'has_internet': None, 'testing': True})
 
@@ -385,6 +371,19 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                         has_internet = netman.have_active_internet_connection()
                         print(f"[WiFi Test] Connected. Has internet: {has_internet}")
                         
+                        # Only update and save credentials if the connection was successful
+                        existing_data['wifi_ssid'] = ssid
+                        existing_data['wifi_password'] = password
+                        existing_data['wifi_username'] = username
+                        existing_data['wifi_conn_type'] = conn_type
+                        
+                        try:
+                            with open(persistent_data_path, 'w') as json_file:
+                                json.dump(existing_data, json_file)
+                            print(f"DEBUG: WiFi credentials for '{ssid}' saved successfully to {persistent_data_path}")
+                        except Exception as e:
+                            print(f'DEBUG: Error saving WiFi credentials: {e}')
+
                         if has_internet:
                             print(f"\033[92m[WiFi Test] Internet connection successful! Keeping connection active and NOT restarting hotspot.\033[0m")
                             # Update the shared status dict before returning
