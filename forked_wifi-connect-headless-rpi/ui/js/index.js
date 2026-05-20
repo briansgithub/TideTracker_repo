@@ -98,12 +98,12 @@ $(function(){
         var ssid = (status.ssid) ? status.ssid : 'None';
         $('#wifi-status-ssid').text('Currently connected to: ' + ssid);
         if (status.testing) {
-            $('#wifi-status-internet').text('Checking...').css('color', 'orange');
+            $('#wifi-status-internet').text('- Checking...').css('color', 'orange');
         } else {
             if (status.has_internet) {
-                $('#wifi-status-internet').text('Has internet access').css('color', 'green');
+                $('#wifi-status-internet').text('- Has internet access').css('color', 'green');
             } else {
-                $('#wifi-status-internet').text('No internet access').css('color', 'red');
+                $('#wifi-status-internet').text('- No internet access').css('color', 'red');
             }
         }
     }
@@ -172,7 +172,7 @@ $(function(){
         // Immediately show yellow "Checking..." in the status area
         var ssid = $('#ssid-select option:selected').text();
         $('#wifi-status-ssid').text('Currently connected to: ' + ssid);
-        $('#wifi-status-internet').text('Checking...').css('color', 'orange');
+        $('#wifi-status-internet').text('- Checking...').css('color', 'orange');
         $('#wifi-confirm-msg').text('WiFi settings saved! Testing connection...').css('color', 'orange').fadeIn();
 
         $.post('/connect', $('#connect-form').serialize(), function(data){
