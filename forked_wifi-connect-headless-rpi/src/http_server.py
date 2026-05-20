@@ -237,6 +237,19 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                         print(f'DEBUG: Error saving station_id: {e}')
                     print(f"\nStation ID ({station_id}) has been saved to {persistent_data_path}\n")
                     response.write(b'OK\n')
+                    self.wfile.write(response.getvalue())
+
+                    # Requirement: relaunch hotspot after station update
+                    def _relaunch_hotspot():
+                        print("[Station Update] Relaunching hotspot as requested...")
+                        dnsmasq.stop()
+                        netman.stop_hotspot()
+                        time.sleep(1)
+                        netman.start_hotspot()
+                        dnsmasq.start()
+                    
+                    threading.Thread(target=_relaunch_hotspot, daemon=True).start()
+                    return
                 else:
                     print(f'DEBUG: Error - Missing station in fields: {fields}')
                     response.write(b'ERROR: Missing station\n')
