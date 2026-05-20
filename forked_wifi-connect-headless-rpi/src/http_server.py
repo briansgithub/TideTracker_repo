@@ -453,9 +453,38 @@ def main(address, port, ui_path, rcode, delete_connections, force_setup):
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
+        print("\nKeyboardInterrupt received. Stopping hotspot and reconnecting to saved WiFi...")
         dnsmasq.stop()
         netman.stop_hotspot()
         httpd.server_close()
+
+        persistent_data_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+            'tidetracker_persistent_data.json'
+        )
+        saved_data = {}
+        if os.path.exists(persistent_data_path):
+            try:
+                with open(persistent_data_path, 'r') as f:
+                    saved_data = json.load(f)
+            except Exception:
+                pass
+
+        ssid = saved_data.get('wifi_ssid')
+        password = saved_data.get('wifi_password')
+        username = saved_data.get('wifi_username')
+        conn_type = saved_data.get('wifi_conn_type', netman.CONN_TYPE_SEC_NONE)
+
+        if ssid:
+            print(f"Attempting to reconnect to previously working WiFi '{ssid}'...")
+            success = netman.connect_to_AP(conn_type=conn_type, ssid=ssid,
+                                           username=username, password=password)
+            if success:
+                print(f"Successfully reconnected to '{ssid}'. Exiting.")
+            else:
+                print(f"Failed to reconnect to '{ssid}'. Exiting.")
+        else:
+            print("No saved WiFi credentials found to reconnect to. Exiting.")
 
 
 #------------------------------------------------------------------------------
