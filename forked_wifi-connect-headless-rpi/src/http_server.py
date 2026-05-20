@@ -495,7 +495,6 @@ def main(address, port, ui_path, rcode, delete_connections, force_setup):
 
     # Start an HTTP server to serve the content in the ui dir and handle the 
     # POST request in the handler class.
-    print(f'\033[91mWaiting for a connection to our hotspot {netman.get_hotspot_SSID()} ...\033[0m')
     httpd = MyHTTPServer(web_dir, server_address, MyRequestHandlerClass)
     try:
         httpd.serve_forever()

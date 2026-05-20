@@ -208,10 +208,6 @@ $(function(){
     });
 
     $('#exitBtn').click(function() {
-        // Show the "applying changes" message and hide the forms
-        $('.before-submit').hide();
-        $('#submit-message').removeClass('hidden');
-
         // POST to /exit to stop the hotspot and connect to saved WiFi
         $.post('/exit');
     });
