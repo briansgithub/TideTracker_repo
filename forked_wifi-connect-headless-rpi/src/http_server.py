@@ -406,50 +406,6 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                 threading.Thread(target=_run_wifi_test, daemon=True).start()
                 return
 
-            # ----------------------------------------------------------
-            # /exit — Stop hotspot, connect to saved WiFi, re-launch AP on failure
-            # ----------------------------------------------------------
-            if self.path == '/exit':
-                # Read saved WiFi credentials
-                saved_data = {}
-                if os.path.exists(persistent_data_path):
-                    try:
-                        with open(persistent_data_path, 'r') as f:
-                            saved_data = json.load(f)
-                    except Exception:
-                        pass
-
-                ssid = saved_data.get('wifi_ssid')
-                password = saved_data.get('wifi_password')
-                username = saved_data.get('wifi_username')
-                conn_type = saved_data.get('wifi_conn_type', netman.CONN_TYPE_SEC_NONE)
-
-                # Send response before tearing down the hotspot (client will disconnect)
-                response.write(b'OK\n')
-                self.wfile.write(response.getvalue())
-
-                if ssid:
-                    print(f"\nExiting setup: stopping hotspot and connecting to '{ssid}'...")
-
-                    # Stop the hotspot
-                    netman.stop_hotspot()
-
-                    # Attempt to connect with saved credentials
-                    success = netman.connect_to_AP(conn_type=conn_type, ssid=ssid,
-                            username=username, password=password)
-
-                    if success:
-                        print(f'Connected to {ssid}! Exiting setup.')
-                        sys.exit()
-                    else:
-                        print(f'Connection to {ssid} failed, restarting the hotspot using unified sequence.')
-                        launch_ap_sequence(self.ssids, self.pre_status)
-                else:
-                    print(f"\nNo saved WiFi credentials found. Keeping hotspot active.")
-                    response.write(b'No WiFi credentials saved\n')
-
-                return
-
     return  MyHTTPReqHandler # the class our factory just created.
 
 
