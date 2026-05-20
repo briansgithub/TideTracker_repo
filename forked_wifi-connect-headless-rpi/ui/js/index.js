@@ -208,7 +208,14 @@ $(function(){
     });
 
     $('#exitBtn').click(function() {
+        // Immediately show feedback to the user and attempt to close the window
+        document.body.innerHTML = "<div style='text-align: center; padding: 50px; font-family: sans-serif;'><h3>Setup Complete</h3><p>The device is connecting to WiFi.</p><p>You can safely close this window.</p></div>";
+        
         // POST to /exit to stop the hotspot and connect to saved WiFi
-        $.post('/exit');
+        $.post('/exit').always(function() {
+            setTimeout(function() {
+                window.close();
+            }, 1000);
+        });
     });
 });
