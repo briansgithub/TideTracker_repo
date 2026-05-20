@@ -99,10 +99,9 @@ def launch_ap_sequence(ssids_list, status_dict):
     
     # Ensure a clean slate
     dnsmasq.stop()
-    netman.seop_hotspot()
-    
-    # Wait for hardware to settle before scanning
-    time.sleep(1)
+    netman.stop_hotspot()
+
+    # Wait for hardware to settle before scanning    time.sleep(1)
     
     # Refresh SSID list
     print("DEBUG: Scanning for available WiFi networks...")
