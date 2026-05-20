@@ -445,6 +445,14 @@ def connect_to_AP(conn_type=None, conn_name=GENERIC_CONNECTION_NAME, \
         if dev.State == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
             print(f'Connection {conn_name} is live.')
             return True
+        else:
+            # If we timed out or failed, force a disconnect to stop NM's internal retry loop.
+            # This brings the hardware back to a ready state much faster.
+            print(f"Connection {conn_name} did not activate in time. Forcing device disconnect...")
+            try:
+                dev.Disconnect()
+            except Exception as e:
+                print(f"Note: Force disconnect call failed (this is often normal if already disconnected): {e}")
 
     except Exception as e:
         print(f'Connection error {e}')
