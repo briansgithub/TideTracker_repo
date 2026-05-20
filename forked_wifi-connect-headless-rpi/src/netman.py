@@ -220,17 +220,14 @@ def get_hotspot_SSID():
 # NM device states: 0=UNKNOWN, 10=UNMANAGED, 20=UNAVAILABLE, 30=DISCONNECTED,
 #   40=PREPARE, 50=CONFIG, 60=NEED_AUTH, 70=IP_CONFIG, 80=IP_CHECK,
 #   90=SECONDARIES, 100=ACTIVATED, 110=DEACTIVATING, 120=FAILED
-def _wait_for_wifi_device_ready(timeout=20):
+def _wait_for_wifi_device_ready(timeout=10):
     # States where the device is idle enough to accept a new connection.
-    # Includes FAILED (120) because after deactivation the device often
-    # transitions DEACTIVATING(110) -> FAILED(120) -> DISCONNECTED(30),
-    # and FAILED is a stable/idle state from which we can activate.
+    # We exclude FAILED (120) and DEACTIVATING (110) to ensure a clean slate.
     READY_STATES = (
         NetworkManager.NM_DEVICE_STATE_DISCONNECTED,  # 30
         NetworkManager.NM_DEVICE_STATE_UNKNOWN,        # 0
         NetworkManager.NM_DEVICE_STATE_UNMANAGED,      # 10
         NetworkManager.NM_DEVICE_STATE_UNAVAILABLE,    # 20
-        120,  # NM_DEVICE_STATE_FAILED — not always in python-networkmanager
     )
     try:
         for dev in NetworkManager.NetworkManager.GetDevices():
@@ -238,10 +235,18 @@ def _wait_for_wifi_device_ready(timeout=20):
                 elapsed = 0
                 poll_interval = 0.25 # Poll every 250ms for responsiveness
                 while dev.State not in READY_STATES and elapsed < timeout:
+                    # If stuck in FAILED (120), try a forced disconnect to move it to DISCONNECTED (30)
+                    if dev.State == 120:
+                        try:
+                            dev.Disconnect()
+                        except:
+                            pass
+                    
                     if int(elapsed * 4) % 4 == 0: # Print once per second to keep log clean
                         print(f'Waiting for wlan0 to become ready (state={dev.State}, elapsed={elapsed:.1f}s)...')
                     time.sleep(poll_interval)
                     elapsed += poll_interval
+
                 if elapsed > 0:
                     time.sleep(0.5)  # reduced settle time from 2.0 to 0.5
                 print(f'wlan0 device state: {dev.State} (waited {elapsed:.1f}s)')

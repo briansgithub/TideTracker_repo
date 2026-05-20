@@ -10,7 +10,8 @@ import netman
 import dnsmasq
 
 # Defaults
-ADDRESS = '192.168.42.1'
+ADDRESS = '0.0.0.0'
+GATEWAY_ADDRESS = '192.168.42.1'
 PORT = 80
 UI_PATH = '../ui'
 
@@ -121,14 +122,14 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
             # captured portal to show up.
             if '/hotspot-detect.html' == self.path:
                 self.send_response(301) # redirect
-                new_path = f'http://{self.address}/'
+                new_path = f'http://{GATEWAY_ADDRESS}/'
                 print(f'redirecting to {new_path}')
                 self.send_header('Location', new_path)
                 self.end_headers()
 
             if '/generate_204' == self.path:
                 self.send_response(301) # redirect
-                new_path = f'http://{self.address}/'
+                new_path = f'http://{GATEWAY_ADDRESS}/'
                 print(f'redirecting to {new_path}')
                 self.send_header('Location', new_path)
                 self.end_headers()
@@ -341,12 +342,16 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                             os._exit(0)
                             
                         # If we have no internet, tear down the test connection so we can restart the hotspot
+                        print(f"[WiFi Test] Connection successful but NO INTERNET. Tearing down...")
                         netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
                     else:
-                        print(f"[WiFi Test] Could not connect to '{ssid}'.")
+                        print(f"[WiFi Test] Could not connect to '{ssid}'. Tearing down failing connection...")
+                        netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
 
                     # Restart the hotspot and dnsmasq as soon as possible if connection failed (or after test)
                     print(f"[WiFi Test] Restarting hotspot and dnsmasq...")
+                    # Small settle time to ensure NetworkManager is ready for AP mode
+                    time.sleep(1)
                     netman.start_hotspot()
                     dnsmasq.start()
 
