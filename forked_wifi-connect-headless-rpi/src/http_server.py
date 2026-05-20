@@ -337,7 +337,8 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                             print(f"\033[92m[WiFi Test] Internet connection successful! Keeping connection active and NOT restarting hotspot.\033[0m")
                             # Update the shared status dict before returning
                             pre_status.update({'ssid': ssid, 'has_internet': True, 'testing': False})
-                            return
+                            # Force the entire process to exit so control returns to the terminal/boot script
+                            os._exit(0)
                             
                         # If we have no internet, tear down the test connection so we can restart the hotspot
                         netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
