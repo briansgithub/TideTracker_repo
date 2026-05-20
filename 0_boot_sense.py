@@ -44,6 +44,12 @@ def reconnect_to_saved_wifi():
             conn_type = data.get('wifi_conn_type', 'NONE')
             
             if ssid:
+                # Check if we are already connected to this SSID to avoid redundant reconnections
+                current_ssid = netman.get_connected_ssid()
+                if current_ssid == ssid:
+                    logging.info(f"Graceful exit: Already connected to '{ssid}'. Skipping redundant reconnection.")
+                    return
+
                 logging.info(f"Graceful exit: Reconnecting to saved WiFi '{ssid}'...")
                 # Note: netman.connect_to_AP will stop the hotspot if it's currently active.
                 netman.connect_to_AP(conn_type=conn_type, ssid=ssid, username=username, password=password)
