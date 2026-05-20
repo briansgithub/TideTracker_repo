@@ -332,7 +332,14 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                     if connected:
                         has_internet = netman.have_active_internet_connection()
                         print(f"[WiFi Test] Connected. Has internet: {has_internet}")
-                        # Tear down the test connection so we can restart the hotspot
+                        
+                        if has_internet:
+                            print(f"\033[92m[WiFi Test] Internet connection successful! Keeping connection active and NOT restarting hotspot.\033[0m")
+                            # Update the shared status dict before returning
+                            pre_status.update({'ssid': ssid, 'has_internet': True, 'testing': False})
+                            return
+                            
+                        # If we have no internet, tear down the test connection so we can restart the hotspot
                         netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
                     else:
                         print(f"[WiFi Test] Could not connect to '{ssid}'.")
