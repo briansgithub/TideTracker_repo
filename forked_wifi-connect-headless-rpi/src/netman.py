@@ -220,7 +220,7 @@ def get_hotspot_SSID():
 # NM device states: 0=UNKNOWN, 10=UNMANAGED, 20=UNAVAILABLE, 30=DISCONNECTED,
 #   40=PREPARE, 50=CONFIG, 60=NEED_AUTH, 70=IP_CONFIG, 80=IP_CHECK,
 #   90=SECONDARIES, 100=ACTIVATED, 110=DEACTIVATING, 120=FAILED
-def _wait_for_wifi_device_ready(timeout=10):
+def _wait_for_wifi_device_ready(timeout=20):
     # States where the device is idle enough to accept a new connection.
     # Includes FAILED (120) because after deactivation the device often
     # transitions DEACTIVATING(110) -> FAILED(120) -> DISCONNECTED(30),
@@ -432,13 +432,15 @@ def connect_to_AP(conn_type=None, conn_name=GENERIC_CONNECTION_NAME, \
 
         # Wait for ADDRCONF(NETDEV_CHANGE): wlan0: link becomes ready
         print(f'Waiting for connection to become active...')
-        loop_count = 0
-        while dev.State != NetworkManager.NM_DEVICE_STATE_ACTIVATED:
-            #print(f'dev.State={dev.State}')
-            time.sleep(1)
-            loop_count += 1
-            if loop_count > 15: # only wait 15 seconds max
+        elapsed = 0
+        poll_interval = 0.25  # Poll every 250ms for responsiveness
+        timeout = 10          # Max wait 10s for connection to stabilize
+        while dev.State != NetworkManager.NM_DEVICE_STATE_ACTIVATED and elapsed < timeout:
+            if dev.State == 120:  # NM_DEVICE_STATE_FAILED
+                print(f"Connection failed (state={dev.State})")
                 break
+            time.sleep(poll_interval)
+            elapsed += poll_interval
 
         if dev.State == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
             print(f'Connection {conn_name} is live.')
