@@ -85,6 +85,50 @@ def kill_previous_setup_processes(port=80):
 
 
 #------------------------------------------------------------------------------
+# Consistently launch the hotspot, scan for networks, and update shared state.
+def launch_ap_sequence(ssids_list, status_dict):
+    """
+    Modularized sequence to ensure the AP is launched identically every time.
+    1. Print the 'Waiting...' message.
+    2. Stop existing hotspot/dnsmasq.
+    3. Scan for available SSIDs (Must be done while in client mode).
+    4. Snapshot current connection status.
+    5. Start Hotspot and DNS services.
+    """
+    print(f'\n\033[91mWaiting for a connection to our hotspot {netman.get_hotspot_SSID()} ...\033[0m')
+    
+    # Ensure a clean slate
+    dnsmasq.stop()
+    netman.stop_hotspot()
+    
+    # Wait for hardware to settle before scanning
+    time.sleep(1)
+    
+    # Refresh SSID list
+    print("DEBUG: Scanning for available WiFi networks...")
+    ssids_list.clear()
+    ssids_list.extend(netman.get_list_of_access_points())
+    
+    # Refresh status snapshot
+    print("DEBUG: Capturing connection status snapshot...")
+    status_dict.update({
+        'ssid': netman.get_connected_ssid(),
+        'has_internet': netman.have_active_internet_connection(),
+        'testing': False
+    })
+    
+    # Start the hotspot
+    if not netman.start_hotspot():
+        print('CRITICAL: Error starting hotspot!')
+        return False
+        
+    # Start dnsmasq
+    dnsmasq.start()
+    print("DEBUG: AP relaunch sequence complete.\n")
+    return True
+
+
+#------------------------------------------------------------------------------
 # A custom http server class in which we can set the default path it serves
 # when it gets a GET request.
 class MyHTTPServer(HTTPServer):
@@ -241,12 +285,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
 
                     # Requirement: relaunch hotspot after station update
                     def _relaunch_hotspot():
-                        print("[Station Update] Relaunching hotspot as requested...")
-                        dnsmasq.stop()
-                        netman.stop_hotspot()
-                        time.sleep(1)
-                        netman.start_hotspot()
-                        dnsmasq.start()
+                        launch_ap_sequence(self.ssids, self.pre_status)
                     
                     threading.Thread(target=_relaunch_hotspot, daemon=True).start()
                     return
@@ -361,15 +400,8 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                         print(f"[WiFi Test] Could not connect to '{ssid}'. Tearing down failing connection...")
                         netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
 
-                    # Restart the hotspot and dnsmasq as soon as possible if connection failed (or after test)
-                    print(f"[WiFi Test] Restarting hotspot and dnsmasq...")
-                    # Small settle time to ensure NetworkManager is ready for AP mode
-                    time.sleep(1)
-                    netman.start_hotspot()
-                    dnsmasq.start()
-
-                    # Update the shared status dict in-place so /status reflects the result
-                    pre_status.update({'ssid': ssid, 'has_internet': has_internet, 'testing': False})
+                    # Restart the hotspot using the unified sequence
+                    launch_ap_sequence(self.ssids, self.pre_status)
                     print(f"[WiFi Test] Done. Status: {pre_status}")
 
                 threading.Thread(target=_run_wifi_test, daemon=True).start()
@@ -411,10 +443,8 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                         print(f'Connected to {ssid}! Exiting setup.')
                         sys.exit()
                     else:
-                        print(f'Connection to {ssid} failed, restarting the hotspot and dnsmasq.')
-                        self.ssids = netman.get_list_of_access_points()
-                        netman.start_hotspot()
-                        dnsmasq.start()
+                        print(f'Connection to {ssid} failed, restarting the hotspot using unified sequence.')
+                        launch_ap_sequence(self.ssids, self.pre_status)
                 else:
                     print(f"\nNo saved WiFi credentials found. Keeping hotspot active.")
                     response.write(b'No WiFi credentials saved\n')
@@ -441,28 +471,13 @@ def main(address, port, ui_path, rcode, delete_connections, force_setup):
         print('Already connected to the internet, nothing to do, exiting.')
         sys.exit()
 
-    # Get list of available AP from net man.  
-    # Must do this AFTER deleting any existing connections (above),
-    # and BEFORE starting our hotspot (or the hotspot will be the only thing
-    # in the list).
-    ssids = netman.get_list_of_access_points()
+    # Shared mutable containers for the request handler
+    ssids = []
+    pre_status = {}
 
-    # Capture WiFi status BEFORE starting the hotspot, while the radio is
-    # still in client mode and can report the current connection.
-    pre_status = {
-        'ssid': netman.get_connected_ssid(),
-        'has_internet': netman.have_active_internet_connection()
-    }
-    print(f'Pre-hotspot status snapshot: {pre_status}')
-
-    # Start the hotspot
-    if not netman.start_hotspot():
-        print('Error starting hotspot, exiting.')
+    # Launch the hotspot for the first time using the unified sequence
+    if not launch_ap_sequence(ssids, pre_status):
         sys.exit(1)
-
-    # Start dnsmasq (to advertise us as a router so captured portal pops up
-    # on the users machine to vend our UI in our http server)
-    dnsmasq.start()
 
     # Find the ui directory which is up one from where this file is located.
     web_dir = os.path.join(os.path.dirname(__file__), ui_path)
