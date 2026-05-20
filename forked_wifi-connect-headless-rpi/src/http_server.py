@@ -337,7 +337,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                     else:
                         print(f"[WiFi Test] Could not connect to '{ssid}'.")
 
-                    # Restart the hotspot and dnsmasq so the user can reconnect
+                    # Restart the hotspot and dnsmasq as soon as possible if connection failed (or after test)
                     print(f"[WiFi Test] Restarting hotspot and dnsmasq...")
                     netman.start_hotspot()
                     dnsmasq.start()
