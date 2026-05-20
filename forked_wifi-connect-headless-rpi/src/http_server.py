@@ -99,7 +99,7 @@ def launch_ap_sequence(ssids_list, status_dict):
     
     # Ensure a clean slate
     dnsmasq.stop()
-    netman.stop_hotspot()
+    netman.seop_hotspot()
     
     # Wait for hardware to settle before scanning
     time.sleep(1)
