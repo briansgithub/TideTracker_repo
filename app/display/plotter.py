@@ -163,8 +163,24 @@ def plot_tides(data, now_dtz, info, zone, sun_times):
     plt.plot(pres_times, pres_vals, color='black', linewidth=12)
 
     # Shading for night
-    plt.fill_betweenx(y=plt.ylim(), x1=yesterday_sunset, x2=today_sunrise, color='gray', alpha=0.3)
-    plt.fill_betweenx(y=plt.ylim(), x1=today_sunset, x2=tomorrow_sunrise, color='gray', alpha=0.3)
+    plt.fill_betweenx(y=[plt.ylim()[0], plt.ylim()[1]], x1=yesterday_sunset,
+                      x2=today_sunrise, facecolor='gray', edgecolor='none', label='Shaded Area')
+
+    plt.fill_betweenx(y=[plt.ylim()[0], plt.ylim()[1]], x1=today_sunset,
+                      x2=tomorrow_sunrise, facecolor='gray', edgecolor='none', label='Shaded Area')
+
+    # Annotate sunrise/sunset on the plot itself
+    fudge = deadzone / 5
+    plt.annotate(rm_lead_zeros(f'{today_sunrise:%I:%M %p}'),
+                xy=(today_sunrise, ylim1 + 2*YEXTEND - deadzone - fudge),
+                xytext=(today_sunrise, ylim1 + 2*YEXTEND - deadzone - fudge),
+                ha='center', va='center', fontsize=10, weight='bold')
+
+    plt.annotate(rm_lead_zeros(f'{today_sunset:%I:%M %p}'),
+                xy=(today_sunset, ylim1 + 2*YEXTEND - deadzone - fudge),
+                xytext=(today_sunset, ylim1 + 2*YEXTEND - deadzone - fudge),
+                ha='center', va='center', fontsize=10, weight='bold')
+
     plt.tight_layout()
 
     buf = BytesIO()
