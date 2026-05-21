@@ -1,9 +1,8 @@
-# Our main wifi-connect application, which is based around an HTTP server.
-
 import os, getopt, sys, json, atexit, subprocess, time, threading
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import parse_qs
 from io import BytesIO
+import tt_utils
 
 # Local modules
 import netman
@@ -22,7 +21,7 @@ def dprint(*args, **kwargs):
 ADDRESS = '0.0.0.0'
 GATEWAY_ADDRESS = '192.168.42.1'
 PORT = 80
-UI_PATH = '../ui'
+UI_PATH = str(tt_utils.WIFI_DIR / "ui")
 
 
 #------------------------------------------------------------------------------
@@ -273,23 +272,11 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                 if FORM_STATION in fields:
                     station_id = fields[FORM_STATION][0]
                     dprint(f'DEBUG: Received station_id: {station_id}')
-                    # Read existing data and merge
-                    existing_data = {}
-                    if os.path.exists(persistent_data_path):
-                        try:
-                            with open(persistent_data_path, 'r') as f:
-                                existing_data = json.load(f)
-                            dprint(f'DEBUG: Loaded existing data: {existing_data}')
-                        except Exception as e:
-                            dprint(f'DEBUG: Error loading existing data: {e}')
-                    existing_data['station_id'] = station_id
-                    try:
-                        with open(persistent_data_path, 'w') as json_file:
-                            json.dump(existing_data, json_file)
-                        dprint(f"DEBUG: Station ID ({station_id}) saved successfully to {persistent_data_path}")
-                    except Exception as e:
-                        dprint(f'DEBUG: Error saving station_id: {e}')
-                    print(f"\nStation ID ({station_id}) has been saved to {persistent_data_path}\n")
+                    
+                    if tt_utils.save_config({'station_id': station_id}):
+                        dprint(f"DEBUG: Station ID ({station_id}) saved successfully")
+                    
+                    print(f"\nStation ID ({station_id}) has been saved.\n")
                     response.write(b'OK\n')
                     self.wfile.write(response.getvalue())
 
@@ -348,15 +335,6 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                             conn_type = netman.CONN_TYPE_SEC_PASSWORD
                         break
 
-                # Read existing data and merge
-                existing_data = {}
-                if os.path.exists(persistent_data_path):
-                    try:
-                        with open(persistent_data_path, 'r') as f:
-                            existing_data = json.load(f)
-                        dprint(f'DEBUG: Loaded existing data for connect: {existing_data}')
-                    except Exception as e:
-                        dprint(f'DEBUG: Error loading existing data for connect: {e}')
                 # Mark status as 'testing' immediately so the UI can update
                 pre_status.update({'ssid': ssid, 'has_internet': None, 'testing': True})
 
