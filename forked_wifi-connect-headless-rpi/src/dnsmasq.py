@@ -26,8 +26,8 @@ def start():
     stop()
 
     # build the list of args
-    path = "/usr/sbin/dnsmasq"
-    args = [path]
+    # We use sudo here to ensure dnsmasq has permissions for /var/lib/misc/dnsmasq.leases
+    args = ["sudo", "dnsmasq"]
     args.append(f"--address=/#/{DEFAULT_GATEWAY}")
     args.append(f"--dhcp-range={DEFAULT_DHCP_RANGE}")
     args.append(f"--dhcp-option=option:router,{DEFAULT_GATEWAY}")
