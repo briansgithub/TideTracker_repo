@@ -151,13 +151,16 @@ def stop_hotspot():
 # Deactivates any active instance first, then deletes ALL matching profiles.
 def stop_connection(conn_name=GENERIC_CONNECTION_NAME):
     found_any = False
+    print(f"DEBUG: stop_connection('{conn_name}') starting...")
 
     # 1. Deactivate any active connection with this name
     try:
-        active_connections = NetworkManager.NetworkManager.ActiveConnections
-        for active in active_connections:
+        # Use a list comprehension to snapshot the active connections
+        active_conns = [ac for ac in NetworkManager.NetworkManager.ActiveConnections]
+        for active in active_conns:
             try:
-                if active.Connection.GetSettings()['connection']['id'] == conn_name:
+                settings = active.Connection.GetSettings()
+                if settings['connection']['id'] == conn_name:
                     print(f'Deactivating active connection: {conn_name}')
                     NetworkManager.NetworkManager.DeactivateConnection(active)
                     found_any = True
@@ -168,10 +171,12 @@ def stop_connection(conn_name=GENERIC_CONNECTION_NAME):
 
     # 2. Delete ALL saved connection profiles with this name (handles duplicates)
     try:
-        connections = NetworkManager.Settings.ListConnections()
-        for conn in connections:
+        # Use a list comprehension to snapshot the connection profiles
+        all_conns = [c for c in NetworkManager.Settings.ListConnections()]
+        for conn in all_conns:
             try:
-                if conn.GetSettings()['connection']['id'] == conn_name:
+                settings = conn.GetSettings()
+                if settings['connection']['id'] == conn_name:
                     print(f'Deleting connection profile: {conn_name}')
                     conn.Delete()
                     found_any = True
@@ -182,8 +187,10 @@ def stop_connection(conn_name=GENERIC_CONNECTION_NAME):
 
     # 3. Wait for wifi device to reach a ready state
     if found_any:
+        print(f"DEBUG: stop_connection('{conn_name}') waiting for device ready...")
         _wait_for_wifi_device_ready()
 
+    print(f"DEBUG: stop_connection('{conn_name}') finished.")
     return found_any
 
 
@@ -289,37 +296,41 @@ def get_hotspot_SSID():
 #   90=SECONDARIES, 100=ACTIVATED, 110=DEACTIVATING, 120=FAILED
 def _wait_for_wifi_device_ready(timeout=10):
     # States where the device is idle enough to accept a new connection.
-    # We exclude FAILED (120) and DEACTIVATING (110) to ensure a clean slate.
     READY_STATES = (
         NetworkManager.NM_DEVICE_STATE_DISCONNECTED,  # 30
         NetworkManager.NM_DEVICE_STATE_UNKNOWN,        # 0
         NetworkManager.NM_DEVICE_STATE_UNMANAGED,      # 10
         NetworkManager.NM_DEVICE_STATE_UNAVAILABLE,    # 20
     )
+    print("DEBUG: _wait_for_wifi_device_ready() starting...")
     try:
-        for dev in NetworkManager.NetworkManager.GetDevices():
+        devices = [d for d in NetworkManager.NetworkManager.GetDevices()]
+        for dev in devices:
             if dev.DeviceType == NetworkManager.NM_DEVICE_TYPE_WIFI:
+                print(f"DEBUG: Monitoring WiFi device {dev.Interface} (Initial state: {dev.State})")
                 elapsed = 0
-                poll_interval = 0.25 # Poll every 250ms for responsiveness
+                poll_interval = 0.25
                 while dev.State not in READY_STATES and elapsed < timeout:
-                    # If stuck in FAILED (120), try a forced disconnect to move it to DISCONNECTED (30)
+                    # If stuck in FAILED (120), try a forced disconnect
                     if dev.State == 120:
                         try:
+                            print("DEBUG: Device in FAILED state, forcing disconnect...")
                             dev.Disconnect()
                         except:
                             pass
                     
-                    if int(elapsed * 4) % 4 == 0: # Print once per second to keep log clean
-                        print(f'Waiting for wlan0 to become ready (state={dev.State}, elapsed={elapsed:.1f}s)...')
+                    if int(elapsed * 4) % 4 == 0:
+                        print(f'Waiting for {dev.Interface} to become ready (state={dev.State}, elapsed={elapsed:.1f}s)...')
                     time.sleep(poll_interval)
                     elapsed += poll_interval
 
                 if elapsed > 0:
-                    time.sleep(0.5)  # reduced settle time from 2.0 to 0.5
-                print(f'wlan0 device state: {dev.State} (waited {elapsed:.1f}s)')
+                    time.sleep(0.5)
+                print(f'{dev.Interface} device state: {dev.State} (waited {elapsed:.1f}s)')
                 return
     except Exception as e:
         print(f'Error waiting for wifi device: {e}')
+    print("DEBUG: _wait_for_wifi_device_ready() finished.")
 
 
 #------------------------------------------------------------------------------

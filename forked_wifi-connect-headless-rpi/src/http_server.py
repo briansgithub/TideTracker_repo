@@ -358,52 +358,59 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                 # Run the connection test in the background so the HTTP response
                 # is delivered before the hotspot goes down.
                 def _run_wifi_test():
-                    print(f"\n[WiFi Test] Stopping hotspot and dnsmasq to test credentials for '{ssid}'...")
-                    dnsmasq.stop()
-                    netman.stop_hotspot()
+                    try:
+                        print(f"\n[WiFi Test] Starting test sequence for SSID '{ssid}'...")
+                        print(f"[WiFi Test] Stopping hotspot and dnsmasq...")
+                        dnsmasq.stop()
+                        netman.stop_hotspot()
 
-                    # Attempt to connect with the submitted credentials
-                    connected = netman.connect_to_AP(
-                        conn_type=conn_type, ssid=ssid,
-                        username=username, password=password
-                    )
+                        # Attempt to connect with the submitted credentials
+                        print(f"[WiFi Test] Attempting connection to '{ssid}'...")
+                        connected = netman.connect_to_AP(
+                            conn_type=conn_type, ssid=ssid,
+                            username=username, password=password
+                        )
 
-                    has_internet = False
-                    if connected:
-                        has_internet = netman.have_active_internet_connection()
-                        print(f"[WiFi Test] Connected. Has internet: {has_internet}")
-                        
-                        if has_internet:
-                            print(f"\033[92m[WiFi Test] Internet connection successful! Saving credentials and exiting.\033[0m")
-                            # Save credentials as the new last successful connection
-                            netman.save_last_successful_credentials(ssid, password, username, conn_type)
+                        has_internet = False
+                        if connected:
+                            print(f"[WiFi Test] Successfully connected to '{ssid}'. Checking for internet...")
+                            has_internet = netman.have_active_internet_connection()
+                            print(f"[WiFi Test] Internet check result: {has_internet}")
                             
-                            # Update the shared status dict before exiting
-                            pre_status.update({'ssid': ssid, 'has_internet': True, 'testing': False})
-                            # Force the entire process to exit so control returns to the terminal/boot script
-                            os._exit(0)
-                            
-                        # If we have no internet, tear down the test connection
-                        print(f"[WiFi Test] Connection successful but NO INTERNET. Tearing down...")
-                        netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
-                    else:
-                        print(f"[WiFi Test] Could not connect to '{ssid}'. Tearing down failing connection...")
-                        netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
-
-                    # Fallback to the most recently working credentials if the new ones failed
-                    print(f"[WiFi Test] Connection attempt failed. Falling back to last successful connection...")
-                    if netman.reconnect_to_last_wifi():
-                        if netman.have_active_internet_connection():
-                            print(f"\033[92m[WiFi Test] Fallback successful and has internet! Exiting.\033[0m")
-                            os._exit(0)
+                            if has_internet:
+                                print(f"\033[92m[WiFi Test] Connection verified with internet! Saving as last successful and exiting.\033[0m")
+                                netman.save_last_successful_credentials(ssid, password, username, conn_type)
+                                pre_status.update({'ssid': ssid, 'has_internet': True, 'testing': False})
+                                os._exit(0)
+                                
+                            print(f"[WiFi Test] Connected but NO INTERNET. Tearing down connection...")
+                            netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
                         else:
-                            print(f"[WiFi Test] Fallback connected but NO INTERNET.")
-                    else:
-                        print(f"[WiFi Test] Fallback reconnection failed.")
+                            print(f"[WiFi Test] Failed to connect to '{ssid}'. Tearing down failing connection...")
+                            netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
 
-                    # Restart the hotspot using the unified sequence
-                    launch_ap_sequence(self.ssids, self.pre_status)
-                    print(f"[WiFi Test] Done. Status: {pre_status}")
+                        # Fallback to the most recently working credentials
+                        print(f"[WiFi Test] Reverting to last known working WiFi...")
+                        if netman.reconnect_to_last_wifi():
+                            print(f"[WiFi Test] Fallback connection established. Checking for internet...")
+                            if netman.have_active_internet_connection():
+                                print(f"\033[92m[WiFi Test] Fallback successful with internet! Exiting.\033[0m")
+                                os._exit(0)
+                            else:
+                                print(f"[WiFi Test] Fallback connected but has NO INTERNET.")
+                        else:
+                            print(f"[WiFi Test] Fallback reconnection failed (no saved creds or connection failed).")
+
+                        # Restart the hotspot using the unified sequence
+                        print(f"[WiFi Test] Restarting Hotspot for user input...")
+                        launch_ap_sequence(self.ssids, self.pre_status)
+                        print(f"[WiFi Test] Hotspot is back up. Sequence complete.")
+                    except Exception as e:
+                        print(f"[WiFi Test] CRITICAL ERROR in test thread: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        # Ensure hotspot is back up if something crashed
+                        launch_ap_sequence(self.ssids, self.pre_status)
 
                 threading.Thread(target=_run_wifi_test, daemon=True).start()
                 return
