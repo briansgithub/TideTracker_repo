@@ -42,28 +42,23 @@ IS_RPI = is_raspberry_pi()
 font_name_bold = "Ubuntu-Bold.ttf"
 font_name_regular = "Ubuntu-Regular.ttf"
 
-if IS_RPI:
-    libdir = '/home/pi/TideTracker_repo/e-ink_lib'
-    maindir = '/home/pi/TideTracker_repo'
-    if os.path.exists(libdir):
-        sys.path.append(libdir)
+import tt_utils
 
+# Use tt_utils for base paths and RPi detection
+IS_RPI = tt_utils.IS_RPI
+maindir = str(tt_utils.ROOT_DIR)
+libdir = os.path.join(maindir, 'e-ink_lib')
+
+if os.path.exists(libdir):
+    sys.path.append(libdir)
+
+if IS_RPI:
     from waveshare_epd import epd7in5_V2
 
-    font18 = ImageFont.truetype(f'/home/pi/TideTracker_repo/{font_name_bold}', 18)
-    font14 = ImageFont.truetype(f'/home/pi/TideTracker_repo/{font_name_regular}', 14)
-    sun_rise_icon_path = '/home/pi/TideTracker_repo/sun_rise.png'
-    sun_set_icon_path = '/home/pi/TideTracker_repo/sun_set.png'
-
-else:
-    libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'e-ink_lib')
-    maindir = os.path.dirname(os.path.realpath(__file__))
-    if os.path.exists(libdir):
-        sys.path.append(libdir)
-    font18 = ImageFont.truetype(os.path.join(maindir, font_name_bold), 18)
-    font14 = ImageFont.truetype(os.path.join(maindir, font_name_regular), 14)
-    sun_rise_icon_path = os.path.join(maindir, "sun_rise.png")
-    sun_set_icon_path = os.path.join(maindir, "sun_set.png")
+font18 = ImageFont.truetype(os.path.join(maindir, font_name_bold), 18)
+font14 = ImageFont.truetype(os.path.join(maindir, font_name_regular), 14)
+sun_rise_icon_path = os.path.join(maindir, "sun_rise.png")
+sun_set_icon_path = os.path.join(maindir, "sun_set.png")
     
 
 DISPLAY_PLOT = True
@@ -220,7 +215,7 @@ def closest_datetime_value(array, target):
 
     return closest
 
-def plot_data(data, now_dtz):
+def plot_data(data, now_dtz, city, state, zone, today_sunrise, today_sunset, yesterday_sunset, tomorrow_sunrise):
     print_debug("Plotting data...")
 
     # Extract time and value data. strptime converts string to datetime
@@ -503,28 +498,13 @@ def plot_data(data, now_dtz):
     return
 
 
-def extract_number_from_string(input_string):
-    match = re.match(r'^(\d+)', input_string)
-
-    if match:
-        return int(match.group(1))
-    else:
-        return 8725520
-
-
-if __name__ == "__main__":
-    print_debug("Reading JSON data from file...")
-
-    json_file_path = os.path.join(maindir, 'tidetracker_persistent_data.json')
-
-    # Read the JSON data from the file
-    with open(json_file_path, 'r') as file:
-        data = json.load(file)
+def run_plot():
+    global IS_NAVESINK
+    print_debug("Reading configuration...")
+    data = tt_utils.load_config()
 
     station_string = data.get('station_id')
-
-    station_id = extract_number_from_string(station_string)
-
+    station_id = tt_utils.extract_number_from_string(station_string)
     station_id = str(station_id)
 
     if(station_id == "8531833"):
@@ -532,7 +512,16 @@ if __name__ == "__main__":
 
     print_debug(f"Getting station information for ID: {station_id}...")
 
-    city, state, lat, long = get_station_info(station_id)
+    station_info = tt_utils.get_station_info(station_id)
+    if not station_info:
+        print_debug(f"Error: Station {station_id} not found in CSV.")
+        return
+
+    city = station_info["City"]
+    state = station_info["State"]
+    lat = float(station_info["decimal_latitude"])
+    long = float(station_info["decimal_longitude"])
+    
     zone = get_timezone(station_id)
 
     now_dtz = dt.datetime.now(zone)  # _dtz := date, time, zone
@@ -540,69 +529,44 @@ if __name__ == "__main__":
     yesterday_d = today_d - dt.timedelta(days=1)
     tomorrow_d = today_d + dt.timedelta(days=1)
 
-    yesterday_sunrise, yesterday_sunset = get_sunrise_sunset(lat, long, yesterday_d, zone)
-    today_sunrise, today_sunset = get_sunrise_sunset(lat, long, today_d, zone)
-    tomorrow_sunrise, tomorrow_sunset = get_sunrise_sunset(lat, long, tomorrow_d, zone)
+    # Calculate sunrise/sunset
+    def fix_sun_times(lat, long, date, zone):
+        sr, ss = get_sunrise_sunset(lat, long, date, zone)
+        sr = sr.replace(year=date.year, month=date.month, day=date.day)
+        ss = ss.replace(year=date.year, month=date.month, day=date.day)
+        return sr, ss
 
-    # THIS IS A STOPGAP PATCH BECAUSE I CAN'T FIGURE OUT WHAT MY BUG IS WITH SUNRISE AND SUNSET!
-    # BUT I'M OUT OF TIME! So maybe I'll fix this later.
-
-    yesterday_sunrise, yesterday_sunset = get_sunrise_sunset(lat, long, yesterday_d, zone)
-    yesterday_sunrise = yesterday_sunrise.replace(year=yesterday_d.year, month=yesterday_d.month, day=yesterday_d.day)
-    yesterday_sunset = yesterday_sunset.replace(year=yesterday_d.year, month=yesterday_d.month, day=yesterday_d.day)
-
-    today_sunrise, today_sunset = get_sunrise_sunset(lat, long, today_d, zone)
-    today_sunrise = today_sunrise.replace(year=today_d.year, month=today_d.month, day=today_d.day)
-    today_sunset = today_sunset.replace(year=today_d.year, month=today_d.month, day=today_d.day)
-
-    tomorrow_sunrise, tomorrow_sunset = get_sunrise_sunset(lat, long, tomorrow_d, zone)
-    tomorrow_sunrise = tomorrow_sunrise.replace(year=tomorrow_d.year, month=tomorrow_d.month, day=tomorrow_d.day)
-    tomorrow_sunset = tomorrow_sunset.replace(year=tomorrow_d.year, month=tomorrow_d.month, day=tomorrow_d.day)
-
-    # Good enough
+    yesterday_sunrise, yesterday_sunset = fix_sun_times(lat, long, yesterday_d, zone)
+    today_sunrise, today_sunset = fix_sun_times(lat, long, today_d, zone)
+    tomorrow_sunrise, tomorrow_sunset = fix_sun_times(lat, long, tomorrow_d, zone)
 
     print_debug("Fetching NOAA data...")
-
     data_json = fetch_NOAA_data(station_id, yesterday_d)
 
+    if not data_json:
+        print_debug("Failed to fetch NOAA data.")
+        return
+
     print_debug("Plotting data...")
-
-    plot_data(data_json, now_dtz)
-
-    ### PUT THE SUNRISE + SUNSET HERE 
-    
+    plot_data(data_json, now_dtz, city, state, zone, today_sunrise, today_sunset, yesterday_sunset, tomorrow_sunrise)
 
     if IS_RPI:
         try:
             print_debug("Initializing e-ink display...")
-
             epd = epd7in5_V2.EPD()
             epd.init()
 
             print_debug("Displaying the .bmp on the e-ink display...")
-
             plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
             plot_image = plot_image.transpose(Image.ROTATE_180)
             epd.display(epd.getbuffer(plot_image))
-            #time.sleep(2)
-
-            ### # Initialize a canvas. Open a file and display it on the canvas. 
-            ### logging.info("4. Create composite images")
-            ### Himage2 = Image.new('1', (epd.width, epd.height), 255)  # 255: clear the frame
-            ### bmp = Image.open(os.path.join(picdir, '100x100.bmp'))
-            ### Himage2.paste(bmp, (50,10))
-            ### epd.display(epd.getbuffer(Himage2))
-            ### time.sleep(2)
-
 
             print_debug("Going to sleep...")
-
             epd.sleep()
-
         except IOError as e:
             print(f"IOError: {e}")
+        except Exception as e:
+            print(f"Error updating display: {e}")
 
-        except KeyboardInterrupt:
-            print("ctrl + c:")
-            epd7in5_V2.epdconfig.module_exit()
-            exit()
+if __name__ == "__main__":
+    run_plot()

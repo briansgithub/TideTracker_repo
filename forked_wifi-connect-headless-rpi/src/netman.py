@@ -6,6 +6,7 @@
 
 import NetworkManager
 import uuid, os, sys, time, socket, json, threading
+import tt_utils
 
 # This is needed to work with NetworkManager 1.30.6 and python-networkmanager 2.2      
 from dbus.mainloop.glib import DBusGMainLoop
@@ -28,54 +29,34 @@ def dprint(*args, **kwargs):
 HOTSPOT_CONNECTION_NAME = 'hotspot'
 GENERIC_CONNECTION_NAME = 'python-wifi-connect'
 
-
-#------------------------------------------------------------------------------
-# Persistent data path for saved WiFi credentials.
-PERSISTENT_DATA_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
-    'tidetracker_persistent_data.json'
-)
+# Persistent data path from shared utils
+PERSISTENT_DATA_PATH = str(tt_utils.PERSISTENT_DATA_PATH)
 
 
 #------------------------------------------------------------------------------
 # Save the successful credentials to a persistent file.
 def save_last_successful_credentials(ssid, password=None, username=None, conn_type=None):
-    data = {}
-    if os.path.exists(PERSISTENT_DATA_PATH):
-        try:
-            with open(PERSISTENT_DATA_PATH, 'r') as f:
-                data = json.load(f)
-        except Exception:
-            pass
-    
-    data['wifi_ssid'] = ssid
-    data['wifi_password'] = password
-    data['wifi_username'] = username
-    data['wifi_conn_type'] = conn_type
-    
-    try:
-        with open(PERSISTENT_DATA_PATH, 'w') as f:
-            json.dump(data, f)
+    data = {
+        'wifi_ssid': ssid,
+        'wifi_password': password,
+        'wifi_username': username,
+        'wifi_conn_type': conn_type
+    }
+    if tt_utils.save_config(data):
         print(f'Saved successful WiFi credentials for "{ssid}" to {PERSISTENT_DATA_PATH}')
-    except Exception as e:
-        print(f'Error saving credentials: {e}')
 
 
 #------------------------------------------------------------------------------
 # Load the last successful credentials from the persistent file.
 def load_last_successful_credentials():
-    if os.path.exists(PERSISTENT_DATA_PATH):
-        try:
-            with open(PERSISTENT_DATA_PATH, 'r') as f:
-                data = json.load(f)
-            return {
-                'ssid': data.get('wifi_ssid'),
-                'password': data.get('wifi_password'),
-                'username': data.get('wifi_username'),
-                'conn_type': data.get('wifi_conn_type')
-            }
-        except Exception:
-            pass
+    data = tt_utils.load_config()
+    if data:
+        return {
+            'ssid': data.get('wifi_ssid'),
+            'password': data.get('wifi_password'),
+            'username': data.get('wifi_username'),
+            'conn_type': data.get('wifi_conn_type')
+        }
     return None
 
 
