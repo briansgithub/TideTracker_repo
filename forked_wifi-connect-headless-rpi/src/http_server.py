@@ -371,21 +371,21 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                         has_internet = netman.have_active_internet_connection()
                         print(f"[WiFi Test] Connected. Has internet: {has_internet}")
                         
-                        # Only update and save credentials if the connection was successful
-                        existing_data['wifi_ssid'] = ssid
-                        existing_data['wifi_password'] = password
-                        existing_data['wifi_username'] = username
-                        existing_data['wifi_conn_type'] = conn_type
-                        
-                        try:
-                            with open(persistent_data_path, 'w') as json_file:
-                                json.dump(existing_data, json_file)
-                            print(f"DEBUG: WiFi credentials for '{ssid}' saved successfully to {persistent_data_path}")
-                        except Exception as e:
-                            print(f'DEBUG: Error saving WiFi credentials: {e}')
-
                         if has_internet:
                             print(f"\033[92m[WiFi Test] Internet connection successful! Keeping connection active and NOT restarting hotspot.\033[0m")
+                            # Only update and save credentials if the connection was successful
+                            existing_data['wifi_ssid'] = ssid
+                            existing_data['wifi_password'] = password
+                            existing_data['wifi_username'] = username
+                            existing_data['wifi_conn_type'] = conn_type
+                            
+                            try:
+                                with open(persistent_data_path, 'w') as json_file:
+                                    json.dump(existing_data, json_file)
+                                print(f"DEBUG: WiFi credentials for '{ssid}' saved successfully to {persistent_data_path}")
+                            except Exception as e:
+                                print(f'DEBUG: Error saving WiFi credentials: {e}')
+
                             # Update the shared status dict before returning
                             pre_status.update({'ssid': ssid, 'has_internet': True, 'testing': False})
                             # Force the entire process to exit so control returns to the terminal/boot script
@@ -397,6 +397,25 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                     else:
                         print(f"[WiFi Test] Could not connect to '{ssid}'. Tearing down failing connection...")
                         netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
+
+                    # Fallback to the most recently working credentials if they exist
+                    fallback_ssid = existing_data.get('wifi_ssid')
+                    if fallback_ssid:
+                        print(f"[WiFi Test] Attempting fallback to previously working WiFi '{fallback_ssid}'...")
+                        fallback_password = existing_data.get('wifi_password')
+                        fallback_username = existing_data.get('wifi_username')
+                        fallback_conn_type = existing_data.get('wifi_conn_type', netman.CONN_TYPE_SEC_NONE)
+                        
+                        fallback_connected = netman.connect_to_AP(
+                            conn_type=fallback_conn_type, ssid=fallback_ssid,
+                            username=fallback_username, password=fallback_password
+                        )
+                        if fallback_connected and netman.have_active_internet_connection():
+                            print(f"[WiFi Test] Fallback successful! Exiting setup.")
+                            os._exit(0)
+                        else:
+                            print(f"[WiFi Test] Fallback failed. Tearing down...")
+                            netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
 
                     # Restart the hotspot using the unified sequence
                     launch_ap_sequence(self.ssids, self.pre_status)
