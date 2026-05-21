@@ -46,11 +46,15 @@ logging.basicConfig(
     stream=sys.stdout
 )
 
-# Root check: Port 80, dnsmasq, and GPIO require root privileges
+# --- Automatic Root Escalation ---
 if os.geteuid() != 0:
-    logging.error("This script must be run as root (use sudo).")
-    print("\n[ERROR] This script must be run as root. Please use: sudo python3 0_boot_sense.py\n")
-    sys.exit(1)
+    logging.info("Script not running as root. Attempting to escalate via sudo...")
+    try:
+        # Re-run the script with sudo, passing along all original arguments
+        os.execvp("sudo", ["sudo", "python3"] + sys.argv)
+    except Exception as e:
+        logging.error(f"Failed to escalate privileges: {e}")
+        sys.exit(1)
 
 logging.info('========== TideTracker Boot Sequence Starting ==========')
 
