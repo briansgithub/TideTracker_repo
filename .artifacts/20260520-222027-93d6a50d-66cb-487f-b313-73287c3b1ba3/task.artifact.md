@@ -1,0 +1,21 @@
+# Task Management
+
+- [/] Phase 1: Research and Planning
+    - [x] Initial codebase audit
+    - [x] Create Implementation Plan
+    - [ ] Get user approval for restructuring
+- [ ] Phase 2: Structural Refactoring
+    - [ ] Create new directory hierarchy
+    - [ ] Consolidate WiFi library assets
+    - [ ] Migrate shared utilities to `app.utils`
+- [ ] Phase 3: Code Refactoring
+    - [ ] Refactor Network logic to `app.network`
+    - [ ] Refactor Plotting logic to `app.display`
+    - [ ] Refactor Core Orchestrator to `app.core`
+- [ ] Phase 4: Integration and Cleanup
+    - [ ] Update imports across all files
+    - [ ] Create `main.py` entry point
+    - [ ] Delete legacy files and bloated directories
+- [ ] Phase 5: Verification
+    - [ ] Verify root escalation
+    - [ ] Verify end-to-end functionality (mocking hardware where needed)
