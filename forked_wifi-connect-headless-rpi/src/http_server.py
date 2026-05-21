@@ -31,8 +31,13 @@ def cleanup():
     print("Cleaning up prior to exit.")
     dnsmasq.stop()
     netman.stop_hotspot()
-    # Attempt to restore client wifi before exiting
-    netman.reconnect_to_last_wifi()
+    
+    # Optimization: Only attempt to restore client wifi if we don't have internet
+    if not netman.have_active_internet_connection():
+        print("No active internet connection. Attempting to restore client WiFi...")
+        netman.reconnect_to_last_wifi()
+    else:
+        print("Internet connection active. Skipping WiFi restoration.")
 
 
 #------------------------------------------------------------------------------

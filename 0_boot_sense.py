@@ -126,11 +126,11 @@ try:
         logging.info('RUN mode: cleaning up hotspot before internet check')
         http_server.cleanup()
 
-        # Give the WiFi hardware time to reconnect to the router after hotspot cleanup
-        logging.info('Waiting 5s for WiFi to settle...')
-        time.sleep(5)
+        # Give the WiFi hardware time to settle and reconnect to the router
+        logging.info('Waiting 10s for WiFi to settle...')
+        time.sleep(10)
         
-        if netman.have_active_internet_connection():
+        if netman.have_active_internet_connection(timeout=5, retries=3):
             logging.info(f'RUN mode: internet available, running tides script')
             print(f"--------- \nRunning the tides script located at:\n\t{plot_tides_script_path} ---------")
             exit_code = subprocess.run(['sudo', 'python3', plot_tides_script_path], check=True)
