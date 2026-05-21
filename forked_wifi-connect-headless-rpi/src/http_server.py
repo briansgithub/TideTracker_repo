@@ -356,14 +356,6 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                 # Run the connection test in the background so the HTTP response
                 # is delivered before the hotspot goes down.
                 def _run_wifi_test():
-                    def wait_for_internet(retries=4, delay=2):
-                        for i in range(retries):
-                            if netman.have_active_internet_connection():
-                                return True
-                            if i < retries - 1:
-                                time.sleep(delay)
-                        return False
-
                     print(f"\n[WiFi Test] Stopping hotspot and dnsmasq to test credentials for '{ssid}'...")
                     dnsmasq.stop()
                     netman.stop_hotspot()
@@ -376,7 +368,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
 
                     has_internet = False
                     if connected:
-                        has_internet = wait_for_internet()
+                        has_internet = netman.have_active_internet_connection()
                         print(f"[WiFi Test] Connected. Has internet: {has_internet}")
                         
                         if has_internet:
@@ -405,25 +397,6 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                     else:
                         print(f"[WiFi Test] Could not connect to '{ssid}'. Tearing down failing connection...")
                         netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
-
-                    # Fallback to the most recently working credentials if they exist
-                    fallback_ssid = existing_data.get('wifi_ssid')
-                    if fallback_ssid:
-                        print(f"[WiFi Test] Attempting fallback to previously working WiFi '{fallback_ssid}'...")
-                        fallback_password = existing_data.get('wifi_password')
-                        fallback_username = existing_data.get('wifi_username')
-                        fallback_conn_type = existing_data.get('wifi_conn_type', netman.CONN_TYPE_SEC_NONE)
-                        
-                        fallback_connected = netman.connect_to_AP(
-                            conn_type=fallback_conn_type, ssid=fallback_ssid,
-                            username=fallback_username, password=fallback_password
-                        )
-                        if fallback_connected and wait_for_internet():
-                            print(f"[WiFi Test] Fallback successful! Exiting setup.")
-                            os._exit(0)
-                        else:
-                            print(f"[WiFi Test] Fallback failed. Tearing down...")
-                            netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
 
                     # Restart the hotspot using the unified sequence
                     launch_ap_sequence(self.ssids, self.pre_status)
