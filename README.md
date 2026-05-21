@@ -1,23 +1,42 @@
-# TideTracker Project
+# TideTracker
 
-## Technical Implementation: Threading and Synchronization
+A professional, modular Raspberry Pi Zero W application for tracking tides with an e-ink display. Optimized for low-power operation and rapid boot cycles.
 
-### Why Threads are Used
-This project uses the `threading` module to manage the transition between Access Point (AP) mode and Station (client) mode during WiFi configuration.
+## 🏗 Project Architecture
 
-WiFi management is a **blocking and destructive** process. When a user submits new credentials via the web UI:
-1. **Asynchronous Response**: The HTTP server must send a "TESTING" response to the browser immediately so the user sees a confirmation.
-2. **Avoiding Connection Cutoff**: If this were done synchronously, the server would call `stop_hotspot()` before sending the response, instantly killing the connection and leaving the user with a browser network error.
-3. **Background Processing**: By spawning a **background thread**, the server can respond to the user first, then proceed to tear down the hotspot and test the new credentials.
+The project is structured as a modular Python package for maximum efficiency and maintainability:
 
-### The NM_LOCK (Thread Safety)
-Because the HTTP server remains active (listening for status polls from the browser) while the background thread interacts with the WiFi hardware, there is a risk of deadlocks or race conditions within the NetworkManager DBus interface.
+- **`main.py`**: The primary entry point. Handles automatic root escalation and lazy loading of heavy modules.
+- **`app/`**: Core application logic.
+  - **`core.py`**: Orchestrates the boot sequence, mode detection (RUN vs SETUP), and power management.
+  - **`display/`**: Tide plotting and e-ink driver wrappers.
+  - **`network/`**: WiFi manager and captive portal for headless configuration.
+  - **`utils/`**: Centralized configuration, pathing, and station data handling.
+- **`data/`**: Persistent storage for station IDs and WiFi credentials.
+- **`ui/`**: Web assets for the WiFi configuration portal.
+- **`resources/`**: Fonts and images.
+- **`scratch/`**: Deprecated scripts and test utilities.
 
-The `NM_LOCK` in `netman.py` ensures that only one thread can communicate with NetworkManager at a time. This synchronizes:
-* **Background tests**: Connecting, deactivating, and falling back.
-* **UI Status updates**: Periodic scanning and connection status checks.
+## ⚡ Technical Implementation
 
-### Persistent Fallback and Resilience
-To ensure the device remains accessible even after failed configuration attempts:
-* **Auto-Capture**: On startup, the script attempts to capture and save the current working WiFi connection as a persistent fallback point in `tidetracker_persistent_data.json`.
-* **Automatic Reversion**: If a new connection attempt fails (due to incorrect credentials or lack of internet), the background thread automatically attempts to restore the previous working connection before deciding to relaunch the hotspot.
+### Power & Timing (The 2-Minute Window)
+To maximize battery life, the Pi boots every ~2 hours and must complete its task within a **2-minute window** before being hard-powered off by a TPL5110 timer.
+- **Lazy Loading**: Heavy libraries like `matplotlib` and `numpy` are only imported when actually plotting, allowing the WiFi setup mode to launch instantly.
+- **TPL5110 Integration**: The script pulses the `DONE` pin as its highest priority in the final cleanup phase to signal a successful cycle.
+
+### Threading & Synchronization
+The project uses the `threading` module to allow the web server to respond to users *before* tearing down the WiFi hotspot to test new credentials. A global `NM_LOCK` prevents deadlocks when multiple modules interact with NetworkManager simultaneously.
+
+### Persistence & Fallback
+WiFi credentials and station IDs are stored in `data/persistence.json`. On startup, the system automatically "primes" its fallback by remembering the current working connection, ensuring it can always revert if new credentials fail.
+
+## 🛠 Setup & Utilities
+
+- **`sh_setup.sh`**: The master installer. Configures the Pi for high-speed booting, installs all dependencies, and sets up the Cron job.
+- **`a.sh`**: A quick utility script for developers to pull updates, fix permissions, and run the project manually.
+
+## 🚀 Getting Started
+
+1. Clone the repo to `/home/pi/TideTracker_repo`.
+2. Run `sudo bash sh_setup.sh`.
+3. The Pi will reboot and either plot tides (RUN mode) or launch the `Rpi-hostname` hotspot (SETUP mode) depending on the hardware pin state.
