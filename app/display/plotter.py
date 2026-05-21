@@ -12,6 +12,7 @@ import matplotlib.dates as mdates
 from matplotlib.ticker import FuncFormatter
 from scipy.signal import find_peaks
 from scipy.interpolate import CubicSpline
+import time
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 
@@ -230,6 +231,8 @@ def run_plot():
             epd.init()
             plot_img = Image.open(paths.RESOURCES_DIR / 'plot_image.bmp').transpose(Image.ROTATE_180)
             epd.display(epd.getbuffer(plot_img))
+            logging.info("Hardware refresh triggered, waiting 15s for completion...")
+            time.sleep(15)  # Physical refresh safety delay
             epd.sleep()
         except Exception as e:
             logging.error(f"E-ink Display Error: {e}")
