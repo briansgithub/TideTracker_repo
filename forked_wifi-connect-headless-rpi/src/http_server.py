@@ -392,7 +392,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                         # Fallback to the most recently working credentials
                         print(f"[WiFi Test] Reverting to last known working WiFi...")
                         creds = netman.load_last_successful_credentials()
-                        if creds:
+                        if creds and creds.get('ssid'):
                             print(f"[WiFi Test] Found saved fallback credentials for SSID: '{creds.get('ssid')}'")
                             if netman.reconnect_to_last_wifi():
                                 print(f"[WiFi Test] Fallback connection established. Checking for internet...")
@@ -400,11 +400,12 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                                     print(f"\033[92m[WiFi Test] Fallback successful with internet! Exiting.\033[0m")
                                     os._exit(0)
                                 else:
-                                    print(f"[WiFi Test] Fallback connected but has NO INTERNET.")
+                                    print(f"[WiFi Test] Fallback connected but has NO INTERNET. Tearing down...")
+                                    netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
                             else:
                                 print(f"[WiFi Test] Fallback reconnection attempt failed.")
                         else:
-                            print(f"[WiFi Test] No saved fallback credentials found in JSON.")
+                            print(f"[WiFi Test] No valid fallback credentials found in JSON.")
 
                         # Restart the hotspot using the unified sequence
                         print(f"[WiFi Test] Restarting Hotspot for user input...")
@@ -431,6 +432,10 @@ def main(address, port, ui_path, rcode, delete_connections, force_setup):
     # previous run.  This is the direct fix for "Address already in use" errors.
     kill_previous_setup_processes(port)
 
+    # Before we tear anything down or delete anything, try to capture the 
+    # currently working connection as our persistent fallback.
+    netman.capture_and_save_current_connection()
+
     # See if caller wants to delete all existing connections first
     if delete_connections:
         netman.delete_all_wifi_connections()
@@ -443,10 +448,6 @@ def main(address, port, ui_path, rcode, delete_connections, force_setup):
     # Shared mutable containers for the request handler
     ssids = []
     pre_status = {}
-
-    # Before we tear anything down, try to capture the current working connection
-    # as our fallback.
-    netman.capture_and_save_current_connection()
 
     # Launch the hotspot for the first time using the unified sequence
     if not launch_ap_sequence(ssids, pre_status):

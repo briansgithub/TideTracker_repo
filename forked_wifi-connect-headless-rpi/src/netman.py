@@ -107,6 +107,12 @@ def capture_and_save_current_connection():
                     ssid = wifi_settings.get('ssid')
                     if not ssid:
                         continue
+                    
+                    # Convert byte array/list to string if necessary
+                    if isinstance(ssid, (bytes, bytearray)):
+                        ssid = ssid.decode('utf-8', errors='replace')
+                    elif isinstance(ssid, list):
+                        ssid = "".join(map(chr, ssid))
                         
                     # We have an active WiFi client connection. Try to get the secrets.
                     # Note: GetSecrets might fail if the user doesn't have permissions,
