@@ -151,6 +151,7 @@ echo -e "\n##### SETUP: RUN SCRIPT ON BOOT - WRITE TO THE CRON TAB FILE #####\n"
 
 # Add cron job to the root crontab (ensures it runs with sudo/root permissions)
 # Redirecting to /dev/null to avoid system mail filling up the SD card.
+##### This command may not work from this script and may need to be run manually!
 (sudo crontab -l 2>/dev/null; echo "@reboot sleep 75 && /home/pi/TideTracker_repo/script_to_run_on_boot.sh > /dev/null 2>&1") | sort -u | sudo crontab -
 sudo service cron restart
 
