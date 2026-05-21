@@ -73,8 +73,6 @@ if os.path.exists(wifi_libdir):
     sys.path.append(wifi_libdir)
 
 import netman
-import http_server
-
 
 # Define the GPIO pin you want to monitor
 run_mode_pin = 16  # Replace with your GPIO pin number
@@ -104,9 +102,8 @@ try:
     logging.info(f'GPIO Pin BCM# {run_mode_pin} is {pin_state} ({"SETUP" if pin_state == GPIO.HIGH else "RUN"} mode)')
     print(f"\n\nGPIO Pin BCM# {run_mode_pin} is {pin_state}\n")
     if pin_state == GPIO.HIGH:
+        import http_server
         # User wants cleanup right before the setup script (although http_server.py does it too)
-        logging.info('SETUP mode: cleaning up hotspot before launching script')
-        http_server.cleanup()
         
         # sleep time removed. Cron job set to start 50s after boot
         logging.info(f'SETUP mode: launching wifi setup script: {auto_run_wifi_script_path}')
@@ -122,6 +119,7 @@ try:
             raise subprocess.CalledProcessError(result.returncode, result.args)
         logging.info(f'SETUP mode: wifi setup script exited with code {result.returncode}')
     else:
+        import http_server
         # User wants cleanup right before the run script to clear any stale hotspot from a crash
         logging.info('RUN mode: cleaning up hotspot before internet check')
         http_server.cleanup()
