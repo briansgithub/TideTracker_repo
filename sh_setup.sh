@@ -164,8 +164,7 @@ echo -e "\n##### SETUP RUN RPI HEADLESS WIFI SCRIPT #####\n"
 sudo /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/rpi_headless_wifi_install.sh
 ### The wifi portal run.sh code must be performed after a reboot!
 ### sudo /home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/scripts/run.sh
-echo -e "\n##### END SETUP: RUN RPI HEADLESS WIFI SCRIPT #####\n" 
-
+echo -e "\n##### END SETUP: RUN RPI HEADLESS WIFI SCRIPT #####\n"
 sudo pip3 install psutil
 # for getting time-since-bootup and for writing python scripts to debug the cron job
 sudo pip3 install json
