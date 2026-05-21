@@ -15,6 +15,16 @@ DBusGMainLoop(set_as_default = True)
 # This prevents deadlocks when background tests and UI status updates collide.
 NM_LOCK = threading.Lock()
 
+# Global Debug Flag - Set to True to see detailed NetworkManager chatter
+DEBUG_MODE = False
+
+def dprint(*args, **kwargs):
+    if DEBUG_MODE:
+        # Force flush for real-time debugging if not specified
+        if 'flush' not in kwargs:
+            kwargs['flush'] = True
+        print(*args, **kwargs)
+
 HOTSPOT_CONNECTION_NAME = 'hotspot'
 GENERIC_CONNECTION_NAME = 'python-wifi-connect'
 
@@ -227,7 +237,7 @@ def stop_hotspot():
 # Deactivates any active instance first, then deletes ALL matching profiles.
 def stop_connection(conn_name=GENERIC_CONNECTION_NAME):
     found_any = False
-    print(f"DEBUG: stop_connection('{conn_name}') starting...", flush=True)
+    dprint(f"DEBUG: stop_connection('{conn_name}') starting...")
 
     with NM_LOCK:
         # 1. Deactivate any active connection with this name
@@ -264,10 +274,10 @@ def stop_connection(conn_name=GENERIC_CONNECTION_NAME):
 
     # 3. Wait for wifi device to reach a ready state
     if found_any:
-        print(f"DEBUG: stop_connection('{conn_name}') waiting for device ready...", flush=True)
+        dprint(f"DEBUG: stop_connection('{conn_name}') waiting for device ready...")
         _wait_for_wifi_device_ready()
 
-    print(f"DEBUG: stop_connection('{conn_name}') finished.", flush=True)
+    dprint(f"DEBUG: stop_connection('{conn_name}') finished.")
     return found_any
 
 
@@ -275,7 +285,7 @@ def stop_connection(conn_name=GENERIC_CONNECTION_NAME):
 # Return a list of available SSIDs and their security type, 
 # or [] for none available or error.
 def get_list_of_access_points():
-    print(f'DEBUG: Entering get_list_of_access_points()', flush=True)
+    dprint(f'DEBUG: Entering get_list_of_access_points()')
     # bit flags we use when decoding what we get back from NetMan for each AP
     NM_SECURITY_NONE       = 0x0
     NM_SECURITY_WEP        = 0x1
@@ -291,12 +301,12 @@ def get_list_of_access_points():
         with NM_LOCK:
             devices = list(NetworkManager.NetworkManager.GetDevices())
             for dev in devices:
-                print(f'DEBUG: Checking device: {dev.Interface} (Type: {dev.DeviceType})', flush=True)
+                dprint(f'DEBUG: Checking device: {dev.Interface} (Type: {dev.DeviceType})')
                 if dev.DeviceType != NetworkManager.NM_DEVICE_TYPE_WIFI:
                     continue
                 
                 aps = dev.GetAccessPoints()
-                print(f'DEBUG: Found {len(aps)} access points on {dev.Interface}', flush=True)
+                dprint(f'DEBUG: Found {len(aps)} access points on {dev.Interface}')
                 for ap in aps:
 
                     # Get Flags, WpaFlags and RsnFlags
@@ -335,7 +345,7 @@ def get_list_of_access_points():
                         security_str = 'ENTERPRISE'
 
                     entry = {"ssid": ap.Ssid, "security": security_str}
-                    print(f'DEBUG: AP Found - SSID: "{ap.Ssid}", Security: {security_str}', flush=True)
+                    dprint(f'DEBUG: AP Found - SSID: "{ap.Ssid}", Security: {security_str}')
 
                     if ssids.__contains__(entry):
                         continue
@@ -350,7 +360,7 @@ def get_list_of_access_points():
     # always add a hidden place holder
     ssids.append({"ssid": "Enter a hidden WiFi name", "security": "HIDDEN"})
 
-    print(f'DEBUG: Returning available SSIDs: {ssids}', flush=True)
+    dprint(f'DEBUG: Returning available SSIDs: {ssids}')
     return ssids
 
 
@@ -373,38 +383,38 @@ def _wait_for_wifi_device_ready(timeout=10):
         NetworkManager.NM_DEVICE_STATE_UNMANAGED,      # 10
         NetworkManager.NM_DEVICE_STATE_UNAVAILABLE,    # 20
     )
-    print("DEBUG: _wait_for_wifi_device_ready() starting...", flush=True)
+    dprint("DEBUG: _wait_for_wifi_device_ready() starting...")
     try:
         with NM_LOCK:
             devices = list(NetworkManager.NetworkManager.GetDevices())
             
         for dev in devices:
             if dev.DeviceType == NetworkManager.NM_DEVICE_TYPE_WIFI:
-                print(f"DEBUG: Monitoring WiFi device {dev.Interface} (Initial state: {dev.State})", flush=True)
+                dprint(f"DEBUG: Monitoring WiFi device {dev.Interface} (Initial state: {dev.State})")
                 elapsed = 0
                 poll_interval = 0.25
                 while dev.State not in READY_STATES and elapsed < timeout:
                     # If stuck in FAILED (120), try a forced disconnect
                     if dev.State == 120:
                         try:
-                            print("DEBUG: Device in FAILED state, forcing disconnect...", flush=True)
+                            dprint("DEBUG: Device in FAILED state, forcing disconnect...")
                             with NM_LOCK:
                                 dev.Disconnect()
                         except:
                             pass
                     
                     if int(elapsed * 4) % 4 == 0:
-                        print(f'Waiting for {dev.Interface} to become ready (state={dev.State}, elapsed={elapsed:.1f}s)...', flush=True)
+                        dprint(f'Waiting for {dev.Interface} to become ready (state={dev.State}, elapsed={elapsed:.1f}s)...')
                     time.sleep(poll_interval)
                     elapsed += poll_interval
 
                 if elapsed > 0:
                     time.sleep(0.5)
-                print(f'{dev.Interface} device state: {dev.State} (waited {elapsed:.1f}s)', flush=True)
+                dprint(f'{dev.Interface} device state: {dev.State} (waited {elapsed:.1f}s)')
                 return
     except Exception as e:
         print(f'Error waiting for wifi device: {e}', flush=True)
-    print("DEBUG: _wait_for_wifi_device_ready() finished.", flush=True)
+    dprint("DEBUG: _wait_for_wifi_device_ready() finished.")
 
 
 #------------------------------------------------------------------------------
