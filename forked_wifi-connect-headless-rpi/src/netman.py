@@ -5,7 +5,7 @@
 # over (the module documentation is scant).
 
 import NetworkManager
-import uuid, os, sys, time, socket
+import uuid, os, sys, time, socket, json
 
 # This is needed to work with NetworkManager 1.30.6 and python-networkmanager 2.2      
 from dbus.mainloop.glib import DBusGMainLoop
@@ -13,6 +13,73 @@ DBusGMainLoop(set_as_default = True)
 
 HOTSPOT_CONNECTION_NAME = 'hotspot'
 GENERIC_CONNECTION_NAME = 'python-wifi-connect'
+
+
+#------------------------------------------------------------------------------
+# Persistent data path for saved WiFi credentials.
+PERSISTENT_DATA_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+    'tidetracker_persistent_data.json'
+)
+
+
+#------------------------------------------------------------------------------
+# Save the successful credentials to a persistent file.
+def save_last_successful_credentials(ssid, password=None, username=None, conn_type=None):
+    data = {}
+    if os.path.exists(PERSISTENT_DATA_PATH):
+        try:
+            with open(PERSISTENT_DATA_PATH, 'r') as f:
+                data = json.load(f)
+        except Exception:
+            pass
+    
+    data['wifi_ssid'] = ssid
+    data['wifi_password'] = password
+    data['wifi_username'] = username
+    data['wifi_conn_type'] = conn_type
+    
+    try:
+        with open(PERSISTENT_DATA_PATH, 'w') as f:
+            json.dump(data, f)
+        print(f'Saved successful WiFi credentials for "{ssid}" to {PERSISTENT_DATA_PATH}')
+    except Exception as e:
+        print(f'Error saving credentials: {e}')
+
+
+#------------------------------------------------------------------------------
+# Load the last successful credentials from the persistent file.
+def load_last_successful_credentials():
+    if os.path.exists(PERSISTENT_DATA_PATH):
+        try:
+            with open(PERSISTENT_DATA_PATH, 'r') as f:
+                data = json.load(f)
+            return {
+                'ssid': data.get('wifi_ssid'),
+                'password': data.get('wifi_password'),
+                'username': data.get('wifi_username'),
+                'conn_type': data.get('wifi_conn_type')
+            }
+        except Exception:
+            pass
+    return None
+
+
+#------------------------------------------------------------------------------
+# Attempt to reconnect to the last known working WiFi.
+def reconnect_to_last_wifi():
+    creds = load_last_successful_credentials()
+    if creds and creds.get('ssid'):
+        print(f'Attempting to reconnect to last working WiFi: {creds["ssid"]}')
+        return connect_to_AP(
+            conn_type=creds.get('conn_type', CONN_TYPE_SEC_NONE),
+            ssid=creds.get('ssid'),
+            username=creds.get('username'),
+            password=creds.get('password')
+        )
+    else:
+        print('No saved WiFi credentials found for reconnection.')
+        return False
 
 
 #------------------------------------------------------------------------------

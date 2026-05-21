@@ -22,6 +22,8 @@ def cleanup():
     print("Cleaning up prior to exit.")
     dnsmasq.stop()
     netman.stop_hotspot()
+    # Attempt to restore client wifi before exiting
+    netman.reconnect_to_last_wifi()
 
 
 #------------------------------------------------------------------------------
@@ -371,32 +373,33 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                         has_internet = netman.have_active_internet_connection()
                         print(f"[WiFi Test] Connected. Has internet: {has_internet}")
                         
-                        # Only update and save credentials if the connection was successful
-                        existing_data['wifi_ssid'] = ssid
-                        existing_data['wifi_password'] = password
-                        existing_data['wifi_username'] = username
-                        existing_data['wifi_conn_type'] = conn_type
-                        
-                        try:
-                            with open(persistent_data_path, 'w') as json_file:
-                                json.dump(existing_data, json_file)
-                            print(f"DEBUG: WiFi credentials for '{ssid}' saved successfully to {persistent_data_path}")
-                        except Exception as e:
-                            print(f'DEBUG: Error saving WiFi credentials: {e}')
-
                         if has_internet:
-                            print(f"\033[92m[WiFi Test] Internet connection successful! Keeping connection active and NOT restarting hotspot.\033[0m")
-                            # Update the shared status dict before returning
+                            print(f"\033[92m[WiFi Test] Internet connection successful! Saving credentials and exiting.\033[0m")
+                            # Save credentials as the new last successful connection
+                            netman.save_last_successful_credentials(ssid, password, username, conn_type)
+                            
+                            # Update the shared status dict before exiting
                             pre_status.update({'ssid': ssid, 'has_internet': True, 'testing': False})
                             # Force the entire process to exit so control returns to the terminal/boot script
                             os._exit(0)
                             
-                        # If we have no internet, tear down the test connection so we can restart the hotspot
+                        # If we have no internet, tear down the test connection
                         print(f"[WiFi Test] Connection successful but NO INTERNET. Tearing down...")
                         netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
                     else:
                         print(f"[WiFi Test] Could not connect to '{ssid}'. Tearing down failing connection...")
                         netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
+
+                    # Fallback to the most recently working credentials if the new ones failed
+                    print(f"[WiFi Test] Connection attempt failed. Falling back to last successful connection...")
+                    if netman.reconnect_to_last_wifi():
+                        if netman.have_active_internet_connection():
+                            print(f"\033[92m[WiFi Test] Fallback successful and has internet! Exiting.\033[0m")
+                            os._exit(0)
+                        else:
+                            print(f"[WiFi Test] Fallback connected but NO INTERNET.")
+                    else:
+                        print(f"[WiFi Test] Fallback reconnection failed.")
 
                     # Restart the hotspot using the unified sequence
                     launch_ap_sequence(self.ssids, self.pre_status)
@@ -453,8 +456,6 @@ def main(address, port, ui_path, rcode, delete_connections, force_setup):
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        dnsmasq.stop()
-        netman.stop_hotspot()
         httpd.server_close()
 
 
