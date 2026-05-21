@@ -149,9 +149,9 @@ echo -e "\n##### SETUP: RUN SCRIPT ON BOOT - WRITE TO THE CRON TAB FILE #####\n"
 # view crontab contents with cmd "crontab -l"
 # open the crontab in a text editor with "crontab -e"
 
-# Add cron job to the file
-##### This command may not work from this script and may need to be run manually!
-(crontab -l; echo "@reboot sleep 75 && /home/pi/TideTracker_repo/script_to_run_on_boot.sh > /dev/null 2>&1") | sort -u | crontab -
+# Add cron job to the root crontab (ensures it runs with sudo/root permissions)
+# Redirecting to /dev/null to avoid system mail filling up the SD card.
+(sudo crontab -l 2>/dev/null; echo "@reboot sleep 75 && /home/pi/TideTracker_repo/script_to_run_on_boot.sh > /dev/null 2>&1") | sort -u | sudo crontab -
 sudo service cron restart
 
 ##### 
