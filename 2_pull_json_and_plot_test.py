@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 import sys
 import os
+import gc
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -9,7 +10,6 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import datetime as dt
 import requests
-from PIL import Image
 import csv
 import pytz
 import ephem
@@ -17,9 +17,6 @@ from matplotlib.ticker import FuncFormatter
 from scipy.signal import find_peaks
 import numpy as np
 from scipy.interpolate import CubicSpline
-
-
-
 
 from pathlib import Path
 import re
@@ -30,7 +27,6 @@ def print_debug(message):
 
 def is_raspberry_pi():
     CPUINFO_PATH = Path("/proc/cpuinfo")
-
     if not CPUINFO_PATH.exists():
         return False
     with open(CPUINFO_PATH) as f:
@@ -67,77 +63,36 @@ else:
     
 
 DISPLAY_PLOT = True
-
-print_debug("BEGINNING")
-
-
 PERIOD = 2  # hours between TPL5110 reloads
 STATIC_TIMEZONE = True  # used to set timezone to Fort Myers so get_timezone is averted
-
 IS_NAVESINK = False
 
-print_debug("Defining functions...")
-
-
 def get_timezone(station_id):
-
-    # Open the CSV file and read its contents
     csv_path = os.path.join(maindir, 'stations.csv')
     with open(csv_path, 'r') as csvfile:
-        # Create a CSV reader
         csv_reader = csv.DictReader(csvfile)
-
-        # Iterate through rows in the CSV file
         for row in csv_reader:
-            # Check if the station_id is in the 'Station ID' column
             if row['Station ID'] == station_id:
-                # Retrieve the time_zone for the matching row
                 time_zone_str = row['time_zone']
-
-                # Convert the string to a pytz time zone
                 try:
-                    time_zone = pytz.timezone(time_zone_str)
-                    return time_zone
+                    return pytz.timezone(time_zone_str)
                 except pytz.UnknownTimeZoneError:
                     return f"Unknown time zone: {time_zone_str}"
-
-    # Default to UTC if station ID is not found
     return pytz.utc
 
-
 def get_sunrise_sunset(latitude, longitude, date, zone=None):
-    print_debug(f"Calculating sunrise and sunset for date: {date}")
-
-    # This code has a bug where some places, like Honolulu, HI for example,
-    # return sunset with a date of 2 days ago instead of with yesterday's date.
-    # It doesn't make a big difference since contiguous days have negligibly different
-    # sunrise and sunset times.
-
-    # Create an observer object
     observer = ephem.Observer()
     observer.lon = str(longitude)
     observer.lat = str(latitude)
-
-    # Convert the date to the required format
-
-    # Calculate sunrise and sunset times
-    # Get the "next sunset" after the midnight at the beginning of the date
     observer.date = date
     sunset = observer.next_setting(ephem.Sun())
-
-    # Get the "previous sunrise" before the midnight that ends the date (technically the next day)
     observer.date = date + dt.timedelta(days=1)
-    sunrise = observer.previous_rising(ephem.Sun())  # Get the most recent sunrise
-
-    # Format the results
+    sunrise = observer.previous_rising(ephem.Sun())
     sunrise_time = ephem.localtime(sunrise)
     sunset_time = ephem.localtime(sunset)
-
     if zone:
         return sunrise_time.astimezone(zone), sunset_time.astimezone(zone)
-    else:
-        return sunrise_time, sunset_time
-
+    return sunrise_time, sunset_time
 
 def get_station_info(station_id):
     CSV_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'stations.csv')
@@ -145,460 +100,206 @@ def get_station_info(station_id):
         reader = csv.DictReader(csvfile)
         for row in reader:
             if row["Station ID"] == station_id:
-                city = row["City"]
-                state = row["State"]
-                decimal_latitude = float(row["decimal_latitude"])
-                decimal_longitude = float(row["decimal_longitude"])
-                return city, state, decimal_latitude, decimal_longitude
-
+                return row["City"], row["State"], float(row["decimal_latitude"]), float(row["decimal_longitude"])
 
 def fetch_NOAA_data(station_id, date):
-
     INTERVAL_MINUTES = 5
     RANGE_HOURS = 60
     DATUM = "mllw"
 
-    if(IS_NAVESINK):  # is Navesink
-        date = date - dt.timedelta(days=1)  # Subtract one day from the date
+    if IS_NAVESINK:
+        date = date - dt.timedelta(days=1)
         INTERVAL_MINUTES = "hilo"
         RANGE_HOURS = 120
         
     yesterday_date_string = date.strftime("%Y%m%d")
-
-    print_debug(f"Fetching NOAA data for station ID {station_id} on date {date}")
-
     try:
-        # Modify the URL with yesterday's date and the station ID variable
         url = f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date={yesterday_date_string}&range={RANGE_HOURS}&product=predictions&datum={DATUM}&interval={INTERVAL_MINUTES}&format=json&units=english&time_zone=lst_ldt&station={station_id}"
-
-        # Retrieve data from the URL with a 15-second timeout to prevent hanging the boot script
         response = requests.get(url, timeout=15)
-        response.raise_for_status()  # Raise an exception for HTTP errors
-
+        response.raise_for_status()
         return response.json()
-
     except requests.exceptions.RequestException as e:
         print_debug(f"Error fetching NOAA data: {e}")
         return None
 
-
 def rm_lead_zeros(time_string):
-    print_debug(f"Removing leading zeros in time string: {time_string}")
-    # Replace leading zeros in the hour part of the time string
-    time_string = (
-        time_string.replace('01:', '1:')
-        .replace('02:', '2:')
-        .replace('03:', '3:')
-        .replace('04:', '4:')
-        .replace('05:', '5:')
-        .replace('06:', '6:')
-        .replace('07:', '7:')
-        .replace('08:', '8:')
-        .replace('09:', '9:')
-    )
-    return time_string
+    return (time_string.replace('01:', '1:').replace('02:', '2:').replace('03:', '3:')
+            .replace('04:', '4:').replace('05:', '5:').replace('06:', '6:')
+            .replace('07:', '7:').replace('08:', '8:').replace('09:', '9:'))
 
 def closest_datetime_value(array, target):
-    """
-    Search a list of datetime objects for the value that is closest to the target datetime.
-
-    Parameters:
-        array (list): List of datetime objects.
-        target (datetime): Target datetime.
-
-    Returns:
-        datetime: Datetime object from the array that is closest to the target datetime.
-    """
-    closest = array[0]  # Initialize closest to the first element of the array
-    min_diff = abs((array[0] - target).total_seconds())  # Initialize min_diff to the absolute difference in seconds between the first element and the target
-
-    for dt in array:
-        diff = abs((dt - target).total_seconds())
+    closest = array[0]
+    min_diff = abs((array[0] - target).total_seconds())
+    for d in array:
+        diff = abs((d - target).total_seconds())
         if diff < min_diff:
             min_diff = diff
-            closest = dt
-
+            closest = d
     return closest
 
 def plot_data(data, now_dtz):
     print_debug("Plotting data...")
-
-    # Extract time and value data. strptime converts string to datetime
-    all_times = [dt.datetime.strptime(entry['t'], '%Y-%m-%d %H:%M') for entry in data['predictions']]
-    all_times = [_.replace(tzinfo=now_dtz.tzinfo) for _ in all_times]
+    all_times = [dt.datetime.strptime(entry['t'], '%Y-%m-%d %H:%M').replace(tzinfo=now_dtz.tzinfo) for entry in data['predictions']]
     all_values = [float(entry['v']) for entry in data['predictions']]
 
     start_time = (now_dtz - dt.timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
-    # Define end time as start time plus 48 hours
     end_time = start_time + dt.timedelta(hours=48)
-
-    # Filter data points that occurred after the start time
-    filtered_times = [t for t in all_times if t >= start_time]
-    filtered_values = [v for t, v in zip(all_times, all_values) if t >= start_time]
     
-    hilo_times = filtered_times
-    hilo_values = filtered_values
+    hilo_times = [t for t in all_times if t >= start_time]
+    hilo_values = [v for t, v in zip(all_times, all_values) if t >= start_time]
 
-    ### TESTING
-    if(IS_NAVESINK):  # is Navesink
-
-        # Convert datetime objects to numerical values
+    if IS_NAVESINK:
         numeric_times = np.array([t.timestamp() for t in all_times])
         numeric_values = np.array(all_values)
-
-        # Sort the points based on time
         sorted_indices = np.argsort(numeric_times)
         sorted_times = numeric_times[sorted_indices]
         sorted_values = numeric_values[sorted_indices]
-
-        # Perform cubic spline interpolation
         spline_interpolator = CubicSpline(sorted_times, sorted_values)
-
-        # Define new time points for interpolation
-        interpolation_times = np.linspace(min(sorted_times), max(sorted_times), 10000)  # Adjust the number of points as needed
-
-        # Interpolate values for the new time points
+        interpolation_times = np.linspace(min(sorted_times), max(sorted_times), 10000)
         interpolated_values = spline_interpolator(interpolation_times)
-
-        # Convert interpolated time values back to datetime
-        interpolated_times = [dt.datetime.fromtimestamp(t) for t in interpolation_times]
-
-        # Filter data points that occurred after the start time and before end time
-
-        interpolated_times = [_.replace(tzinfo=now_dtz.tzinfo) for _ in interpolated_times]
+        interpolated_times = [dt.datetime.fromtimestamp(t).replace(tzinfo=now_dtz.tzinfo) for t in interpolation_times]
         filtered_times = [t for t in interpolated_times if start_time <= t <= end_time]
         filtered_values = [v for t, v in zip(interpolated_times, interpolated_values) if start_time <= t <= end_time]
-    
-    
-    # Plotting. Size of 7.5in e-ink is 163.2mm x 97.92mm. Converted to in: 6.425 x 3.855
-    print_debug("Creating plot figure...")
+    else:
+        filtered_times = hilo_times
+        filtered_values = hilo_values
 
     plt.figure(figsize=(1.2 * 6.425, 1.2 * 3.855))
-
-    # Plot filtered data
     plt.plot(filtered_times, filtered_values, label='v vs t', color='black')
+    plt.xlim(start_time, filtered_times[-1] if not IS_NAVESINK else end_time)
 
-    # Set x-axis range to start at 12:00 PM and go to the last time in the list
-    plt.xlim(start_time, filtered_times[-1])
-
-    if(IS_NAVESINK): # Fixes the last x-axis label not appearing. Maybe I should just do this for all cases. 
-        plt.xlim(start_time, end_time)
-
-    # Find peaks in the data
     peaks, _ = find_peaks(filtered_values)
-    valleys, _ = find_peaks(-np.array(filtered_values))  # Find minima by inverting the values
+    valleys, _ = find_peaks(-np.array(filtered_values))
 
-    print_debug("Annotating peaks on the plot...")
-
-    # Annotate peaks on the plot
-    approx_label_width = dt.timedelta(hours=4.5)  # eyeballed from graph
-    
-    ylim0 = plt.ylim()[0]
-    ylim1 = plt.ylim()[1] 
-    deadzone_height = .05*(ylim1 - ylim0)  # 5% of y-axis height
-    YEXTEND = 1.5*deadzone_height  # y-axis addition to move labels and extend ylim0 and ylim1 to make room for labels and present data
-
+    approx_label_width = dt.timedelta(hours=4.5)
+    ylim0, ylim1 = plt.ylim()
+    deadzone_height = .05 * (ylim1 - ylim0)
+    YEXTEND = 1.5 * deadzone_height
 
     for peak_index in peaks:
-        x_coord = filtered_times[peak_index]
-        y_coord = filtered_values[peak_index]
-
+        x_coord, y_coord = filtered_times[peak_index], filtered_values[peak_index]
         delta_x = dt.timedelta(hours=0)
         delta_y = 0
-
-        # Check if the annotation is too close to the left edge
-        if x_coord - approx_label_width / 2 < start_time:
-            delta_x += approx_label_width / 2  # Move the annotation to the right
-
-        # Check if the annotation would be too close to the right edge
-        if x_coord + approx_label_width / 2 > filtered_times[-1]:
-            delta_x -= approx_label_width / 2  # Move the annotation to the left
-
+        if x_coord - approx_label_width / 2 < start_time: delta_x += approx_label_width / 2
+        if x_coord + approx_label_width / 2 > filtered_times[-1]: delta_x -= approx_label_width / 2
         text_center = y_coord + YEXTEND
-        # For peak, if text is within half the deadzone above y=0, add half the deadzone
-        if 0 < text_center <= deadzone_height/2:
-            delta_y += deadzone_height/2
-        # For peak, if text is within half the deadzone below y=0, add the deadzone
-        if -(deadzone_height/2) <= text_center <= 0:
-            delta_y += deadzone_height
+        if 0 < text_center <= deadzone_height/2: delta_y += deadzone_height/2
+        if -(deadzone_height/2) <= text_center <= 0: delta_y += deadzone_height
+        if IS_NAVESINK: x_coord = closest_datetime_value(hilo_times, x_coord)
+        plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'), xy=(x_coord, y_coord),
+                     xytext=(x_coord + delta_x, text_center + delta_y), ha='center', va='center', fontsize=8, weight='bold')
 
-        if(IS_NAVESINK):
-            x_coord = closest_datetime_value(hilo_times, x_coord)
-
-        # Annotate
-        plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'),
-                     xy=(x_coord, y_coord),
-                     xytext=(x_coord + delta_x, text_center + delta_y),  # Adjust text position
-                     arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
-                     ha='center', va='center', fontsize=8, weight='bold')
-
-    print_debug("Annotating valleys on the plot...")
-
-    # Annotate valleys on the plot
     for valley_index in valleys:
-        x_coord = filtered_times[valley_index]
-        y_coord = filtered_values[valley_index]
-
+        x_coord, y_coord = filtered_times[valley_index], filtered_values[valley_index]
         delta_x = dt.timedelta(hours=0)
         delta_y = 0
-
-        # Check if the annotation is too close to the left edge
-        if x_coord - approx_label_width / 2 < start_time:
-            delta_x += approx_label_width / 2  # Move the annotation to the right
-
-        # Check if the annotation is too close to the right edge
-        if x_coord + approx_label_width / 2 > filtered_times[-1]:
-            delta_x -= approx_label_width / 2  # Move the annotation to the left
-        
+        if x_coord - approx_label_width / 2 < start_time: delta_x += approx_label_width / 2
+        if x_coord + approx_label_width / 2 > filtered_times[-1]: delta_x -= approx_label_width / 2
         text_center = y_coord - YEXTEND
-
-        # For valley, if text is within half the deadzone above y=0, subtract the deadzone
-        if 0 <= text_center <= deadzone_height/2:
-            delta_y -= deadzone_height
-        # For valley, if text is within half the deadzone below y=0, subtract half the deadzone
-        if -(deadzone_height/2) <= text_center < 0:
-            delta_y -= deadzone_height/2
-
-        if(IS_NAVESINK):
-            x_coord = closest_datetime_value(hilo_times, x_coord)
-
-        plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'),
-                     xy=(x_coord, y_coord),
-                     xytext=(x_coord + delta_x, text_center + delta_y),  # Adjust text position
-                     arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
-                     ha='center', va='center', fontsize=8, weight='bold')
-
-
-
-    print_debug("Setting plot labels and formatting...")
+        if 0 <= text_center <= deadzone_height/2: delta_y -= deadzone_height
+        if -(deadzone_height/2) <= text_center < 0: delta_y -= deadzone_height/2
+        if IS_NAVESINK: x_coord = closest_datetime_value(hilo_times, x_coord)
+        plt.annotate(rm_lead_zeros(f'{x_coord:%I:%M %p}'), xy=(x_coord, y_coord),
+                     xytext=(x_coord + delta_x, text_center + delta_y), ha='center', va='center', fontsize=8, weight='bold')
 
     plt.title(f'Tide Predictions for\n{city}, {state}', weight='bold')
-
     plt.ylabel('Tide Height (ft)\nAbove Chart Depth', weight='bold')
-
-    def add_ft_label(value, _):
-        rounded_value = round(value, 1)
-        return f"{rounded_value} ft."
-
-    plt.gca().yaxis.set_major_formatter(FuncFormatter(add_ft_label))
-
+    plt.gca().yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{round(v, 1)} ft."))
+    
     def custom_x_axis_major_label_format(value, _):
         value_datetime = mdates.num2date(value, zone)
-        if (value_datetime.hour == 0 or value_datetime.hour == 12) and value_datetime.minute == 0:
-            result = rm_lead_zeros(value_datetime.strftime('%b. %d\n%I:%M %p'))
-        else:
-            result = rm_lead_zeros(value_datetime.strftime('%I:%M %p'))
-
-        return result
+        fmt = '%b. %d\n%I:%M %p' if (value_datetime.hour in [0, 12] and value_datetime.minute == 0) else '%I:%M %p'
+        return rm_lead_zeros(value_datetime.strftime(fmt))
 
     plt.gca().xaxis.set_major_formatter(FuncFormatter(custom_x_axis_major_label_format))
-
     plt.gca().xaxis.set_major_locator(mdates.HourLocator(interval=6))
     plt.gca().xaxis.set_minor_locator(mdates.HourLocator(interval=2))
-
-    plt.gca().tick_params(axis='x', which='major', size=9)
-    plt.gca().tick_params(axis='x', which='minor', size=4)
-
-    for label in plt.gca().xaxis.get_majorticklabels():
-        label.set_weight('bold')
-
     plt.gcf().autofmt_xdate(rotation=45)
 
     two_hours_later = now_dtz + dt.timedelta(hours=PERIOD)
     present_times = [t for t in filtered_times if now_dtz <= t <= two_hours_later]
     present_values = [v for t, v in zip(filtered_times, filtered_values) if now_dtz <= t <= two_hours_later]
-    plt.plot(present_times, present_values, label='Present Run', color='black', linewidth=12)
-
-    plt.axhline(y=0, color='black', linewidth=2, label='Zero Line')
-
+    plt.plot(present_times, present_values, color='black', linewidth=12)
+    plt.axhline(y=0, color='black', linewidth=2)
     plt.grid(True)
 
-    ylim0 = plt.ylim()[0]
-    ylim1 = plt.ylim()[1]
-
-    fudge_factor = deadzone_height/5
-    # Insert sunrise/sunset times on plot
-    plt.annotate(rm_lead_zeros(f'{today_sunrise:%I:%M %p}'),
-                xy=(today_sunrise, ylim1 + 2*YEXTEND - deadzone_height- fudge_factor),
-                xytext=(today_sunrise, ylim1 + 2*YEXTEND - deadzone_height - fudge_factor),  # Adjust text position
-                arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
-                ha='center', va='center', fontsize=10, weight='bold')
-
-    plt.annotate(rm_lead_zeros(f'{today_sunset:%I:%M %p}'),
-                xy=(today_sunset, ylim1 + 2*YEXTEND - deadzone_height - fudge_factor),
-                xytext=(today_sunset, ylim1 + 2*YEXTEND - deadzone_height - fudge_factor),  # Adjust text position
-                arrowprops=dict(facecolor='none', edgecolor='none'),  # No arrow
-                ha='center', va='center', fontsize=10, weight='bold')
-
-
-    # +2*YEXTEND: +1 for highest tide peak and +1 for sunrise/sunset tiemes to fit above highest tide peak annotation
+    ylim0, ylim1 = plt.ylim()
+    fudge = deadzone_height/5
+    plt.annotate(rm_lead_zeros(f'{today_sunrise:%I:%M %p}'), xy=(today_sunrise, ylim1 + 2*YEXTEND - deadzone_height- fudge), ha='center', va='center', fontsize=10, weight='bold')
+    plt.annotate(rm_lead_zeros(f'{today_sunset:%I:%M %p}'), xy=(today_sunset, ylim1 + 2*YEXTEND - deadzone_height - fudge), ha='center', va='center', fontsize=10, weight='bold')
     plt.ylim(ylim0 - YEXTEND, ylim1 + 2*YEXTEND)
 
-
-    plt.ylim(plt.gca().get_ylim()[0], plt.gca().get_ylim()[1])
-
-    plt.fill_betweenx(y=[plt.gca().get_ylim()[0], plt.gca().get_ylim()[1]], x1=yesterday_sunset,
-                      x2=today_sunrise, facecolor='gray', edgecolor='none', label='Shaded Area')
-
-    plt.fill_betweenx(y=[plt.gca().get_ylim()[0], plt.gca().get_ylim()[1]], x1=today_sunset,
-                      x2=tomorrow_sunrise, facecolor='gray', edgecolor='none', label='Shaded Area')
-
+    plt.fill_betweenx(y=plt.ylim(), x1=yesterday_sunset, x2=today_sunrise, facecolor='gray', alpha=0.3)
+    plt.fill_betweenx(y=plt.ylim(), x1=today_sunset, x2=tomorrow_sunrise, facecolor='gray', alpha=0.3)
     plt.tight_layout()
 
-    # Format 'bmp' is not supported (supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff, webp)
-    # plt.savefig("plot_image.png", dpi=600)
-    # plt.show()
-
-    # use a buffer to save plt.savefig to instead of to a file (to reduce wear on the microSD card; and mitigage file path issues...)
     from io import BytesIO
-
     buffer = BytesIO()
-    # Reduced DPI from 600 to 120 to save significant RAM on Pi Zero W
-    plt.savefig(buffer, format='png', dpi=120)
+    plt.savefig(buffer, format='png', dpi=100) # Reduced DPI to save RAM
+    plt.close('all') # Critical: Free matplotlib memory
+    gc.collect()
+
     buffer.seek(0)
-    img = Image.open(buffer)
-
-
-    img = img.resize((800, 480))
-    img = img.convert('1')
-
-
-    # Add sun rise/set icons
+    img = Image.open(buffer).resize((800, 480)).convert('1')
     sun_icon = Image.open(sun_rise_icon_path).convert('RGB').resize((40, 40))
+    img.paste(sun_icon, (585, 5))
 
-    y_pos = 5
-    left_x_pos = 19
-    right_x_pos = 585
-    x_buf_space = 5
-    y_buf_space = 1
-
-    img.paste(sun_icon, (right_x_pos,y_pos))
-
-    # Add font
     draw = ImageDraw.Draw(img)
-
-    # Refreh time
-    draw.text((left_x_pos, y_pos + 3), 
-        rm_lead_zeros(f'Last Refresh:'), 
-        font = font14, 
-        fill = 0)
-    draw.text((left_x_pos+92, y_pos + 3), 
-            rm_lead_zeros(f'{now_dtz:%I:%M %p}\n{now_dtz:%m/%d/%Y}'), 
-            font = font14, 
-            fill = 0)
-
-    draw.text((right_x_pos + sun_icon.width + x_buf_space, y_pos + y_buf_space), 
-              rm_lead_zeros(f'Rise:   {today_sunrise:%I:%M %p}\nSet:     {today_sunset:%I:%M %p}'), 
-              font = font18, 
-              fill = 0)
+    draw.text((19, 8), 'Last Refresh:', font=font14, fill=0)
+    draw.text((111, 8), f'{now_dtz:%I:%M %p}\n{now_dtz:%m/%d/%Y}', font=font14, fill=0)
+    draw.text((630, 6), f'Rise:   {today_sunrise:%I:%M %p}\nSet:     {today_sunset:%I:%M %p}', font=font18, fill=0)
     
-
     img.save(os.path.join(maindir, 'plot_image.bmp'))
-
-    if DISPLAY_PLOT and not IS_RPI:
-        img.show()
-        # plt.show()
-
+    if DISPLAY_PLOT and not IS_RPI: img.show()
     img.close()
-
-    return
-
+    buffer.close()
 
 def extract_number_from_string(input_string):
     match = re.match(r'^(\d+)', input_string)
-
-    if match:
-        return int(match.group(1))
-    else:
-        return 8725520
-
+    return int(match.group(1)) if match else 8725520
 
 if __name__ == "__main__":
-    print_debug("Reading JSON data from file...")
-
     json_file_path = os.path.join(maindir, 'tidetracker_persistent_data.json')
-
-    # Read the JSON data from the file
     with open(json_file_path, 'r') as file:
         data = json.load(file)
 
-    station_string = data.get('station_id')
-
-    station_id = extract_number_from_string(station_string)
-
-    station_id = str(station_id)
-
-    if(station_id == "8531833"):
-        IS_NAVESINK = True
-
-    print_debug(f"Getting station information for ID: {station_id}...")
+    station_id = str(extract_number_from_string(data.get('station_id')))
+    if station_id == "8531833": IS_NAVESINK = True
 
     city, state, lat, long = get_station_info(station_id)
     zone = get_timezone(station_id)
 
-    now_dtz = dt.datetime.now(zone)  # _dtz := date, time, zone
+    now_dtz = dt.datetime.now(zone)
     today_d = now_dtz.date()
     yesterday_d = today_d - dt.timedelta(days=1)
     tomorrow_d = today_d + dt.timedelta(days=1)
 
-    yesterday_sunrise, yesterday_sunset = get_sunrise_sunset(lat, long, yesterday_d, zone)
+    _, yesterday_sunset = get_sunrise_sunset(lat, long, yesterday_d, zone)
     today_sunrise, today_sunset = get_sunrise_sunset(lat, long, today_d, zone)
-    tomorrow_sunrise, tomorrow_sunset = get_sunrise_sunset(lat, long, tomorrow_d, zone)
+    tomorrow_sunrise, _ = get_sunrise_sunset(lat, long, tomorrow_d, zone)
 
-    # THIS IS A STOPGAP PATCH BECAUSE I CAN'T FIGURE OUT WHAT MY BUG IS WITH SUNRISE AND SUNSET!
-    # BUT I'M OUT OF TIME! So maybe I'll fix this later.
-
-    yesterday_sunrise, yesterday_sunset = get_sunrise_sunset(lat, long, yesterday_d, zone)
-    yesterday_sunrise = yesterday_sunrise.replace(year=yesterday_d.year, month=yesterday_d.month, day=yesterday_d.day)
     yesterday_sunset = yesterday_sunset.replace(year=yesterday_d.year, month=yesterday_d.month, day=yesterday_d.day)
-
-    today_sunrise, today_sunset = get_sunrise_sunset(lat, long, today_d, zone)
     today_sunrise = today_sunrise.replace(year=today_d.year, month=today_d.month, day=today_d.day)
     today_sunset = today_sunset.replace(year=today_d.year, month=today_d.month, day=today_d.day)
-
-    tomorrow_sunrise, tomorrow_sunset = get_sunrise_sunset(lat, long, tomorrow_d, zone)
     tomorrow_sunrise = tomorrow_sunrise.replace(year=tomorrow_d.year, month=tomorrow_d.month, day=tomorrow_d.day)
-    tomorrow_sunset = tomorrow_sunset.replace(year=tomorrow_d.year, month=tomorrow_d.month, day=tomorrow_d.day)
-
-    # Good enough
-
-    print_debug("Fetching NOAA data...")
 
     data_json = fetch_NOAA_data(station_id, yesterday_d)
-
-    print_debug("Plotting data...")
-
-    plot_data(data_json, now_dtz)
-
-    ### PUT THE SUNRISE + SUNSET HERE 
-    
+    if data_json:
+        plot_data(data_json, now_dtz)
 
     if IS_RPI:
         try:
             print_debug("Initializing e-ink display...")
-
             epd = epd7in5_V2.EPD()
             epd.init()
-
-            print_debug("Displaying the .bmp on the e-ink display...")
-
-            plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
-            plot_image = plot_image.transpose(Image.ROTATE_180)
-            epd.display(epd.getbuffer(plot_image))
-            
-            # MANDATORY: Wait for physical refresh to finish before power-off
-            print_debug("Waiting 15s for physical e-ink refresh...")
-            import time
-            time.sleep(15)
-
-            print_debug("Going to sleep...")
-
+            print_debug("Displaying plot...")
+            with Image.open(os.path.join(maindir, 'plot_image.bmp')) as plot_image:
+                epd.display(epd.getbuffer(plot_image.transpose(Image.ROTATE_180)))
             epd.sleep()
-
-        except IOError as e:
-            print(f"IOError: {e}")
-
-        except KeyboardInterrupt:
-            print("ctrl + c:")
-            epd7in5_V2.epdconfig.module_exit()
-            exit()
+        except Exception as e:
+            print(f"Display Error: {e}")
+        finally:
+            # CRITICAL: Always wait for refresh to finish before power-off pulse
+            print_debug("Holding for 20s to ensure physical refresh completes...")
+            import time
+            time.sleep(20)

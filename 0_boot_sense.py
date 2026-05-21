@@ -18,10 +18,30 @@ logging.basicConfig(
 )
 logging.info('========== boot_sense.py starting ==========')
 
+# --- SINGLE INSTANCE LOCK ---
+LOCK_FILE = "/tmp/tidetracker.lock"
+
+def check_single_instance():
+    """Prevents multiple copies of the script from fighting over CPU/GPIO."""
+    if os.path.exists(LOCK_FILE):
+        try:
+            with open(LOCK_FILE, 'r') as f:
+                pid = int(f.read().strip())
+            # Check if process with this PID is still running
+            os.kill(pid, 0)
+            logging.error(f"Another instance is already running (PID {pid}). Exiting to prevent conflict.")
+            sys.exit(0)
+        except (OSError, ValueError):
+            # PID not running or file corrupt, safe to overwrite
+            pass
+            
+    with open(LOCK_FILE, 'w') as f:
+        f.write(str(os.getpid()))
+
+check_single_instance()
 
 def is_raspberry_pi():
     CPUINFO_PATH = Path("/proc/cpuinfo")
-
     if not CPUINFO_PATH.exists():
         return False
     with open(CPUINFO_PATH) as f:
@@ -43,6 +63,7 @@ def reconnect_to_saved_wifi():
             conn_type = data.get('wifi_conn_type', 'NONE')
             
             if ssid:
+                import netman
                 # Check if we are already connected to this SSID to avoid redundant reconnections
                 current_ssid = netman.get_connected_ssid()
                 if current_ssid == ssid:
@@ -50,120 +71,112 @@ def reconnect_to_saved_wifi():
                     return
 
                 logging.info(f"Graceful exit: Reconnecting to saved WiFi '{ssid}'...")
-                # Note: netman.connect_to_AP will stop the hotspot if it's currently active.
                 netman.connect_to_AP(conn_type=conn_type, ssid=ssid, username=username, password=password)
             else:
                 logging.info("Graceful exit: No saved WiFi SSID found to reconnect to.")
         except Exception as e:
             logging.error(f"Error reconnecting to WiFi on exit: {e}")
 
+# Path setups
 if IS_RPI:
     wifi_libdir = '/home/pi/TideTracker_repo/forked_wifi-connect-headless-rpi/src'
-    maindir = '/home/pi/TideTracker_repo'
-    if os.path.exists(wifi_libdir):
-        sys.path.append(wifi_libdir)
-
 else:
     maindir = os.path.dirname(os.path.realpath(__file__))
     wifi_libdir = os.path.join(maindir, 'forked_wifi-connect-headless-rpi','src')
-    if os.path.exists(wifi_libdir):
-        sys.path.append(wifi_libdir)
 
 if os.path.exists(wifi_libdir):
     sys.path.append(wifi_libdir)
 
-import netman
+# GPIO configuration
+run_mode_pin = 16 
+done_pin = 26
 
-# Define the GPIO pin you want to monitor
-run_mode_pin = 16  # Replace with your GPIO pin number
-done_pin = 26  # Replace with your BCM pin number
-
-
-# Set up GPIO mode and pin
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(run_mode_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(done_pin, GPIO.OUT)
 
-# Define script names and their paths
+# Script paths
 auto_run_wifi_script_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'forked_wifi-connect-headless-rpi', 'scripts', 'run.sh')
-
 plot_tides_script_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '2_pull_json_and_plot_test.py')
 no_wifi_errors_script_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'no_wifi_paste_over.py')
 
-command = "sudo systemctl start NetworkManager"
-subprocess.run(command, shell=True, check=True)
-logging.info('NetworkManager started')
+# Ensure NetworkManager is running
+try:
+    subprocess.run("sudo systemctl start NetworkManager", shell=True, check=True)
+    logging.info('NetworkManager started')
+except subprocess.CalledProcessError as e:
+    logging.warning(f"Could not start NetworkManager: {e}")
 
 exit_code = None
-pin_state = GPIO.LOW
 
 try:
     pin_state = GPIO.input(run_mode_pin)
     logging.info(f'GPIO Pin BCM# {run_mode_pin} is {pin_state} ({"SETUP" if pin_state == GPIO.HIGH else "RUN"} mode)')
-    print(f"\n\nGPIO Pin BCM# {run_mode_pin} is {pin_state}\n")
+
     if pin_state == GPIO.HIGH:
-        import http_server
-        # User wants cleanup right before the setup script (although http_server.py does it too)
-        
-        # sleep time removed. Cron job set to start 50s after boot
+        # SETUP MODE
+        import http_server # Lazy load
         logging.info(f'SETUP mode: launching wifi setup script: {auto_run_wifi_script_path}')
         result = subprocess.run(
             ['sudo', 'bash', auto_run_wifi_script_path, '-f'],
             stderr=subprocess.PIPE, text=True
         )
-        exit_code = result
+        exit_code = result.returncode
         if result.returncode != 0:
             err_msg = result.stderr.strip() if result.stderr else '(no stderr)'
             logging.error(f'SETUP mode: wifi setup script FAILED with code {result.returncode}: {err_msg}')
-            print(f"Setup script stderr: {err_msg}")
             raise subprocess.CalledProcessError(result.returncode, result.args)
         logging.info(f'SETUP mode: wifi setup script exited with code {result.returncode}')
     else:
-        import http_server
-        # User wants cleanup right before the run script to clear any stale hotspot from a crash
+        # RUN MODE
+        import http_server # Lazy load for cleanup
+        import netman
+        
         logging.info('RUN mode: cleaning up hotspot before internet check')
         http_server.cleanup()
 
-        # Give the WiFi hardware time to settle and reconnect to the router
         logging.info('Waiting 10s for WiFi to settle...')
         time.sleep(10)
         
         if netman.have_active_internet_connection(timeout=5, retries=3):
             logging.info(f'RUN mode: internet available, running tides script')
-            print(f"--------- \nRunning the tides script located at:\n\t{plot_tides_script_path} ---------")
-            exit_code = subprocess.run(['sudo', 'python3', plot_tides_script_path], check=True)
+            # Run the tides script. Note: We use check=True so it raises exception on failure
+            result = subprocess.run(['sudo', 'python3', plot_tides_script_path], check=True)
+            exit_code = result.returncode
         else: 
             logging.info(f'RUN mode: no internet, running no-wifi script')
-            print(f"--------- \nRunning the no-wifi script :\n\t{no_wifi_errors_script_path} ---------")
-            exit_code = subprocess.run(['sudo', 'python3', no_wifi_errors_script_path], check=True)
-
+            result = subprocess.run(['sudo', 'python3', no_wifi_errors_script_path], check=True)
+            exit_code = result.returncode
 
 except subprocess.CalledProcessError as e:
-    logging.error(f"Error running subprocess: {e}")
-    print(f"Error running subprocess: {e}")
+    logging.error(f"Subprocess failed with exit code {e.returncode}")
     exit_code = e.returncode
 except KeyboardInterrupt:
-    logging.info("KeyboardInterrupt received, exiting.")
-    print("\nStopping by user request (Ctrl+C).")
-    exit_code = 130  # Standard exit code for SIGINT
+    logging.info("KeyboardInterrupt received.")
+    exit_code = 130
 except Exception as e:
     logging.error(f"An unexpected error occurred: {e}")
-    print(f"An unexpected error occurred: {e}")
     exit_code = 1
 
 finally:
-    # 1. Reconnect to saved WiFi if we exited gracefully
-    # This ensures the Pi returns to a client state if it doesn't lose power immediately.
+    # 1. Cleanup Instance Lock
+    if os.path.exists(LOCK_FILE):
+        try:
+            os.remove(LOCK_FILE)
+        except:
+            pass
+
+    # 2. Reconnect to saved WiFi if we exited gracefully
     reconnect_to_saved_wifi()
 
-    # 2. Cleanup GPIO and resources
+    # 3. Cleanup GPIO and resources
     GPIO.cleanup()
 
-    # 3. ALWAYS pulse the DONE pin as the VERY LAST step.
-    # We do this after all cleanup and delays to ensure the e-ink screen has finished drawing.
+    # 4. ALWAYS pulse the DONE pin as the VERY LAST step.
+    # On Pi Zero, especially with heavy matplotlib, we want to ensure 
+    # the OS has settled before cutting power.
     try:
         logging.info('Sending DONE pulse to TPL5110 (Powering Off)')
-        # Re-initialize the done_pin just in case cleanup() wiped it
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(done_pin, GPIO.OUT)
         
@@ -175,7 +188,6 @@ finally:
     except Exception as e:
         logging.error(f"Failed to pulse DONE pin: {e}")
 
-    logging.info('========== boot_sense.py finished ==========')
+    logging.info(f'========== boot_sense.py finished (Exit Code: {exit_code}) ==========')
 
-
-print(f"\nExit code: {exit_code}\n")
+sys.exit(exit_code if exit_code is not None else 0)
