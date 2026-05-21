@@ -386,7 +386,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                             print(f"[WiFi Test] Connected but NO INTERNET. Tearing down connection...")
                             netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
                         else:
-                            print(f"[WiFi Test] Failed to connect to '{ssid}'. Tearing down failing connection...")
+                            print(f"[WiFi Test] Failed to connect to '{ssid}'. Tearing down failing connection...", flush=True)
                             netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
 
                         # Fallback to the most recently working credentials

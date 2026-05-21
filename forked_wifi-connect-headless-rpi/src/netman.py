@@ -5,11 +5,15 @@
 # over (the module documentation is scant).
 
 import NetworkManager
-import uuid, os, sys, time, socket, json
+import uuid, os, sys, time, socket, json, threading
 
 # This is needed to work with NetworkManager 1.30.6 and python-networkmanager 2.2      
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default = True)
+
+# Global lock to synchronize NetworkManager DBus calls across threads.
+# This prevents deadlocks when background tests and UI status updates collide.
+NM_LOCK = threading.Lock()
 
 HOTSPOT_CONNECTION_NAME = 'hotspot'
 GENERIC_CONNECTION_NAME = 'python-wifi-connect'
@@ -105,21 +109,23 @@ def have_active_internet_connection(host="8.8.8.8", port=53, timeout=2):
 # Returns the SSID of the currently active WiFi client connection, or None.
 def get_connected_ssid():
     try:
-        for active in NetworkManager.NetworkManager.ActiveConnections:
-            try:
-                settings = active.Connection.GetSettings()
-                conn_type = settings.get('connection', {}).get('type', '')
-                wifi_settings = settings.get('802-11-wireless', {})
-                mode = wifi_settings.get('mode', '')
-                # Only report infrastructure (client) connections, not our own hotspot
-                if conn_type == '802-11-wireless' and mode == 'infrastructure':
-                    ssid = wifi_settings.get('ssid', None)
-                    if ssid:
-                        return ssid
-            except Exception:
-                pass
+        with NM_LOCK:
+            active_connections = list(NetworkManager.NetworkManager.ActiveConnections)
+            for active in active_connections:
+                try:
+                    settings = active.Connection.GetSettings()
+                    conn_type = settings.get('connection', {}).get('type', '')
+                    wifi_settings = settings.get('802-11-wireless', {})
+                    mode = wifi_settings.get('mode', '')
+                    # Only report infrastructure (client) connections, not our own hotspot
+                    if conn_type == '802-11-wireless' and mode == 'infrastructure':
+                        ssid = wifi_settings.get('ssid', None)
+                        if ssid:
+                            return ssid
+                except Exception:
+                    pass
     except Exception as e:
-        print(f'get_connected_ssid() error: {e}')
+        print(f'get_connected_ssid() error: {e}', flush=True)
     return None
 
 
@@ -151,46 +157,47 @@ def stop_hotspot():
 # Deactivates any active instance first, then deletes ALL matching profiles.
 def stop_connection(conn_name=GENERIC_CONNECTION_NAME):
     found_any = False
-    print(f"DEBUG: stop_connection('{conn_name}') starting...")
+    print(f"DEBUG: stop_connection('{conn_name}') starting...", flush=True)
 
-    # 1. Deactivate any active connection with this name
-    try:
-        # Use a list comprehension to snapshot the active connections
-        active_conns = [ac for ac in NetworkManager.NetworkManager.ActiveConnections]
-        for active in active_conns:
-            try:
-                settings = active.Connection.GetSettings()
-                if settings['connection']['id'] == conn_name:
-                    print(f'Deactivating active connection: {conn_name}')
-                    NetworkManager.NetworkManager.DeactivateConnection(active)
-                    found_any = True
-            except Exception:
-                pass  # Active connection may have gone away
-    except Exception as e:
-        print(f'Error listing active connections: {e}')
+    with NM_LOCK:
+        # 1. Deactivate any active connection with this name
+        try:
+            # Snapshot the active connections
+            active_conns = list(NetworkManager.NetworkManager.ActiveConnections)
+            for active in active_conns:
+                try:
+                    settings = active.Connection.GetSettings()
+                    if settings['connection']['id'] == conn_name:
+                        print(f'Deactivating active connection: {conn_name}', flush=True)
+                        NetworkManager.NetworkManager.DeactivateConnection(active)
+                        found_any = True
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f'Error listing active connections: {e}', flush=True)
 
-    # 2. Delete ALL saved connection profiles with this name (handles duplicates)
-    try:
-        # Use a list comprehension to snapshot the connection profiles
-        all_conns = [c for c in NetworkManager.Settings.ListConnections()]
-        for conn in all_conns:
-            try:
-                settings = conn.GetSettings()
-                if settings['connection']['id'] == conn_name:
-                    print(f'Deleting connection profile: {conn_name}')
-                    conn.Delete()
-                    found_any = True
-            except Exception:
-                pass  # Connection may have been removed already
-    except Exception as e:
-        print(f'Error listing connections: {e}')
+        # 2. Delete ALL saved connection profiles with this name
+        try:
+            # Snapshot the connection profiles
+            all_conns = list(NetworkManager.Settings.ListConnections())
+            for conn in all_conns:
+                try:
+                    settings = conn.GetSettings()
+                    if settings['connection']['id'] == conn_name:
+                        print(f'Deleting connection profile: {conn_name}', flush=True)
+                        conn.Delete()
+                        found_any = True
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f'Error listing connections: {e}', flush=True)
 
     # 3. Wait for wifi device to reach a ready state
     if found_any:
-        print(f"DEBUG: stop_connection('{conn_name}') waiting for device ready...")
+        print(f"DEBUG: stop_connection('{conn_name}') waiting for device ready...", flush=True)
         _wait_for_wifi_device_ready()
 
-    print(f"DEBUG: stop_connection('{conn_name}') finished.")
+    print(f"DEBUG: stop_connection('{conn_name}') finished.", flush=True)
     return found_any
 
 
@@ -198,7 +205,7 @@ def stop_connection(conn_name=GENERIC_CONNECTION_NAME):
 # Return a list of available SSIDs and their security type, 
 # or [] for none available or error.
 def get_list_of_access_points():
-    print(f'DEBUG: Entering get_list_of_access_points()')
+    print(f'DEBUG: Entering get_list_of_access_points()', flush=True)
     # bit flags we use when decoding what we get back from NetMan for each AP
     NM_SECURITY_NONE       = 0x0
     NM_SECURITY_WEP        = 0x1
@@ -210,76 +217,70 @@ def get_list_of_access_points():
 
     ssids = [] # list we return
 
-    for dev in NetworkManager.NetworkManager.GetDevices():
-        print(f'DEBUG: Checking device: {dev.Interface} (Type: {dev.DeviceType})')
-        if dev.DeviceType != NetworkManager.NM_DEVICE_TYPE_WIFI:
-            continue
-        
-        aps = dev.GetAccessPoints()
-        print(f'DEBUG: Found {len(aps)} access points on {dev.Interface}')
-        for ap in aps:
+    try:
+        with NM_LOCK:
+            devices = list(NetworkManager.NetworkManager.GetDevices())
+            for dev in devices:
+                print(f'DEBUG: Checking device: {dev.Interface} (Type: {dev.DeviceType})', flush=True)
+                if dev.DeviceType != NetworkManager.NM_DEVICE_TYPE_WIFI:
+                    continue
+                
+                aps = dev.GetAccessPoints()
+                print(f'DEBUG: Found {len(aps)} access points on {dev.Interface}', flush=True)
+                for ap in aps:
 
-            # Get Flags, WpaFlags and RsnFlags, all are bit OR'd combinations 
-            # of the NM_802_11_AP_SEC_* bit flags.
-            # https://developer.gnome.org/NetworkManager/1.2/nm-dbus-types.html#NM80211ApSecurityFlags
+                    # Get Flags, WpaFlags and RsnFlags
+                    security = NM_SECURITY_NONE
 
-            security = NM_SECURITY_NONE
+                    if ap.Flags & NetworkManager.NM_802_11_AP_FLAGS_PRIVACY and \
+                            ap.WpaFlags == NetworkManager.NM_802_11_AP_SEC_NONE and \
+                            ap.RsnFlags == NetworkManager.NM_802_11_AP_SEC_NONE:
+                        security = NM_SECURITY_WEP
 
-            # Based on a subset of the flag settings we can determine which
-            # type of security this AP uses.  
-            # We can also determine what input we need from the user to connect to
-            # any given AP (required for our dynamic UI form).
-            if ap.Flags & NetworkManager.NM_802_11_AP_FLAGS_PRIVACY and \
-                    ap.WpaFlags == NetworkManager.NM_802_11_AP_SEC_NONE and \
-                    ap.RsnFlags == NetworkManager.NM_802_11_AP_SEC_NONE:
-                security = NM_SECURITY_WEP
+                    if ap.WpaFlags != NetworkManager.NM_802_11_AP_SEC_NONE:
+                        security = NM_SECURITY_WPA
 
-            if ap.WpaFlags != NetworkManager.NM_802_11_AP_SEC_NONE:
-                security = NM_SECURITY_WPA
+                    if ap.RsnFlags != NetworkManager.NM_802_11_AP_SEC_NONE:
+                        security = NM_SECURITY_WPA2
 
-            if ap.RsnFlags != NetworkManager.NM_802_11_AP_SEC_NONE:
-                security = NM_SECURITY_WPA2
+                    if ap.WpaFlags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_802_1X or \
+                            ap.RsnFlags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_802_1X:
+                        security = NM_SECURITY_ENTERPRISE
 
-            if ap.WpaFlags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_802_1X or \
-                    ap.RsnFlags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_802_1X:
-                security = NM_SECURITY_ENTERPRISE
+                    # Decode our flag into a display string
+                    security_str = ''
+                    if security == NM_SECURITY_NONE:
+                        security_str = 'NONE'
+            
+                    if security & NM_SECURITY_WEP:
+                        security_str = 'WEP'
+            
+                    if security & NM_SECURITY_WPA:
+                        security_str = 'WPA'
+            
+                    if security & NM_SECURITY_WPA2:
+                        security_str = 'WPA2'
+            
+                    if security & NM_SECURITY_ENTERPRISE:
+                        security_str = 'ENTERPRISE'
 
-            #print(f'{ap.Ssid:15} Flags=0x{ap.Flags:X} WpaFlags=0x{ap.WpaFlags:X} RsnFlags=0x{ap.RsnFlags:X}')
+                    entry = {"ssid": ap.Ssid, "security": security_str}
+                    print(f'DEBUG: AP Found - SSID: "{ap.Ssid}", Security: {security_str}', flush=True)
 
-            # Decode our flag into a display string
-            security_str = ''
-            if security == NM_SECURITY_NONE:
-                security_str = 'NONE'
-    
-            if security & NM_SECURITY_WEP:
-                security_str = 'WEP'
-    
-            if security & NM_SECURITY_WPA:
-                security_str = 'WPA'
-    
-            if security & NM_SECURITY_WPA2:
-                security_str = 'WPA2'
-    
-            if security & NM_SECURITY_ENTERPRISE:
-                security_str = 'ENTERPRISE'
+                    if ssids.__contains__(entry):
+                        continue
 
-            entry = {"ssid": ap.Ssid, "security": security_str}
-            print(f'DEBUG: AP Found - SSID: "{ap.Ssid}", Security: {security_str}')
+                    if ap.Ssid.startswith('Rpi-'+os.uname()[1]):
+                        continue
 
-            # Don't add duplicates to the list, issue #8
-            if ssids.__contains__(entry):
-                continue
-
-            # Don't add other PFC's to the list!
-            if ap.Ssid.startswith('Rpi-'+os.uname()[1]):
-                continue
-
-            ssids.append(entry)
+                    ssids.append(entry)
+    except Exception as e:
+        print(f'Error getting access points: {e}', flush=True)
 
     # always add a hidden place holder
     ssids.append({"ssid": "Enter a hidden WiFi name", "security": "HIDDEN"})
 
-    print(f'DEBUG: Returning available SSIDs: {ssids}')
+    print(f'DEBUG: Returning available SSIDs: {ssids}', flush=True)
     return ssids
 
 
@@ -302,35 +303,38 @@ def _wait_for_wifi_device_ready(timeout=10):
         NetworkManager.NM_DEVICE_STATE_UNMANAGED,      # 10
         NetworkManager.NM_DEVICE_STATE_UNAVAILABLE,    # 20
     )
-    print("DEBUG: _wait_for_wifi_device_ready() starting...")
+    print("DEBUG: _wait_for_wifi_device_ready() starting...", flush=True)
     try:
-        devices = [d for d in NetworkManager.NetworkManager.GetDevices()]
+        with NM_LOCK:
+            devices = list(NetworkManager.NetworkManager.GetDevices())
+            
         for dev in devices:
             if dev.DeviceType == NetworkManager.NM_DEVICE_TYPE_WIFI:
-                print(f"DEBUG: Monitoring WiFi device {dev.Interface} (Initial state: {dev.State})")
+                print(f"DEBUG: Monitoring WiFi device {dev.Interface} (Initial state: {dev.State})", flush=True)
                 elapsed = 0
                 poll_interval = 0.25
                 while dev.State not in READY_STATES and elapsed < timeout:
                     # If stuck in FAILED (120), try a forced disconnect
                     if dev.State == 120:
                         try:
-                            print("DEBUG: Device in FAILED state, forcing disconnect...")
-                            dev.Disconnect()
+                            print("DEBUG: Device in FAILED state, forcing disconnect...", flush=True)
+                            with NM_LOCK:
+                                dev.Disconnect()
                         except:
                             pass
                     
                     if int(elapsed * 4) % 4 == 0:
-                        print(f'Waiting for {dev.Interface} to become ready (state={dev.State}, elapsed={elapsed:.1f}s)...')
+                        print(f'Waiting for {dev.Interface} to become ready (state={dev.State}, elapsed={elapsed:.1f}s)...', flush=True)
                     time.sleep(poll_interval)
                     elapsed += poll_interval
 
                 if elapsed > 0:
                     time.sleep(0.5)
-                print(f'{dev.Interface} device state: {dev.State} (waited {elapsed:.1f}s)')
+                print(f'{dev.Interface} device state: {dev.State} (waited {elapsed:.1f}s)', flush=True)
                 return
     except Exception as e:
-        print(f'Error waiting for wifi device: {e}')
-    print("DEBUG: _wait_for_wifi_device_ready() finished.")
+        print(f'Error waiting for wifi device: {e}', flush=True)
+    print("DEBUG: _wait_for_wifi_device_ready() finished.", flush=True)
 
 
 #------------------------------------------------------------------------------
@@ -489,53 +493,63 @@ def connect_to_AP(conn_type=None, conn_name=GENERIC_CONNECTION_NAME, \
         if conn_type != CONN_TYPE_HOTSPOT:
             stop_connection(conn_name)
 
-        NetworkManager.Settings.AddConnection(conn_dict)
-        print(f"Added connection {conn_name} of type {conn_str}")
+        with NM_LOCK:
+            NetworkManager.Settings.AddConnection(conn_dict)
+        print(f"Added connection {conn_name} of type {conn_str}", flush=True)
 
         # Now find this connection and its device
-        connections = NetworkManager.Settings.ListConnections()
-        connections = dict([(x.GetSettings()['connection']['id'], x) for x in connections])
-        conn = connections[conn_name]
+        with NM_LOCK:
+            connections = NetworkManager.Settings.ListConnections()
+            connections = dict([(x.GetSettings()['connection']['id'], x) for x in connections])
+            conn = connections[conn_name]
 
-        # Find a suitable device
-        ctype = conn.GetSettings()['connection']['type']
-        dtype = {'802-11-wireless': NetworkManager.NM_DEVICE_TYPE_WIFI}.get(ctype,ctype)
-        devices = NetworkManager.NetworkManager.GetDevices()
+            # Find a suitable device
+            ctype = conn.GetSettings()['connection']['type']
+            dtype = {'802-11-wireless': NetworkManager.NM_DEVICE_TYPE_WIFI}.get(ctype,ctype)
+            devices = list(NetworkManager.NetworkManager.GetDevices())
 
         for dev in devices:
             if dev.DeviceType == dtype:
                 break
         else:
-            print(f"connect_to_AP() Error: No suitable and available {ctype} device found.")
+            print(f"connect_to_AP() Error: No suitable and available {ctype} device found.", flush=True)
             return False
 
         # And connect
-        NetworkManager.NetworkManager.ActivateConnection(conn, dev, "/")
-        print(f"Activated connection={conn_name}.")
+        with NM_LOCK:
+            NetworkManager.NetworkManager.ActivateConnection(conn, dev, "/")
+        print(f"Activated connection={conn_name}.", flush=True)
 
         # Wait for ADDRCONF(NETDEV_CHANGE): wlan0: link becomes ready
-        print(f'Waiting for connection to become active...')
+        print(f'Waiting for connection to become active...', flush=True)
         elapsed = 0
         poll_interval = 0.25  # Poll every 250ms for responsiveness
         timeout = 10          # Max wait 10s for connection to stabilize
-        while dev.State != NetworkManager.NM_DEVICE_STATE_ACTIVATED and elapsed < timeout:
-            if dev.State == 120:  # NM_DEVICE_STATE_FAILED
-                print(f"Connection failed (state={dev.State})")
+        while elapsed < timeout:
+            with NM_LOCK:
+                current_state = dev.State
+            
+            if current_state == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
+                print(f'Connection {conn_name} is live.', flush=True)
+                return True
+            
+            if current_state == 120:  # NM_DEVICE_STATE_FAILED
+                print(f"Connection failed (state={current_state})", flush=True)
                 break
+            
             time.sleep(poll_interval)
             elapsed += poll_interval
 
-        if dev.State == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
-            print(f'Connection {conn_name} is live.')
-            return True
-        else:
-            # If we timed out or failed, force a disconnect to stop NM's internal retry loop.
-            # This brings the hardware back to a ready state much faster.
-            print(f"Connection {conn_name} did not activate in time. Forcing device disconnect...")
-            try:
+        if elapsed >= timeout:
+             print(f"Connection {conn_name} timed out.", flush=True)
+
+        # If we timed out or failed, force a disconnect
+        print(f"Forcing device disconnect...", flush=True)
+        try:
+            with NM_LOCK:
                 dev.Disconnect()
-            except Exception as e:
-                print(f"Note: Force disconnect call failed (this is often normal if already disconnected): {e}")
+        except Exception as e:
+            print(f"Note: Force disconnect call failed: {e}", flush=True)
 
     except Exception as e:
         print(f'Connection error {e}')
