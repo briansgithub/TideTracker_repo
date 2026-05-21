@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import time
 from PIL import Image
 from app.utils import paths
 
@@ -33,6 +34,8 @@ def run_error_display():
             epd = epd7in5_V2.EPD()
             epd.init()
             epd.display(epd.getbuffer(plot_image))
+            logging.info("Error screen hardware refresh triggered, waiting 15s...")
+            time.sleep(15) # Safety delay for physical drawing
             logging.info("EPD Go to Sleep...")
             epd.sleep()
         else:
