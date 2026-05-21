@@ -36,5 +36,10 @@ plot_image.paste(error_image, (paste_x, paste_y))
 
 epd.display(epd.getbuffer(plot_image))
 
+# MANDATORY: Wait for physical refresh to finish before power-off
+import time
+logging.info("Waiting 15s for physical e-ink refresh...")
+time.sleep(15)
+
 logging.info("EPD Go to Sleep...")
 epd.sleep() 

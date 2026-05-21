@@ -126,7 +126,9 @@ try:
         logging.info('RUN mode: cleaning up hotspot before internet check')
         http_server.cleanup()
 
-        # sleep time removed. Cron job set to start 50s after boot
+        # Give the WiFi hardware time to reconnect to the router after hotspot cleanup
+        logging.info('Waiting 5s for WiFi to settle...')
+        time.sleep(5)
         
         if netman.have_active_internet_connection():
             logging.info(f'RUN mode: internet available, running tides script')
@@ -152,24 +154,29 @@ except Exception as e:
     exit_code = 1
 
 finally:
-    # 1. ALWAYS pulse the DONE pin as early as possible to respect the TPL5110's 2-minute window.
-    # We do this before potentially slow cleanup tasks.
+    # 1. Reconnect to saved WiFi if we exited gracefully
+    # This ensures the Pi returns to a client state if it doesn't lose power immediately.
+    reconnect_to_saved_wifi()
+
+    # 2. Cleanup GPIO and resources
+    GPIO.cleanup()
+
+    # 3. ALWAYS pulse the DONE pin as the VERY LAST step.
+    # We do this after all cleanup and delays to ensure the e-ink screen has finished drawing.
     try:
-        logging.info('Sending DONE pulse to TPL5110')
+        logging.info('Sending DONE pulse to TPL5110 (Powering Off)')
+        # Re-initialize the done_pin just in case cleanup() wiped it
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(done_pin, GPIO.OUT)
+        
         GPIO.output(done_pin, GPIO.LOW)
-        time.sleep(0.5)  # 500 ms delay
+        time.sleep(0.5)
         GPIO.output(done_pin, GPIO.HIGH)
-        time.sleep(0.5)  # 500 ms delay
+        time.sleep(0.5)
         GPIO.output(done_pin, GPIO.LOW)
     except Exception as e:
         logging.error(f"Failed to pulse DONE pin: {e}")
 
-    # 2. Reconnect to saved WiFi if we exited gracefully
-    # This ensures the Pi returns to a client state if it doesn't lose power immediately.
-    reconnect_to_saved_wifi()
-
-    # 3. Cleanup GPIO and resources
-    GPIO.cleanup()
     logging.info('========== boot_sense.py finished ==========')
 
 

@@ -584,16 +584,11 @@ if __name__ == "__main__":
             plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp'))
             plot_image = plot_image.transpose(Image.ROTATE_180)
             epd.display(epd.getbuffer(plot_image))
-            #time.sleep(2)
-
-            ### # Initialize a canvas. Open a file and display it on the canvas. 
-            ### logging.info("4. Create composite images")
-            ### Himage2 = Image.new('1', (epd.width, epd.height), 255)  # 255: clear the frame
-            ### bmp = Image.open(os.path.join(picdir, '100x100.bmp'))
-            ### Himage2.paste(bmp, (50,10))
-            ### epd.display(epd.getbuffer(Himage2))
-            ### time.sleep(2)
-
+            
+            # MANDATORY: Wait for physical refresh to finish before power-off
+            print_debug("Waiting 15s for physical e-ink refresh...")
+            import time
+            time.sleep(15)
 
             print_debug("Going to sleep...")
 
