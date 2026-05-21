@@ -9,6 +9,15 @@ from io import BytesIO
 import netman
 import dnsmasq
 
+# Global Debug Flag
+DEBUG_MODE = False
+
+def dprint(*args, **kwargs):
+    if DEBUG_MODE:
+        if 'flush' not in kwargs:
+            kwargs['flush'] = True
+        print(*args, **kwargs)
+
 # Defaults
 ADDRESS = '0.0.0.0'
 GATEWAY_ADDRESS = '192.168.42.1'
@@ -106,12 +115,12 @@ def launch_ap_sequence(ssids_list, status_dict):
     # Wait for hardware to settle before scanning    time.sleep(1)
     
     # Refresh SSID list
-    print("DEBUG: Scanning for available WiFi networks...")
+    dprint("DEBUG: Scanning for available WiFi networks...")
     ssids_list.clear()
     ssids_list.extend(netman.get_list_of_access_points())
     
     # Refresh status snapshot
-    print("DEBUG: Capturing connection status snapshot...")
+    dprint("DEBUG: Capturing connection status snapshot...")
     status_dict.update({
         'ssid': netman.get_connected_ssid(),
         'has_internet': netman.have_active_internet_connection(),
@@ -160,7 +169,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
         # See if this is a specific request, otherwise let the server handle it.
         def do_GET(self):
 
-            print(f'DEBUG: do_GET request path: {self.path}')
+            dprint(f'DEBUG: do_GET request path: {self.path}')
 
             # Handle the hotspot starting and a computer connecting to it,
             # we have to return a redirect to the gateway to get the 
@@ -191,12 +200,12 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
 
             # Handle a REST API request to return the list of SSIDs
             if '/networks' == self.path:
-                print(f'DEBUG: Handling /networks request')
+                dprint(f'DEBUG: Handling /networks request')
                 self.send_response(200)
                 self.end_headers()
                 response = BytesIO()
                 ssids = self.ssids # passed in to the class factory
-                print(f'DEBUG: Serving {len(ssids)} SSIDs: {ssids}')
+                dprint(f'DEBUG: Serving {len(ssids)} SSIDs: {ssids}')
                 """ map whatever we get from net man to our constants:
                 Security:
                     NONE         
@@ -242,8 +251,8 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
         def do_POST(self):
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length)
-            print(f'DEBUG: do_POST request path: {self.path}')
-            print(f'DEBUG: do_POST body: {body.decode("utf-8")}')
+            dprint(f'DEBUG: do_POST request path: {self.path}')
+            dprint(f'DEBUG: do_POST body: {body.decode("utf-8")}')
             
             self.send_response(200)
             self.end_headers()
@@ -259,27 +268,27 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
             # /update_station — Save NOAA station ID (merge with existing data)
             # ----------------------------------------------------------
             if self.path == '/update_station':
-                print(f'DEBUG: Handling /update_station')
+                dprint(f'DEBUG: Handling /update_station')
                 FORM_STATION = 'station'
                 if FORM_STATION in fields:
                     station_id = fields[FORM_STATION][0]
-                    print(f'DEBUG: Received station_id: {station_id}')
+                    dprint(f'DEBUG: Received station_id: {station_id}')
                     # Read existing data and merge
                     existing_data = {}
                     if os.path.exists(persistent_data_path):
                         try:
                             with open(persistent_data_path, 'r') as f:
                                 existing_data = json.load(f)
-                            print(f'DEBUG: Loaded existing data: {existing_data}')
+                            dprint(f'DEBUG: Loaded existing data: {existing_data}')
                         except Exception as e:
-                            print(f'DEBUG: Error loading existing data: {e}')
+                            dprint(f'DEBUG: Error loading existing data: {e}')
                     existing_data['station_id'] = station_id
                     try:
                         with open(persistent_data_path, 'w') as json_file:
                             json.dump(existing_data, json_file)
-                        print(f"DEBUG: Station ID ({station_id}) saved successfully to {persistent_data_path}")
+                        dprint(f"DEBUG: Station ID ({station_id}) saved successfully to {persistent_data_path}")
                     except Exception as e:
-                        print(f'DEBUG: Error saving station_id: {e}')
+                        dprint(f'DEBUG: Error saving station_id: {e}')
                     print(f"\nStation ID ({station_id}) has been saved to {persistent_data_path}\n")
                     response.write(b'OK\n')
                     self.wfile.write(response.getvalue())
@@ -300,20 +309,20 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
             # /connect — Save WiFi credentials (does NOT stop the hotspot)
             # ----------------------------------------------------------
             if self.path == '/connect':
-                print(f'DEBUG: Handling /connect')
+                dprint(f'DEBUG: Handling /connect')
                 FORM_SSID = 'ssid'
                 FORM_HIDDEN_SSID = 'hidden-ssid'
                 FORM_USERNAME = 'identity'
                 FORM_PASSWORD = 'passphrase'
 
                 if FORM_SSID not in fields:
-                    print(f'DEBUG: Error - POST /connect is missing {FORM_SSID} field. Fields: {fields}')
+                    dprint(f'DEBUG: Error - POST /connect is missing {FORM_SSID} field. Fields: {fields}')
                     response.write(b'ERROR: Missing ssid\n')
                     self.wfile.write(response.getvalue())
                     return
 
                 ssid = fields[FORM_SSID][0]
-                print(f'DEBUG: SSID from form: {ssid}')
+                dprint(f'DEBUG: SSID from form: {ssid}')
                 password = None
                 username = None
 
@@ -345,9 +354,9 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                     try:
                         with open(persistent_data_path, 'r') as f:
                             existing_data = json.load(f)
-                        print(f'DEBUG: Loaded existing data for connect: {existing_data}')
+                        dprint(f'DEBUG: Loaded existing data for connect: {existing_data}')
                     except Exception as e:
-                        print(f'DEBUG: Error loading existing data for connect: {e}')
+                        dprint(f'DEBUG: Error loading existing data for connect: {e}')
                 # Mark status as 'testing' immediately so the UI can update
                 pre_status.update({'ssid': ssid, 'has_internet': None, 'testing': True})
 
