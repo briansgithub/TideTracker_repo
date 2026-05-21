@@ -453,7 +453,8 @@ def plot_data(data, now_dtz):
     from io import BytesIO
 
     buffer = BytesIO()
-    plt.savefig(buffer, format='png', dpi=600)
+    # Reduced DPI from 600 to 120 to save significant RAM on Pi Zero W
+    plt.savefig(buffer, format='png', dpi=120)
     buffer.seek(0)
     img = Image.open(buffer)
 
