@@ -235,7 +235,7 @@ def plot_data(data, now_dtz):
 
     from io import BytesIO
     buffer = BytesIO()
-    plt.savefig(buffer, format='png', dpi=100) # Reduced DPI to save RAM
+    plt.savefig(buffer, format='png', dpi=600)
     plt.close('all') # Critical: Free matplotlib memory
     gc.collect()
 
