@@ -38,5 +38,24 @@ The captive portal provides the option to select a WiFi SSID from a list with de
 
 When the network credentials have been entered, WiFi Connect will disable the access point and try to connect to the network. If the connection fails, it will enable the access point for another attempt. If it succeeds, the configuration will be saved by NetworkManager.
 
-# Details
-* [Installation and Demo](https://youtu.be/kttueMbMtCQ)
+# Technical Implementation: Threading and Synchronization
+
+### Why Threads are Used
+This application uses the `threading` module to manage the transition between Access Point (AP) mode and Station (client) mode. 
+
+WiFi management is a **blocking and destructive** process. When a user submits new credentials via the web UI:
+1. The HTTP server must send a "TESTING" response to the browser immediately so the user sees a confirmation.
+2. If this were done synchronously, the server would call `stop_hotspot()` before sending the response, instantly killing the connection and leaving the user with a browser error.
+3. By spawning a **background thread**, the server can respond to the user first, and then proceed to tear down the hotspot and test the new credentials.
+
+### The NM_LOCK (Thread Safety)
+Because the HTTP server remains active (listening for status polls) while the background thread interacts with the WiFi hardware, there is a risk of **deadlocks or race conditions** within the NetworkManager DBus interface.
+
+The `NM_LOCK` in `netman.py` ensures that only one thread can communicate with NetworkManager at a time. This synchronizes:
+* **Background tests**: Connecting, deactivating, and falling back.
+* **UI Status updates**: Periodic scanning and connection status checks.
+
+### Persistent Fallback Mechanism
+To improve reliability, the system maintains a "last known working" WiFi profile in `tidetracker_persistent_data.json`.
+* **Auto-Capture**: On startup, the script attempts to "remember" the current working WiFi connection.
+* **Automatic Fallback**: If a new connection attempt fails (due to an incorrect password or lack of internet), the background thread will automatically attempt to restore the previous working connection before deciding whether to relaunch the hotspot.
