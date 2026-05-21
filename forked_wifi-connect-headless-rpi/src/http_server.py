@@ -356,6 +356,14 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                 # Run the connection test in the background so the HTTP response
                 # is delivered before the hotspot goes down.
                 def _run_wifi_test():
+                    def wait_for_internet(retries=4, delay=2):
+                        for i in range(retries):
+                            if netman.have_active_internet_connection():
+                                return True
+                            if i < retries - 1:
+                                time.sleep(delay)
+                        return False
+
                     print(f"\n[WiFi Test] Stopping hotspot and dnsmasq to test credentials for '{ssid}'...")
                     dnsmasq.stop()
                     netman.stop_hotspot()
@@ -368,7 +376,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
 
                     has_internet = False
                     if connected:
-                        has_internet = netman.have_active_internet_connection()
+                        has_internet = wait_for_internet()
                         print(f"[WiFi Test] Connected. Has internet: {has_internet}")
                         
                         if has_internet:
@@ -410,7 +418,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                             conn_type=fallback_conn_type, ssid=fallback_ssid,
                             username=fallback_username, password=fallback_password
                         )
-                        if fallback_connected and netman.have_active_internet_connection():
+                        if fallback_connected and wait_for_internet():
                             print(f"[WiFi Test] Fallback successful! Exiting setup.")
                             os._exit(0)
                         else:
