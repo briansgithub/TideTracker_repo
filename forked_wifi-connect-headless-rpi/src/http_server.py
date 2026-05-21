@@ -15,6 +15,11 @@ GATEWAY_ADDRESS = '192.168.42.1'
 PORT = 80
 UI_PATH = '../ui'
 
+PERSISTENT_DATA_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+    'tidetracker_persistent_data.json'
+)
+
 
 #------------------------------------------------------------------------------
 # called at exit
@@ -248,11 +253,6 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
             response = BytesIO()
             fields = parse_qs(body.decode('utf-8'))
 
-            persistent_data_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
-                'tidetracker_persistent_data.json'
-            )
-
             # ----------------------------------------------------------
             # /update_station — Save NOAA station ID (merge with existing data)
             # ----------------------------------------------------------
@@ -264,21 +264,21 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                     print(f'DEBUG: Received station_id: {station_id}')
                     # Read existing data and merge
                     existing_data = {}
-                    if os.path.exists(persistent_data_path):
+                    if os.path.exists(PERSISTENT_DATA_PATH):
                         try:
-                            with open(persistent_data_path, 'r') as f:
+                            with open(PERSISTENT_DATA_PATH, 'r') as f:
                                 existing_data = json.load(f)
                             print(f'DEBUG: Loaded existing data: {existing_data}')
                         except Exception as e:
                             print(f'DEBUG: Error loading existing data: {e}')
                     existing_data['station_id'] = station_id
                     try:
-                        with open(persistent_data_path, 'w') as json_file:
+                        with open(PERSISTENT_DATA_PATH, 'w') as json_file:
                             json.dump(existing_data, json_file)
-                        print(f"DEBUG: Station ID ({station_id}) saved successfully to {persistent_data_path}")
+                        print(f"DEBUG: Station ID ({station_id}) saved successfully to {PERSISTENT_DATA_PATH}")
                     except Exception as e:
                         print(f'DEBUG: Error saving station_id: {e}')
-                    print(f"\nStation ID ({station_id}) has been saved to {persistent_data_path}\n")
+                    print(f"\nStation ID ({station_id}) has been saved to {PERSISTENT_DATA_PATH}\n")
                     response.write(b'OK\n')
                     self.wfile.write(response.getvalue())
 
@@ -339,9 +339,9 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
 
                 # Read existing data and merge
                 existing_data = {}
-                if os.path.exists(persistent_data_path):
+                if os.path.exists(PERSISTENT_DATA_PATH):
                     try:
-                        with open(persistent_data_path, 'r') as f:
+                        with open(PERSISTENT_DATA_PATH, 'r') as f:
                             existing_data = json.load(f)
                         print(f'DEBUG: Loaded existing data for connect: {existing_data}')
                     except Exception as e:
@@ -369,7 +369,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                     has_internet = False
                     if connected:
                         has_internet = netman.have_active_internet_connection()
-                        print(f"[WiFi Test] Connected. Has internet: {has_internet}")
+                        print(f"[WiFi Test] Connected to NEW. Has internet: {has_internet}")
                         
                         if has_internet:
                             print(f"\033[92m[WiFi Test] Internet connection successful! Keeping connection active and NOT restarting hotspot.\033[0m")
@@ -380,9 +380,9 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                             existing_data['wifi_conn_type'] = conn_type
                             
                             try:
-                                with open(persistent_data_path, 'w') as json_file:
+                                with open(PERSISTENT_DATA_PATH, 'w') as json_file:
                                     json.dump(existing_data, json_file)
-                                print(f"DEBUG: WiFi credentials for '{ssid}' saved successfully to {persistent_data_path}")
+                                print(f"DEBUG: WiFi credentials for '{ssid}' saved successfully to {PERSISTENT_DATA_PATH}")
                             except Exception as e:
                                 print(f'DEBUG: Error saving WiFi credentials: {e}')
 
@@ -396,7 +396,31 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                         netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
                     else:
                         print(f"[WiFi Test] Could not connect to '{ssid}'. Tearing down failing connection...")
-                        netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
+                        netman.sop_connection(netman.GENERIC_CONNECTION_NAME)
+
+                    # --- FALLBACK LOGIC ---
+                    old_ssid = existing_data.get('wifi_ssid')
+                    if old_ssid and old_ssid != ssid:
+                        print(f"[WiFi Test] Attempting fallback to most recently working WiFi: '{old_ssid}'...")
+                        old_password = existing_data.get('wifi_password')
+                        old_username = existing_data.get('wifi_username')
+                        old_conn_type = existing_data.get('wifi_conn_type', netman.CONN_TYPE_SEC_NONE)
+                        
+                        fallback_connected = netman.connect_to_AP(
+                            conn_type=old_conn_type, ssid=old_ssid,
+                            username=old_username, password=old_password
+                        )
+                        
+                        if fallback_connected and netman.have_active_internet_connection():
+                            print(f"\033[92m[WiFi Test] Fallback successful! Connected back to '{old_ssid}'.\033[0m")
+                            # Update the status dict to reflect we are back on the old SSID
+                            pre_status.update({'ssid': old_ssid, 'has_internet': True, 'testing': False})
+                            os._exit(0)
+                        else:
+                            print(f"[WiFi Test] Fallback to '{old_ssid}' failed. Returning to hotspot mode.")
+                            netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
+                    else:
+                        print(f"[WiFi Test] No alternative working credentials found for fallback.")
 
                     # Restart the hotspot using the unified sequence
                     launch_ap_sequence(self.ssids, self.pre_status)
@@ -458,14 +482,10 @@ def main(address, port, ui_path, rcode, delete_connections, force_setup):
         netman.stop_hotspot()
         httpd.server_close()
 
-        persistent_data_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
-            'tidetracker_persistent_data.json'
-        )
         saved_data = {}
-        if os.path.exists(persistent_data_path):
+        if os.path.exists(PERSISTENT_DATA_PATH):
             try:
-                with open(persistent_data_path, 'r') as f:
+                with open(PERSISTENT_DATA_PATH, 'r') as f:
                     saved_data = json.load(f)
             except Exception:
                 pass
