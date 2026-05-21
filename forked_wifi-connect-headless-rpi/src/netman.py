@@ -74,7 +74,7 @@ def load_last_successful_credentials():
 def reconnect_to_last_wifi():
     creds = load_last_successful_credentials()
     if creds and creds.get('ssid'):
-        print(f'Attempting to reconnect to last working WiFi: {creds["ssid"]}')
+        print(f'Attempting to reconnect to last working WiFi: {creds["ssid"]}', flush=True)
         return connect_to_AP(
             conn_type=creds.get('conn_type', CONN_TYPE_SEC_NONE),
             ssid=creds.get('ssid'),
@@ -82,8 +82,72 @@ def reconnect_to_last_wifi():
             password=creds.get('password')
         )
     else:
-        print('No saved WiFi credentials found for reconnection.')
+        print('No saved WiFi credentials found for reconnection.', flush=True)
         return False
+
+
+#------------------------------------------------------------------------------
+# Try to capture and save the currently active WiFi connection's credentials.
+# This is used at startup to ensure we have a fallback if the first test fails.
+def capture_and_save_current_connection():
+    try:
+        with NM_LOCK:
+            active_connections = list(NetworkManager.NetworkManager.ActiveConnections)
+            for active in active_connections:
+                try:
+                    settings = active.Connection.GetSettings()
+                    conn_settings = settings.get('connection', {})
+                    if conn_settings.get('type') != '802-11-wireless':
+                        continue
+                    
+                    wifi_settings = settings.get('802-11-wireless', {})
+                    if wifi_settings.get('mode') != 'infrastructure':
+                        continue
+                        
+                    ssid = wifi_settings.get('ssid')
+                    if not ssid:
+                        continue
+                        
+                    # We have an active WiFi client connection. Try to get the secrets.
+                    # Note: GetSecrets might fail if the user doesn't have permissions,
+                    # but since we are running as root/sudo it should work.
+                    try:
+                        secrets = active.Connection.GetSecrets('802-11-wireless-security')
+                        wifi_sec = secrets.get('802-11-wireless-security', {})
+                    except Exception:
+                        wifi_sec = settings.get('802-11-wireless-security', {})
+
+                    password = wifi_sec.get('psk')
+                    
+                    # Determine connection type
+                    conn_type = CONN_TYPE_SEC_NONE
+                    if password:
+                        conn_type = CONN_TYPE_SEC_PASSWORD
+                    
+                    # Check for enterprise
+                    if '802-1x' in settings:
+                        conn_type = CONN_TYPE_SEC_ENTERPRISE
+                        # In some versions of NM, secrets for 802-1x are in a different call
+                        try:
+                            ex_secrets = active.Connection.GetSecrets('802-1x')
+                            password = ex_secrets.get('802-1x', {}).get('password', password)
+                        except:
+                            pass
+                    
+                    if have_active_internet_connection():
+                        print(f"Auto-saving currently active connection '{ssid}' as fallback.")
+                        save_last_successful_credentials(
+                            ssid=ssid,
+                            password=password,
+                            username=settings.get('802-1x', {}).get('identity'),
+                            conn_type=conn_type
+                        )
+                        return True
+                except Exception as e:
+                    print(f"DEBUG: capture_and_save_current_connection iteration error: {e}")
+    except Exception as e:
+        print(f"Error capturing current connection: {e}")
+    return False
 
 
 #------------------------------------------------------------------------------
