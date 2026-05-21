@@ -2,11 +2,11 @@ import os, getopt, sys, json, atexit, subprocess, time, threading
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import parse_qs
 from io import BytesIO
-import tt_utils
+from app.utils import paths, config
 
 # Local modules
-import netman
-import dnsmasq
+from . import manager as netman
+from . import services as dnsmasq
 
 # Global Debug Flag
 DEBUG_MODE = False
@@ -21,7 +21,7 @@ def dprint(*args, **kwargs):
 ADDRESS = '0.0.0.0'
 GATEWAY_ADDRESS = '192.168.42.1'
 PORT = 80
-UI_PATH = str(tt_utils.WIFI_DIR / "ui")
+UI_PATH = str(paths.UI_DIR)
 
 
 #------------------------------------------------------------------------------
@@ -273,7 +273,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                     station_id = fields[FORM_STATION][0]
                     dprint(f'DEBUG: Received station_id: {station_id}')
                     
-                    if tt_utils.save_config({'station_id': station_id}):
+                    if config.save_config({'station_id': station_id}):
                         dprint(f"DEBUG: Station ID ({station_id}) saved successfully")
                     
                     print(f"\nStation ID ({station_id}) has been saved.\n")

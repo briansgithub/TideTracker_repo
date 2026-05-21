@@ -1,25 +1,22 @@
-#!/usr/bin/python
-# -*- coding:utf-8 -*-
-
 import os
 import sys
 import logging
 from PIL import Image
-import tt_utils
+from app.utils import paths
 
 def run_error_display():
-    if tt_utils.IS_RPI:
+    if paths.IS_RPI:
         from waveshare_epd import epd7in5_V2
     
-    maindir = tt_utils.ROOT_DIR
+    maindir = paths.ROOT_DIR
     
     logging.info("epd7in5_V2 Paste over error message")
     
     try:
-        plot_image = Image.open(os.path.join(maindir, 'plot_image.bmp')).convert("RGB")
+        plot_image = Image.open(paths.RESOURCES_DIR / 'plot_image.bmp').convert("RGB")
         plot_image = plot_image.transpose(Image.ROTATE_180)
 
-        error_image = Image.open(os.path.join(maindir, 'no_wifi.bmp')).convert("RGB")
+        error_image = Image.open(paths.RESOURCES_DIR / 'no_wifi.bmp').convert("RGB")
         error_image = error_image.transpose(Image.ROTATE_180)
 
         # Draw image in center of screen
@@ -32,7 +29,7 @@ def run_error_display():
 
         plot_image.paste(error_image, (paste_x, paste_y))
 
-        if tt_utils.IS_RPI:
+        if paths.IS_RPI:
             epd = epd7in5_V2.EPD()
             epd.init()
             epd.display(epd.getbuffer(plot_image))

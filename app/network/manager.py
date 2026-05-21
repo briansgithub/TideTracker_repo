@@ -6,7 +6,7 @@
 
 import NetworkManager
 import uuid, os, sys, time, socket, json, threading
-import tt_utils
+from app.utils import paths, config
 
 # This is needed to work with NetworkManager 1.30.6 and python-networkmanager 2.2      
 from dbus.mainloop.glib import DBusGMainLoop
@@ -30,7 +30,7 @@ HOTSPOT_CONNECTION_NAME = 'hotspot'
 GENERIC_CONNECTION_NAME = 'python-wifi-connect'
 
 # Persistent data path from shared utils
-PERSISTENT_DATA_PATH = str(tt_utils.PERSISTENT_DATA_PATH)
+PERSISTENT_DATA_PATH = str(paths.PERSISTENT_DATA_PATH)
 
 
 #------------------------------------------------------------------------------
@@ -42,14 +42,14 @@ def save_last_successful_credentials(ssid, password=None, username=None, conn_ty
         'wifi_username': username,
         'wifi_conn_type': conn_type
     }
-    if tt_utils.save_config(data):
+    if config.save_config(data):
         print(f'Saved successful WiFi credentials for "{ssid}" to {PERSISTENT_DATA_PATH}')
 
 
 #------------------------------------------------------------------------------
 # Load the last successful credentials from the persistent file.
 def load_last_successful_credentials():
-    data = tt_utils.load_config()
+    data = config.load_config()
     if data:
         return {
             'ssid': data.get('wifi_ssid'),
