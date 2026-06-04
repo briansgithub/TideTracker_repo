@@ -65,6 +65,10 @@ fi
 # Add settings to config file
 echo "disable_splash=1" | sudo tee -a "$CONFIG_FILE"
 echo "boot_delay=0" | sudo tee -a "$CONFIG_FILE"
+
+# Set the system hostname to 'tidetracker'
+sudo raspi-config nonint do_hostname tidetracker
+
 echo "dtoverlay=disable-bt" | sudo tee -a "$CONFIG_FILE"
 # Check if running as root
 echo "dtparam=act_led_trigger=none" | sudo tee -a "$CONFIG_FILE" 
@@ -94,11 +98,12 @@ echo -e "\n##### END SETUP: PYTHON INSTALL #####\n"
 
 
 ### Fix NUMPY install
-echo -e "\n##### SETUP: FIX NUMPY INSTALL #####\n" 
+echo -e "\n##### SETUP: FIX NUMPY INSTALL #####\n"
 sudo apt-get install -y libopenblas-dev
-sudo pip3 install --force-reinstall numpy
+# Downgrade and pin NumPy to the 1.x series to match system Matplotlib
+sudo pip3 install --force-reinstall "numpy<2"
 ### not executed, may not be neessary ### export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/openblas-base
-echo -e "\n##### END SETUP: FIX NUMPY INSTALL #####\n" 
+echo -e "\n##### END SETUP: FIX NUMPY INSTALL #####\n"
 
 
 
