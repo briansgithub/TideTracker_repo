@@ -393,23 +393,6 @@
             </div>
           </div>
 
-          <!-- New paragraph below the submit button -->
-          <div class="row">
-            <div class="col-lg-8 col-lg-offset-1">
-              <p><br><strong>Note:</strong>
-                <br>The tide prediction data is fetched from NOAA.gov<br>
-                NOAA tide prediction data does not take weather events into account.
-                <br><br>
-                The values on the graph's y-axis represent the height of the water relative to an established
-                elevation reference point.
-                The reference point used for this project is the mean lower low water (MLLW) level, which is the
-                standard
-                water level reference point used for maritime navigation.
-                The MLLW is defined as the average low tide level over the past measurement period (typically 19 years).
-              </p>
-            </div>
-          </div>
-
         </form>
       </div>
     </div>
@@ -464,17 +447,43 @@
                   <input type="checkbox" id="no-password-checkbox"> No password
                 </label>
               </div>
+              <div class="checkbox" style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                <label style="color: #a94442; font-weight: bold;">
+                  <input type="checkbox" id="force-update-checkbox" name="force-update"> Force credentials update
+                </label>
+                <p class="help-block" style="font-size: 0.85em;">(Saves credentials without testing; keeps this portal open)</p>
+              </div>
             </div>
           </div>
           <div class="form-group">
             <div class="col-lg-6 col-lg-offset-1 text-center">
               <button type='submit' id='wifiSubmitBtn' class='btn btn-success btn-lg' style="width: 100%; font-weight: bold;" disabled>Update WiFi</button>
+              <div style="margin-top: 15px;">
+                <button type="button" id="testWifiBtn" class="btn btn-primary" style="width: 100%;">Test Saved Credentials</button>
+              </div>
               <span id="wifi-confirm-msg"
                 style="display: none; color: green; font-weight: bold; margin-left: 15px;">WiFi settings updated!</span>
             </div>
           </div>
         </form>
 
+      </div>
+    </div>
+
+    <!-- Move the Note section to the bottom, outside any forms -->
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-1">
+        <p><br><strong>Note:</strong>
+          <br>The tide prediction data is fetched from NOAA.gov<br>
+          NOAA tide prediction data does not take weather events into account.
+          <br><br>
+          The values on the graph's y-axis represent the height of the water relative to an established
+          elevation reference point.
+          The reference point used for this project is the mean lower low water (MLLW) level, which is the
+          standard
+          water level reference point used for maritime navigation.
+          The MLLW is defined as the average low tide level over the past measurement period (typically 19 years).
+        </p>
       </div>
     </div>
 

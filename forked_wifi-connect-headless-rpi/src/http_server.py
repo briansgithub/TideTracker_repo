@@ -305,6 +305,57 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                 return
 
             # ----------------------------------------------------------
+            # /test_saved_credentials — Test currently saved WiFi
+            # ----------------------------------------------------------
+            if self.path == '/test_saved_credentials':
+                dprint(f'DEBUG: Handling /test_saved_credentials')
+                
+                creds = netman.load_last_successful_credentials()
+                if not creds or not creds.get('ssid'):
+                    response.write(b'ERROR: No saved credentials\n')
+                    self.wfile.write(response.getvalue())
+                    return
+
+                ssid = creds['ssid']
+                password = creds.get('password')
+                username = creds.get('username')
+                conn_type = creds.get('conn_type', netman.CONN_TYPE_SEC_NONE)
+
+                # Mark status as 'testing' immediately
+                self.pre_status.update({'ssid': ssid, 'has_internet': None, 'testing': True})
+
+                response.write(b'TESTING\n')
+                self.wfile.write(response.getvalue())
+
+                # Reuse the WiFi test logic
+                def _run_saved_wifi_test():
+                    try:
+                        print(f"\n[Saved WiFi Test] Starting test for '{ssid}'...")
+                        dnsmasq.stop()
+                        netman.stop_hotspot()
+
+                        connected = netman.connect_to_AP(
+                            conn_type=conn_type, ssid=ssid,
+                            username=username, password=password
+                        )
+
+                        if connected and netman.have_active_internet_connection():
+                            print(f"\033[92m[Saved WiFi Test] Success!\033[0m")
+                            self.pre_status.update({'ssid': ssid, 'has_internet': True, 'testing': False})
+                        else:
+                            print(f"[Saved WiFi Test] Failed.")
+                            netman.stop_connection(netman.GENERIC_CONNECTION_NAME)
+                            self.pre_status.update({'ssid': ssid, 'has_internet': False, 'testing': False})
+
+                        launch_ap_sequence(self.ssids, self.pre_status)
+                    except Exception as e:
+                        print(f"[Saved WiFi Test] Error: {e}")
+                        launch_ap_sequence(self.ssids, self.pre_status)
+
+                threading.Thread(target=_run_saved_wifi_test, daemon=True).start()
+                return
+
+            # ----------------------------------------------------------
             # /connect — Save WiFi credentials (does NOT stop the hotspot)
             # ----------------------------------------------------------
             if self.path == '/connect':
@@ -313,6 +364,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                 FORM_HIDDEN_SSID = 'hidden-ssid'
                 FORM_USERNAME = 'identity'
                 FORM_PASSWORD = 'passphrase'
+                FORM_FORCE_UPDATE = 'force-update'
 
                 if FORM_SSID not in fields:
                     dprint(f'DEBUG: Error - POST /connect is missing {FORM_SSID} field. Fields: {fields}')
@@ -324,6 +376,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                 dprint(f'DEBUG: SSID from form: {ssid}')
                 password = None
                 username = None
+                force_update = FORM_FORCE_UPDATE in fields
 
                 if FORM_HIDDEN_SSID in fields:
                     ssid = fields[FORM_HIDDEN_SSID][0]
@@ -347,6 +400,14 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                             conn_type = netman.CONN_TYPE_SEC_PASSWORD
                         break
 
+                if force_update:
+                    print(f"[Connect] Force Update checked. Saving credentials for '{ssid}' and skipping test.")
+                    netman.save_last_successful_credentials(ssid, password, username, conn_type)
+                    self.pre_status.update({'ssid': ssid, 'has_internet': False, 'testing': False})
+                    response.write(b'SAVED\n')
+                    self.wfile.write(response.getvalue())
+                    return
+
                 # Read existing data and merge
                 existing_data = {}
                 if os.path.exists(persistent_data_path):
@@ -357,7 +418,7 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                     except Exception as e:
                         dprint(f'DEBUG: Error loading existing data for connect: {e}')
                 # Mark status as 'testing' immediately so the UI can update
-                pre_status.update({'ssid': ssid, 'has_internet': None, 'testing': True})
+                self.pre_status.update({'ssid': ssid, 'has_internet': None, 'testing': True})
 
                 # Respond to the client before the hotspot is torn down
                 response.write(b'TESTING\n')
