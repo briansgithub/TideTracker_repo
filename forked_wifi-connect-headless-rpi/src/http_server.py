@@ -297,12 +297,6 @@ def RequestHandlerClassFactory(address, ssids, rcode, pre_status=None):
                     print(f"\nStation ID ({station_id}) has been saved to {persistent_data_path}\n")
                     response.write(b'OK\n')
                     self.wfile.write(response.getvalue())
-
-                    # Requirement: relaunch hotspot after station update
-                    def _relaunch_hotspot():
-                        launch_ap_sequence(self.ssids, self.pre_status)
-                    
-                    threading.Thread(target=_relaunch_hotspot, daemon=True).start()
                     return
                 else:
                     print(f'DEBUG: Error - Missing station in fields: {fields}')
