@@ -70,70 +70,6 @@
 
     <div class="row before-submit">
       <div class="col-lg-8 col-lg-offset-1">
-        <h3>WiFi Network:</h3>
-        <p>Please select from one of the following wifi networks found. This device is only compatible with 2.4 GHz
-          networks.</p>
-        <p>
-          <span style="color: #555; display: block;">Currently connected to:</span>
-          <span id="wifi-status-ssid" style="font-weight: bold; display: block; padding-left: 20px;">Checking...</span>
-          <span id="wifi-status-internet" style="font-weight: bold; display: block; padding-left: 20px;"></span>
-        </p>
-      </div>
-    </div>
-
-    <div class="row before-submit">
-      <div class="col-lg-8 col-lg-offset-1">
-        <form class="form form-horizontal" id='connect-form' action='/connect' method='post'>
-
-          <div class="form-group">
-            <label for="ssid-select" class="control-label col-lg-4">WiFi Networks</label>
-            <div class="col-lg-4">
-              <select id='ssid-select' class="form-control" name='ssid'></select>
-            </div>
-          </div>
-
-          <div class="form-group hidden" id="hidden-ssid-group">
-            <label for="hidden-ssid" class="control-label col-lg-4">Hidden WiFi Network Name</label>
-            <div class="col-lg-4">
-              <input class="form-control" name="hidden-ssid"></input>
-            </div>
-          </div>
-
-          <div class="form-group hidden" id="identity-group">
-            <label for="identity" class="control-label col-lg-4">WiFi Username</label>
-            <div class="col-lg-4">
-              <input class="form-control" name="identity"></input>
-            </div>
-          </div>
-
-          <div class="form-group hidden" id="passphrase-group">
-            <label for="passphrase" class="control-label col-lg-4">WiFi Password</label>
-            <div class="col-lg-4">
-              <input type='password' class="form-control" name='passphrase' id='passphrase'>
-              <div style="margin-top: 5px;">
-                <button type="button" id="showPasswordBtn" class="btn btn-default">Show Password</button>
-              </div>
-              <div class="checkbox">
-                <label>
-                  <input type="checkbox" id="no-password-checkbox"> No password
-                </label>
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <div class="col-lg-6 col-lg-offset-1 text-center">
-              <button type='submit' id='wifiSubmitBtn' class='btn btn-success btn-lg' style="width: 100%; font-weight: bold;" disabled>Update WiFi</button>
-              <span id="wifi-confirm-msg"
-                style="display: none; color: green; font-weight: bold; margin-left: 15px;">WiFi settings updated!</span>
-            </div>
-          </div>
-        </form>
-
-      </div>
-    </div>
-
-    <div class="row before-submit">
-      <div class="col-lg-8 col-lg-offset-1">
         <h3>Select your NOAA Station:</h3>
       </div>
     </div>
@@ -478,7 +414,69 @@
       </div>
     </div>
 
+    <div class="row before-submit">
+      <div class="col-lg-8 col-lg-offset-1">
+        <h3>WiFi Network:</h3>
+        <p>Please select from one of the following wifi networks found. This device is only compatible with 2.4 GHz
+          networks.</p>
+        <p>
+          <span style="color: #555; display: block;">Currently connected to:</span>
+          <span id="wifi-status-ssid" style="font-weight: bold; display: block; padding-left: 20px;">Checking...</span>
+          <span id="wifi-status-internet" style="font-weight: bold; display: block; padding-left: 20px;"></span>
+        </p>
+      </div>
+    </div>
 
+    <div class="row before-submit">
+      <div class="col-lg-8 col-lg-offset-1">
+        <form class="form form-horizontal" id='connect-form' action='/connect' method='post'>
+
+          <div class="form-group">
+            <label for="ssid-select" class="control-label col-lg-4">WiFi Networks</label>
+            <div class="col-lg-4">
+              <select id='ssid-select' class="form-control" name='ssid'></select>
+            </div>
+          </div>
+
+          <div class="form-group hidden" id="hidden-ssid-group">
+            <label for="hidden-ssid" class="control-label col-lg-4">Hidden WiFi Network Name</label>
+            <div class="col-lg-4">
+              <input class="form-control" name="hidden-ssid"></input>
+            </div>
+          </div>
+
+          <div class="form-group hidden" id="identity-group">
+            <label for="identity" class="control-label col-lg-4">WiFi Username</label>
+            <div class="col-lg-4">
+              <input class="form-control" name="identity"></input>
+            </div>
+          </div>
+
+          <div class="form-group hidden" id="passphrase-group">
+            <label for="passphrase" class="control-label col-lg-4">WiFi Password</label>
+            <div class="col-lg-4">
+              <input type='password' class="form-control" name='passphrase' id='passphrase'>
+              <div style="margin-top: 5px;">
+                <button type="button" id="showPasswordBtn" class="btn btn-default">Show Password</button>
+              </div>
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" id="no-password-checkbox"> No password
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-lg-6 col-lg-offset-1 text-center">
+              <button type='submit' id='wifiSubmitBtn' class='btn btn-success btn-lg' style="width: 100%; font-weight: bold;" disabled>Update WiFi</button>
+              <span id="wifi-confirm-msg"
+                style="display: none; color: green; font-weight: bold; margin-left: 15px;">WiFi settings updated!</span>
+            </div>
+          </div>
+        </form>
+
+      </div>
+    </div>
 
     <div class="row hidden" id='no-networks-message'>
       <div class="col-lg-8 col-lg-offset-1">
