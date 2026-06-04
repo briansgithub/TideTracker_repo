@@ -15,6 +15,7 @@ import pytz
 import ephem
 from matplotlib.ticker import FuncFormatter
 from scipy.signal import find_peaks
+from scipy.interpolate import CubicSpline, CubicHermiteSpline
 import numpy as np
 
 
@@ -155,7 +156,7 @@ def fetch_NOAA_data(station_id, date):
 
     INTERVAL_MINUTES = 5
     yesterday_date_string = date.strftime("%Y%m%d")
-
+    
     try:
         # Modify the URL with yesterday's date and the station ID variable
         url = f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date={yesterday_date_string}&range={RANGE_HOURS}&product=predictions&datum={DATUM}&interval={INTERVAL_MINUTES}&format=json&units=english&time_zone=lst_ldt&station={station_id}"
@@ -198,26 +199,38 @@ def plot_data(data, now_dtz):
 
     start_time = (now_dtz - dt.timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
 
-    # Filter data points that occurred after the start time
-    filtered_times = [t for t in all_times if t >= start_time]
-    filtered_values = [v for t, v in zip(all_times, all_values) if t >= start_time]
-
-    # Plotting. Size of 7.5in e-ink is 163.2mm x
+    # Use all available High/Low points for the spline to ensure smoothness at plot boundaries
+    x_num_all = mdates.date2num(all_times)
+    y_vals_all = np.array(all_values)
+    
+    # Tides are turning points at H/L, so derivatives are zero there.
+    # CubicHermiteSpline with zero derivatives creates a smooth, sinusoidal appearance.
+    f_smooth = CubicHermiteSpline(x_num_all, y_vals_all, np.zeros_like(y_vals_all))
 
     # Plotting. Size of 7.5in e-ink is 163.2mm x 97.92mm. Converted to in: 6.425 x 3.855
     print_debug("Creating plot figure...")
 
     plt.figure(figsize=(1.2 * 6.425, 1.2 * 3.855))
 
-    # Plot filtered data
-    plt.plot(filtered_times, filtered_values, label='v vs t', color='black')
+    # Create dense range for a smooth curve plot
+    # We plot from start_time to the last available prediction point
+    x_dense = np.linspace(mdates.date2num(start_time), x_num_all[-1], 1000)
+    y_dense = f_smooth(x_dense)
+    times_dense = mdates.num2date(x_dense, tz=now_dtz.tzinfo)
 
-    # Set x-axis range to start at 12:00 PM and go to the last time in the list
-    plt.xlim(start_time, filtered_times[-1])
+    # Plot the sinusoidal-like curve
+    # plt.plot(times_dense, y_dense, label='v vs t', color='black')
 
-    # Find peaks in the data
-    peaks, _ = find_peaks(filtered_values)
-    valleys, _ = find_peaks(-np.array(filtered_values))  # Find minima by inverting the values
+    # BRIEF TEST: Plot actual data points as dots and linear lines to see the raw input
+    plt.scatter(all_times, all_values, color='red', s=20, label='Data Points', zorder=5)
+    plt.plot(all_times, all_values, color='black', alpha=0.5, label='Linear Connection', linewidth=1)
+
+    # Set x-axis range to start at 12:00 PM and go to the end of the data
+    plt.xlim(start_time, all_times[-1])
+
+    # Identify peaks and valleys for annotation based on the 'type' provided by NOAA
+    peaks_x = [mdates.date2num(t) for t, entry in zip(all_times, data['predictions']) if entry.get('type') == 'H' and t >= start_time]
+    valleys_x = [mdates.date2num(t) for t, entry in zip(all_times, data['predictions']) if entry.get('type') == 'L' and t >= start_time]
 
     print_debug("Annotating peaks on the plot...")
 
@@ -230,9 +243,9 @@ def plot_data(data, now_dtz):
     YEXTEND = 1.5*deadzone_height  # y-axis addition to move labels and extend ylim0 and ylim1 to make room for labels and present data
 
 
-    for peak_index in peaks:
-        x_coord = filtered_times[peak_index]
-        y_coord = filtered_values[peak_index]
+    for x_peak in peaks_x:
+        x_coord = mdates.num2date(x_peak, tz=now_dtz.tzinfo)
+        y_coord = float(f_smooth(x_peak))
 
         delta_x = dt.timedelta(hours=0)
         delta_y = 0
@@ -264,9 +277,9 @@ def plot_data(data, now_dtz):
     print_debug("Annotating valleys on the plot...")
 
     # Annotate valleys on the plot
-    for valley_index in valleys:
-        x_coord = filtered_times[valley_index]
-        y_coord = filtered_values[valley_index]
+    for x_valley in valleys_x:
+        x_coord = mdates.num2date(x_valley, tz=now_dtz.tzinfo)
+        y_coord = float(f_smooth(x_valley))
 
         delta_x = dt.timedelta(hours=0)
         delta_y = 0
@@ -331,9 +344,14 @@ def plot_data(data, now_dtz):
     plt.gcf().autofmt_xdate(rotation=45)
 
     two_hours_later = now_dtz + dt.timedelta(hours=PERIOD)
-    present_times = [t for t in filtered_times if now_dtz <= t <= two_hours_later]
-    present_values = [v for t, v in zip(filtered_times, filtered_values) if now_dtz <= t <= two_hours_later]
-    plt.plot(present_times, present_values, label='Present Run', color='black', linewidth=12)
+    
+    # Smoother present run segment using interpolation to ensure it follows the curve
+    # and starts exactly at the current time.
+    x_present_num = np.linspace(mdates.date2num(now_dtz), mdates.date2num(two_hours_later), 200)
+    y_present_dense = f_smooth(x_present_num)
+    times_present_dense = mdates.num2date(x_present_num, tz=now_dtz.tzinfo)
+    
+    plt.plot(times_present_dense, y_present_dense, label='Present Run', color='black', linewidth=12)
 
     plt.axhline(y=0, color='black', linewidth=2, label='Zero Line')
 
@@ -486,6 +504,8 @@ if __name__ == "__main__":
     print_debug("Fetching NOAA data...")
 
     data_json = fetch_NOAA_data(station_id, yesterday_d)
+    if data_json and 'predictions' in data_json:
+        print(f"Number of data points returned by NOAA: {len(data_json['predictions'])}")
 
     print_debug("Plotting data...")
 
