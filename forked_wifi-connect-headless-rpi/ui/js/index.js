@@ -165,30 +165,58 @@ $(function(){
     // Event binding for the "Show password" button
     $('#showPasswordBtn').click(togglePasswordVisibility);
 
-    $('#connect-form').submit(function(ev){
-        ev.preventDefault();
+    // Event binding for the "Test Saved Credentials" button
+    $('#testWifiBtn').click(function() {
         $('#wifi-confirm-msg').hide();
-
-        // Immediately show yellow "Checking..." in the status area
-        var ssid = $('#ssid-select option:selected').text();
-        $('#wifi-status-ssid').text(ssid);
         $('#wifi-status-internet').text('- Checking...').css('color', 'orange');
-        $('#wifi-confirm-msg').text('WiFi settings saved! Testing connection...').css('color', 'orange').fadeIn();
+        $('#wifi-confirm-msg').text('Testing saved connection...').css('color', 'orange').fadeIn();
 
-        $.post('/connect', $('#connect-form').serialize(), function(data){
-            // The server is now testing credentials in the background.
-            // The hotspot will go down briefly and come back up.
-            // Poll /status until the test completes.
+        $.post('/test_saved_credentials', function(data) {
             pollUntilTestDone(function(status) {
-                // Test done — update confirmation message
                 if (status.has_internet) {
-                    $('#wifi-confirm-msg').text('WiFi settings updated!').css('color', 'green').fadeIn();
+                    $('#wifi-confirm-msg').text('Saved WiFi works!').css('color', 'green').fadeIn();
                 } else {
-                    $('#wifi-confirm-msg').text('WiFi settings saved — no internet detected.').css('color', 'red').fadeIn();
+                    $('#wifi-confirm-msg').text('Saved WiFi test failed - no internet.').css('color', 'red').fadeIn();
                 }
                 setTimeout(function(){ $('#wifi-confirm-msg').fadeOut(); }, 8000);
             });
         });
+    });
+
+    $('#connect-form').submit(function(ev){
+        ev.preventDefault();
+        $('#wifi-confirm-msg').hide();
+
+        var forceUpdate = $('#force-update-checkbox').is(':checked');
+
+        // Immediately show yellow "Checking..." in the status area
+        var ssid = $('#ssid-select option:selected').text();
+        $('#wifi-status-ssid').text(ssid);
+
+        if (forceUpdate) {
+            $('#wifi-confirm-msg').text('WiFi credentials saved!').css('color', 'green').fadeIn();
+            $.post('/connect', $('#connect-form').serialize(), function(data) {
+                setTimeout(function(){ $('#wifi-confirm-msg').fadeOut(); }, 5000);
+            });
+        } else {
+            $('#wifi-status-internet').text('- Checking...').css('color', 'orange');
+            $('#wifi-confirm-msg').text('WiFi settings saved! Testing connection...').css('color', 'orange').fadeIn();
+
+            $.post('/connect', $('#connect-form').serialize(), function(data){
+                // The server is now testing credentials in the background.
+                // The hotspot will go down briefly and come back up.
+                // Poll /status until the test completes.
+                pollUntilTestDone(function(status) {
+                    // Test done — update confirmation message
+                    if (status.has_internet) {
+                        $('#wifi-confirm-msg').text('WiFi settings updated!').css('color', 'green').fadeIn();
+                    } else {
+                        $('#wifi-confirm-msg').text('WiFi settings saved — no internet detected.').css('color', 'red').fadeIn();
+                    }
+                    setTimeout(function(){ $('#wifi-confirm-msg').fadeOut(); }, 8000);
+                });
+            });
+        }
     });
 
     $('#station-form').submit(function(ev){
