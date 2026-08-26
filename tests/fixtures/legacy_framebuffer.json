@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "description": "Checked-in field renderer oracle captured by the legacy TideTracker path",
+  "station_id": "8531833",
+  "station_name": "Navesink - Red Bank, NJ",
+  "local_clock": "2024-03-12T14:18:00-04:00",
+  "source_bitmap": "plot_image.bmp",
+  "source_bitmap_sha256": "850e923575bfbced112ba4c660b3b44a848ae057128afea5eee4614ae725043f",
+  "controller_frame_bytes": 48000,
+  "controller_frame_sha256": "9de244b573e5223c73f54b9c470e72e371ac0eac3a63712003e639228294e7ed",
+  "transform": "PIL mode 1, rotate 180 degrees, then invert every packed byte"
+}

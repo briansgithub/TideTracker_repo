@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "role": "controller",
+  "hostname": "tidetracker-controller",
+  "management": {
+    "ethernet": "dhcp",
+    "usb_peer_mac": "02:54:54:77:00:02",
+    "usb_host_mac": "02:54:54:77:00:01",
+    "usb_address": "10.77.0.1/30",
+    "default_route": false,
+    "dns": false
+  },
+  "lab_wifi": {
+    "interface": "wlan0",
+    "band": "bg",
+    "channel": 6,
+    "ssid": "TideTracker-Lab",
+    "address": "10.78.0.1/24",
+    "secret_source": "/etc/tidetracker/lab-ap.env"
+  },
+  "data_label": "TIDEDATA"
+}

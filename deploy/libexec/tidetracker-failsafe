@@ -1,0 +1,139 @@
+#!/bin/sh
+set -u
+
+state_dir=${TIDETRACKER_FAILSAFE_STATE_DIR:-/var/lib/tidetracker/results}
+runtime_dir=${TIDETRACKER_FAILSAFE_RUNTIME_DIR:-/run/tidetracker}
+intent_marker="$runtime_dir/done-attempted"
+complete_marker="$runtime_dir/done-signalled"
+umask 077
+
+log_failure() {
+    logger -t tidetracker-failsafe "$1" 2>/dev/null || true
+}
+
+persist_result() {
+    mkdir -p "$state_dir" "$runtime_dir" 2>/dev/null || return 1
+    timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || timestamp=unknown
+    temporary="$state_dir/.failsafe-result.$$.tmp"
+    final="$state_dir/failsafe-result.json"
+    printf '{"schema_version":1,"outcome":"failsafe","phase":"systemd","time":"%s"}\n' \
+        "$timestamp" > "$temporary" 2>/dev/null || return 1
+    sync -f "$temporary" 2>/dev/null || return 1
+    mv -f "$temporary" "$final" 2>/dev/null || return 1
+    sync -f "$state_dir" 2>/dev/null || return 1
+}
+
+marker_exists() {
+    test -e "$1" || test -L "$1"
+}
+
+prepare_runtime_dir() {
+    if test -L "$runtime_dir"; then
+        return 1
+    fi
+    mkdir -p "$runtime_dir" 2>/dev/null || return 1
+    test -d "$runtime_dir" || return 1
+    chmod 0750 "$runtime_dir" 2>/dev/null || return 1
+}
+
+# Claim a marker without a check/create race. The marker's presence is the
+# safety contract, so even an interrupted write is an ambiguous ownership
+# record and must suppress every later attempt in this boot.
+claim_runtime_marker() {
+    marker=$1
+    contents=$2
+    prepare_runtime_dir || return 1
+    if ! (set -C; printf '%s\n' "$contents" > "$marker") 2>/dev/null; then
+        return 1
+    fi
+    chmod 0600 "$marker" 2>/dev/null || return 1
+    sync -f "$marker" 2>/dev/null || return 1
+    sync -f "$runtime_dir" 2>/dev/null || return 1
+}
+
+if test "${1:-}" = --persist-only; then
+    persist_result
+    exit $?
+fi
+persist_after_pulse=true
+if test "${1:-}" = --done-only; then
+    persist_after_pulse=false
+fi
+
+skip_attempt=false
+if marker_exists "$complete_marker"; then
+    log_failure 'DONE completion is already recorded; skipping duplicate attempt'
+    skip_attempt=true
+elif marker_exists "$intent_marker"; then
+    log_failure 'DONE ownership is already attempted or ambiguous; refusing to retry'
+    skip_attempt=true
+fi
+
+pulse_status=0
+if test "$skip_attempt" = false; then
+    # Select exactly one GPIO backend before claiming ownership. Once the intent
+    # marker exists, no failure (including a timeout after the rising edge) may
+    # fall back to another backend or start a second attempt.
+    selected_backend=
+    if command -v pinctrl >/dev/null 2>&1; then
+        selected_backend=$(command -v pinctrl)
+    elif command -v raspi-gpio >/dev/null 2>&1; then
+        selected_backend=$(command -v raspi-gpio)
+    fi
+
+    if ! command -v timeout >/dev/null 2>&1; then
+        log_failure 'Cannot pulse DONE safely because timeout is unavailable'
+        pulse_status=1
+    elif test -z "$selected_backend"; then
+        log_failure 'Cannot pulse DONE because no supported GPIO backend is available'
+        pulse_status=1
+    elif ! claim_runtime_marker "$intent_marker" attempted; then
+        # Another failsafe can win the exclusive marker creation between the
+        # initial check and this claim. Treat any resulting marker as ownership,
+        # never as permission to retry.
+        if marker_exists "$intent_marker" || marker_exists "$complete_marker"; then
+            log_failure 'DONE ownership was claimed concurrently; skipping duplicate attempt'
+            pulse_status=0
+        else
+            log_failure 'Cannot record DONE ownership safely; refusing to pulse'
+            pulse_status=1
+        fi
+    else
+        # Preserve the legacy 500 ms LOW settle and 500 ms HIGH pulse until
+        # fixture capture characterizes a shorter safe margin on this exact
+        # timer and board. The fixed child shell uses only the preselected
+        # backend; a partial/failed sequence remains ambiguous and is not retried.
+        # Expansion is intentionally deferred to the fixed child shell.
+        # shellcheck disable=SC2016
+        if timeout --kill-after=1 3 /bin/sh -c '
+            backend=$1
+            "$backend" set 26 op dl &&
+                sleep 0.5 &&
+                "$backend" set 26 dh &&
+                sleep 0.5 &&
+                "$backend" set 26 dl
+        ' tidetracker-done "$selected_backend"; then
+            if claim_runtime_marker "$complete_marker" complete; then
+                pulse_status=0
+            else
+                log_failure 'DONE sequence completed but its completion marker is ambiguous'
+                pulse_status=1
+            fi
+        else
+            log_failure 'DONE attempt failed or timed out; ownership remains ambiguous and will not be retried'
+            pulse_status=1
+        fi
+    fi
+else
+    pulse_status=0
+fi
+
+# Only after the DONE attempt may this service touch persistent storage. Even a
+# kernel-blocked ext4 operation therefore cannot strand the timer's power rail.
+if test "$persist_after_pulse" = true && command -v timeout >/dev/null 2>&1; then
+    timeout --kill-after=1 3 "$0" --persist-only 2>/dev/null ||
+        log_failure 'Could not persist failsafe result after DONE pulse'
+elif test "$persist_after_pulse" = true; then
+    log_failure 'Cannot persist failsafe result safely because timeout is unavailable'
+fi
+exit "$pulse_status"

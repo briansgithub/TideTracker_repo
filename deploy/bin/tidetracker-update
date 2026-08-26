@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+export PYTHONPATH=/usr/local/lib/tidetracker/app
+exec /usr/bin/python3 -c 'from tidetracker.cli import update_main; raise SystemExit(update_main())' "$@"

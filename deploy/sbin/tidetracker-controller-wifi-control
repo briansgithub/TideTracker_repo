@@ -1,0 +1,104 @@
+#!/bin/sh
+set -eu
+
+test "${1:-}" = --execute || {
+    echo 'controller Wi-Fi changes require --execute' >&2
+    exit 64
+}
+shift
+if test "$#" -eq 3 && test "$1" = portal-matrix; then
+    case_id=$2
+    phase=$3
+    case "$case_id" in
+        visible_open_test|visible_open_force_save|hidden_open_test|hidden_open_force_save|visible_wpa_personal_test|visible_wpa_personal_force_save|hidden_wpa_personal_test|hidden_wpa_personal_force_save|visible_wpa_enterprise_test|visible_wpa_enterprise_force_save|hidden_wpa_enterprise_test|hidden_wpa_enterprise_force_save) ;;
+        *) echo 'invalid controller portal-matrix case' >&2; exit 64 ;;
+    esac
+    case "$phase" in validate|apply|test-plane|reset) ;;
+        *) echo 'invalid controller portal-matrix phase' >&2; exit 64 ;;
+    esac
+    exec /usr/bin/python3 /usr/local/libexec/tidetracker-controller-portal-matrix \
+        portal-matrix "$case_id" "$phase"
+fi
+test "$#" -eq 2 || {
+    echo 'usage: tidetracker-controller-wifi-control --execute normal-disconnect|portal-client PHASE | station-status MAC | portal-matrix CASE PHASE' >&2
+    exit 64
+}
+operation=$1
+phase=$2
+if test "$operation" = station-status; then
+    mac=$(printf '%s' "$phase" | tr 'A-F' 'a-f')
+    case "$mac" in
+        [0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]) ;;
+        *) echo 'invalid target station MAC address' >&2; exit 64 ;;
+    esac
+    if iw dev wlan0 station get "$mac" >/dev/null 2>&1; then
+        associated=true
+    else
+        associated=false
+    fi
+    printf '{"operation":"station-status","interface":"wlan0","target_mac":"%s","associated":%s}\n' \
+        "$mac" "$associated"
+    exit 0
+fi
+case "$operation" in normal-disconnect|portal-client) ;; *) echo 'invalid controller Wi-Fi operation' >&2; exit 64 ;; esac
+case "$phase" in validate|apply|probe|reset) ;; *) echo 'invalid controller Wi-Fi phase' >&2; exit 64 ;; esac
+
+config=/var/lib/tidetracker/controller/controller-lab.env
+test -f "$config" && test ! -L "$config" || {
+    echo 'controller lab profile configuration is unavailable' >&2
+    exit 1
+}
+# The file is root-owned mode 0600 and may contain only these two shell-safe
+# NetworkManager connection IDs.
+# shellcheck disable=SC1090
+. "$config"
+: "${TIDETRACKER_NORMAL_AP_CONNECTION:?}"
+: "${TIDETRACKER_PORTAL_CLIENT_CONNECTION:?}"
+for connection in "$TIDETRACKER_NORMAL_AP_CONNECTION" "$TIDETRACKER_PORTAL_CLIENT_CONNECTION"; do
+    case "$connection" in ''|*[!A-Za-z0-9_.:-]*) echo 'unsafe NetworkManager connection ID' >&2; exit 1 ;; esac
+done
+if test "$phase" = validate; then
+    nmcli connection show "$TIDETRACKER_NORMAL_AP_CONNECTION" >/dev/null
+    nmcli connection show "$TIDETRACKER_PORTAL_CLIENT_CONNECTION" >/dev/null
+    printf '{"operation":"%s","phase":"validate","profiles_present":true}\n' "$operation"
+    exit 0
+fi
+
+is_active() {
+    nmcli -t -f NAME connection show --active | grep -F -x -- "$1" >/dev/null
+}
+
+if test "$phase" = reset; then
+    nmcli connection down "$TIDETRACKER_PORTAL_CLIENT_CONNECTION" >/dev/null 2>&1 || true
+    nmcli connection up "$TIDETRACKER_NORMAL_AP_CONNECTION" >/dev/null
+    is_active "$TIDETRACKER_NORMAL_AP_CONNECTION"
+    printf '{"operation":"%s","phase":"reset","normal_ap_active":true}\n' "$operation"
+    exit 0
+fi
+
+if test "$phase" = apply; then
+    case "$operation" in
+        normal-disconnect)
+            nmcli connection down "$TIDETRACKER_NORMAL_AP_CONNECTION" >/dev/null
+            ;;
+        portal-client)
+            nmcli connection down "$TIDETRACKER_NORMAL_AP_CONNECTION" >/dev/null 2>&1 || true
+            nmcli connection up "$TIDETRACKER_PORTAL_CLIENT_CONNECTION" >/dev/null
+            ;;
+    esac
+fi
+
+case "$operation" in
+    normal-disconnect)
+        ! is_active "$TIDETRACKER_NORMAL_AP_CONNECTION" || {
+            echo 'normal AP remains active after disconnect request' >&2; exit 1;
+        }
+        printf '{"operation":"normal-disconnect","phase":"%s","normal_ap_active":false}\n' "$phase"
+        ;;
+    portal-client)
+        is_active "$TIDETRACKER_PORTAL_CLIENT_CONNECTION" || {
+            echo 'portal client connection is not active' >&2; exit 1;
+        }
+        printf '{"operation":"portal-client","phase":"%s","portal_client_active":true}\n' "$phase"
+        ;;
+esac

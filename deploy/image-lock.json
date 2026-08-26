@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "distribution": "Raspberry Pi OS Legacy Lite (32-bit)",
+  "codename": "bookworm",
+  "release_date": "2026-06-18",
+  "architecture": "armhf",
+  "archive": {
+    "filename": "2026-06-18-raspios-bookworm-armhf-lite.img.xz",
+    "url": "https://downloads.raspberrypi.com/raspios_oldstable_lite_armhf/images/raspios_oldstable_lite_armhf-2026-06-19/2026-06-18-raspios-bookworm-armhf-lite.img.xz",
+    "sha256": "8a044f4c55feb9b0626ab2060a2eef15c3f57327dd610a0a4cac02cdb959166e",
+    "size_bytes": 520636812
+  },
+  "source_page": "https://www.raspberrypi.com/software/operating-systems/",
+  "notes": [
+    "The SHA-256 covers the compressed .img.xz archive.",
+    "prepare-base-image.ps1 writes a separate SHA-256 for the decompressed .img.",
+    "Do not replace this lock implicitly when a newer Raspberry Pi OS image appears."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "role": "zero",
+  "hostname": "tidetracker-zero",
+  "board": "Raspberry Pi Zero W",
+  "management": {
+    "interface": "usb0",
+    "usb_peer_mac": "02:54:54:77:00:01",
+    "usb_device_mac": "02:54:54:77:00:02",
+    "usb_address": "10.77.0.2/30",
+    "default_route": false,
+    "dns": false,
+    "internet_traffic_interface": "wlan0"
+  },
+  "gpio": {
+    "mode_bcm": 16,
+    "done_bcm": 26,
+    "display": {
+      "reset_bcm": 17,
+      "dc_bcm": 25,
+      "chip_select_bcm": 8,
+      "busy_bcm": 24,
+      "power_bcm": 18,
+      "mosi_bcm": 10,
+      "clock_bcm": 11
+    }
+  },
+  "data_label": "TIDEDATA"
+}

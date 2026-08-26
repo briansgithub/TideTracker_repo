@@ -1,0 +1,23 @@
+[Unit]
+Description=TideTracker USB management isolation firewall
+After=local-fs.target
+Before=NetworkManager.service ssh.service tidetracker-cycle.service tidetracker-portal.service
+OnFailure=tidetracker-failsafe.service
+
+[Service]
+Type=oneshot
+User=root
+ExecStartPre=-/usr/sbin/nft delete table inet tidetracker_usb
+ExecStart=/usr/sbin/nft -f /etc/tidetracker/zero-usb-firewall.nft
+RemainAfterExit=yes
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+CapabilityBoundingSet=CAP_NET_ADMIN
+
+[Install]
+WantedBy=multi-user.target

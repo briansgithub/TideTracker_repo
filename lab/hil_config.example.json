@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "target": {
+    "host": "10.77.0.2",
+    "user": "tidetracker",
+    "identity_file": "C:/replace/with/tidetracker_lab_ed25519",
+    "known_hosts_file": "C:/replace/with/tidetracker_known_hosts"
+  },
+  "fixture": {
+    "port": "COM5",
+    "baudrate": 115200
+  },
+  "uart": {
+    "port": "COM6",
+    "baudrate": 115200
+  },
+  "safety_identity": {
+    "hardware_id": "replace-with-rig-and-wiring-revision",
+    "fixture_firmware_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "target_known_hosts_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "controller_machine_id_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "target_image_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "target_image_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "target_image_build_id": "0000000000000000000000000000000000000000000000000000000000000000",
+    "hardware_inventory": {
+      "usb_data_isolator": {
+        "model": "replace-with-exact-isolator-model",
+        "serial_or_asset_id": "replace-with-isolator-serial-or-asset-id"
+      },
+      "switched_power_fixture": {
+        "model": "replace-with-exact-fixture-model",
+        "serial_or_asset_id": "replace-with-fixture-serial-or-asset-id"
+      },
+      "uart_adapter": {
+        "model": "replace-with-exact-uart-adapter-model",
+        "serial_or_asset_id": "replace-with-uart-serial-or-asset-id"
+      },
+      "camera": {
+        "model": "replace-with-exact-camera-model",
+        "serial_or_asset_id": "replace-with-camera-serial-or-asset-id"
+      },
+      "display": {
+        "model": "Waveshare 7.5inch e-Paper HAT V2",
+        "serial_or_asset_id": "replace-with-display-asset-id"
+      },
+      "tpl5110_power_timer": {
+        "model": "replace-with-exact-TPL5110-board-model",
+        "serial_or_asset_id": "replace-with-power-timer-asset-id"
+      },
+      "target_pi_zero": {
+        "model": "Raspberry Pi Zero W",
+        "serial_or_asset_id": "replace-with-Pi-CPU-serial-or-asset-id"
+      },
+      "target_sd_card": {
+        "model": "replace-with-exact-card-model-and-capacity",
+        "serial_or_asset_id": "replace-with-card-serial-or-asset-id"
+      }
+    }
+  },
+  "controller_artifacts": {
+    "root": "/var/lib/tidetracker/controller/hil-results",
+    "data_uuid": "54540000-0000-4000-8000-000000000001"
+  },
+  "camera": {
+    "command": [
+      "fswebcam",
+      "--no-banner",
+      "--resolution",
+      "1920x1080",
+      "{output}"
+    ],
+    "capture_support_files": [
+      "/replace/with/camera-capture-config"
+    ],
+    "validation_command": [
+      "/replace/with/camera-display-validator",
+      "--capture",
+      "{output}"
+    ],
+    "validation_support_files": [
+      "/replace/with/display-reference-or-validator-config"
+    ]
+  },
+  "portal_tests": {
+    "base_url": "http://192.168.42.1",
+    "profile_cases": [
+      {
+        "case_id": "visible_open_test",
+        "operation": "test",
+        "profile": {
+          "ssid": "replace-visible-open-lab-ssid",
+          "hidden": false,
+          "security": "open"
+        }
+      },
+      {
+        "case_id": "visible_open_force_save",
+        "operation": "force-save",
+        "profile": {
+          "ssid": "replace-visible-open-save-ssid",
+          "hidden": false,
+          "security": "open"
+        }
+      },
+      {
+        "case_id": "hidden_open_test",
+        "operation": "test",
+        "profile": {
+          "ssid": "replace-hidden-open-test-ssid",
+          "hidden": true,
+          "security": "open"
+        }
+      },
+      {
+        "case_id": "hidden_open_force_save",
+        "operation": "force-save",
+        "profile": {
+          "ssid": "replace-hidden-open-lab-ssid",
+          "hidden": true,
+          "security": "open"
+        }
+      },
+      {
+        "case_id": "visible_wpa_personal_test",
+        "operation": "test",
+        "profile": {
+          "ssid": "replace-visible-personal-ssid",
+          "hidden": false,
+          "security": "wpa-personal",
+          "password": "replace-private-config-personal-password"
+        }
+      },
+      {
+        "case_id": "visible_wpa_personal_force_save",
+        "operation": "force-save",
+        "profile": {
+          "ssid": "replace-visible-personal-save",
+          "hidden": false,
+          "security": "wpa-personal",
+          "password": "replace-private-config-personal-password"
+        }
+      },
+      {
+        "case_id": "hidden_wpa_personal_test",
+        "operation": "test",
+        "profile": {
+          "ssid": "replace-hidden-personal-test",
+          "hidden": true,
+          "security": "wpa-personal",
+          "password": "replace-private-config-personal-password"
+        }
+      },
+      {
+        "case_id": "hidden_wpa_personal_force_save",
+        "operation": "force-save",
+        "profile": {
+          "ssid": "replace-hidden-personal-ssid",
+          "hidden": true,
+          "security": "wpa-personal",
+          "password": "replace-private-config-personal-password"
+        }
+      },
+      {
+        "case_id": "visible_wpa_enterprise_test",
+        "operation": "test",
+        "profile": {
+          "ssid": "replace-visible-enterprise-ssid",
+          "hidden": false,
+          "security": "wpa-enterprise",
+          "identity": "replace-private-config-enterprise-username",
+          "password": "replace-private-config-enterprise-password"
+        }
+      },
+      {
+        "case_id": "visible_wpa_enterprise_force_save",
+        "operation": "force-save",
+        "profile": {
+          "ssid": "replace-visible-enterprise-save",
+          "hidden": false,
+          "security": "wpa-enterprise",
+          "identity": "replace-private-config-enterprise-username",
+          "password": "replace-private-config-enterprise-password"
+        }
+      },
+      {
+        "case_id": "hidden_wpa_enterprise_test",
+        "operation": "test",
+        "profile": {
+          "ssid": "replace-hidden-enterprise-test",
+          "hidden": true,
+          "security": "wpa-enterprise",
+          "identity": "replace-private-config-enterprise-username",
+          "password": "replace-private-config-enterprise-password"
+        }
+      },
+      {
+        "case_id": "hidden_wpa_enterprise_force_save",
+        "operation": "force-save",
+        "profile": {
+          "ssid": "replace-hidden-enterprise-ssid",
+          "hidden": true,
+          "security": "wpa-enterprise",
+          "identity": "replace-private-config-enterprise-username",
+          "password": "replace-private-config-enterprise-password"
+        }
+      }
+    ],
+    "bad_credentials_profile": {
+      "ssid": "tt-intentionally-invalid",
+      "hidden": true,
+      "security": "wpa-personal",
+      "password": "replace-in-private-config-with-intentionally-wrong-value"
+    }
+  },
+  "wifi_observation": {
+    "target_mac": "02:00:00:00:00:01",
+    "poll_interval_seconds": 0.05,
+    "disassociation_timeout_seconds": 10
+  },
+  "field_cycle": {
+    "usb_disconnected_probe": ["/replace/with/usb-absent-probe"],
+    "usb_probe_support_files": [
+      "/replace/with/usb-probe-config"
+    ],
+    "usb_probe_delay_seconds": 8
+  },
+  "timing": {
+    "boot_timeout_seconds": 90,
+    "done_timeout_seconds": 180,
+    "power_off_timeout_seconds": 15,
+    "management_probe_seconds": 15,
+    "clock_skew_seconds": 5,
+    "soak_interval_seconds": 900
+  }
+}

@@ -1,0 +1,19 @@
+table inet tidetracker_usb {
+    chain input {
+        type filter hook input priority filter; policy accept;
+        iifname "usb0" ip saddr 10.77.0.1 ip daddr 10.77.0.2 tcp dport 22 accept
+        iifname "usb0" drop
+    }
+
+    chain output {
+        type filter hook output priority filter; policy accept;
+        oifname "usb0" ip saddr 10.77.0.2 ip daddr 10.77.0.1 tcp sport 22 ct state established,related accept
+        oifname "usb0" drop
+    }
+
+    chain forward {
+        type filter hook forward priority filter; policy accept;
+        iifname "usb0" drop
+        oifname "usb0" drop
+    }
+}

@@ -1,0 +1,19 @@
+[Unit]
+Description=Two-phase TideTracker provisioning and read-only overlay validation
+After=local-fs.target
+Before=NetworkManager.service ssh.service tidetracker-cycle.service
+OnFailure=tidetracker-failsafe.service
+
+[Service]
+Type=oneshot
+User=root
+ExecCondition=/bin/sh -c 'test ! -e /var/lib/tidetracker/provisioned || test -e /var/lib/tidetracker/provisioning-pending'
+ExecStart=/usr/local/libexec/tidetracker-firstboot
+RemainAfterExit=yes
+TimeoutStartSec=180
+TimeoutStopSec=10
+KillMode=control-group
+SendSIGKILL=yes
+
+[Install]
+WantedBy=multi-user.target

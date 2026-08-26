@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "approved": false,
+  "hardware_id": "replace-with-rig-and-wiring-revision",
+  "approved_by": "replace-with-human-reviewer",
+  "approved_at": "replace-with-UTC-timestamp",
+  "valid_until": "replace-with-UTC-timestamp-no-more-than-seven-days-later",
+  "approval_nonce": "replace-with-16-or-more-random-characters",
+  "fixture_firmware_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "target_known_hosts_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "controller_machine_id_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "target_image_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "target_image_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "target_image_build_id": "0000000000000000000000000000000000000000000000000000000000000000",
+  "hardware_inventory": {
+    "usb_data_isolator": {
+      "model": "replace-with-exact-isolator-model",
+      "serial_or_asset_id": "replace-with-isolator-serial-or-asset-id"
+    },
+    "switched_power_fixture": {
+      "model": "replace-with-exact-fixture-model",
+      "serial_or_asset_id": "replace-with-fixture-serial-or-asset-id"
+    },
+    "uart_adapter": {
+      "model": "replace-with-exact-uart-adapter-model",
+      "serial_or_asset_id": "replace-with-uart-serial-or-asset-id"
+    },
+    "camera": {
+      "model": "replace-with-exact-camera-model",
+      "serial_or_asset_id": "replace-with-camera-serial-or-asset-id"
+    },
+    "display": {
+      "model": "Waveshare 7.5inch e-Paper HAT V2",
+      "serial_or_asset_id": "replace-with-display-asset-id"
+    },
+    "tpl5110_power_timer": {
+      "model": "replace-with-exact-TPL5110-board-model",
+      "serial_or_asset_id": "replace-with-power-timer-asset-id"
+    },
+    "target_pi_zero": {
+      "model": "Raspberry Pi Zero W",
+      "serial_or_asset_id": "replace-with-Pi-CPU-serial-or-asset-id"
+    },
+    "target_sd_card": {
+      "model": "replace-with-exact-card-model-and-capacity",
+      "serial_or_asset_id": "replace-with-card-serial-or-asset-id"
+    }
+  },
+  "tool_identities": {
+    "camera_capture": {
+      "canonical_argv": [
+        "/usr/bin/fswebcam",
+        "--no-banner",
+        "--resolution",
+        "1920x1080",
+        "{output}"
+      ],
+      "executable_path": "/usr/bin/fswebcam",
+      "executable_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "executable_size_bytes": 1,
+      "support_files": [
+        {
+          "path": "/replace/with/camera-capture-config",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "size_bytes": 1
+        }
+      ]
+    },
+    "camera_validator": {
+      "canonical_argv": [
+        "/replace/with/camera-display-validator",
+        "--capture",
+        "{output}"
+      ],
+      "executable_path": "/replace/with/camera-display-validator",
+      "executable_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "executable_size_bytes": 1,
+      "support_files": [
+        {
+          "path": "/replace/with/display-reference-or-validator-config",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "size_bytes": 1
+        }
+      ]
+    },
+    "usb_disconnected_probe": {
+      "canonical_argv": ["/replace/with/usb-absent-probe"],
+      "executable_path": "/replace/with/usb-absent-probe",
+      "executable_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "executable_size_bytes": 1,
+      "support_files": [
+        {
+          "path": "/replace/with/usb-probe-config",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "size_bytes": 1
+        }
+      ]
+    }
+  },
+  "approved_operations": [
+    "cycles",
+    "release_stage",
+    "wifi_matrix",
+    "lifecycle_power_cuts",
+    "update_power_cuts",
+    "field_cycle"
+  ],
+  "approved_update_power_cut_phases": [
+    "begin",
+    "stage",
+    "verify",
+    "activate"
+  ],
+  "usb_vbus_isolated": false,
+  "uart_receive_only": false,
+  "fixture_defaults_power_off": false,
+  "fixture_defaults_setup": false,
+  "done_pulse": {
+    "minimum_us": 400000,
+    "maximum_us": 600000,
+    "shortened_timing_hardware_validated": false
+  },
+  "measurements": {
+    "zero_5v_off_usb_connected_v": 99.0,
+    "zero_3v3_off_all_sense_connected_v": 99.0,
+    "zero_5v_on_under_load_v": 0.0
+  }
+}

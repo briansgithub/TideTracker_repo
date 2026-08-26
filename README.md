@@ -1,23 +1,62 @@
-# TideTracker Project
+# TideTracker
 
-## Technical Implementation: Threading and Synchronization
+TideTracker is a power-bounded NOAA tide display runtime for the original
+Raspberry Pi Zero W and Waveshare 7.5-inch V2 e-paper panel. The repository
+contains the packaged runtime, transactional Wi-Fi setup portal, signed
+application updater, content-addressed offline role-card builder, and a closed-loop Pi 3 →
+Pi Zero hardware-in-the-loop controller.
 
-### Why Threads are Used
-This project uses the `threading` module to manage the transition between Access Point (AP) mode and Station (client) mode during WiFi configuration.
+## Lab architecture
 
-WiFi management is a **blocking and destructive** process. When a user submits new credentials via the web UI:
-1. **Asynchronous Response**: The HTTP server must send a "TESTING" response to the browser immediately so the user sees a confirmation.
-2. **Avoiding Connection Cutoff**: If this were done synchronously, the server would call `stop_hotspot()` before sending the response, instantly killing the connection and leaving the user with a browser network error.
-3. **Background Processing**: By spawning a **background thread**, the server can respond to the user first, then proceed to tear down the hotspot and test the new credentials.
+- The workstation edits code and runs deterministic tests.
+- An Ethernet-managed Pi 3 runs the lab AP, fixture, camera, and HIL controller.
+- The Pi Zero W runs production code and every integration/release cycle.
+- USB Ethernet (`10.77.0.1/30` ↔ `10.77.0.2/30`) carries management only.
+  Production traffic is persisted and verified as `wlan0` traffic.
+- The Zero's switched field rail supplies the target side of the USB isolator;
+  host VBUS must never reach the Zero.
 
-### The NM_LOCK (Thread Safety)
-Because the HTTP server remains active (listening for status polls from the browser) while the background thread interacts with the WiFi hardware, there is a risk of deadlocks or race conditions within the NetworkManager DBus interface.
+The application uses the bounded lifecycle `MODE → NETWORK → FETCH → VALIDATE
+→ COMPUTE → RENDER → DISPLAY → PERSIST → DONE`. A handled failure still stores
+its result and hands DONE to one bounded owner. A systemd failsafe covers
+crashes/timeouts. Private RAM-backed intent and completion markers prevent a
+second software attempt when a crash makes the physical edge outcome ambiguous.
 
-The `NM_LOCK` in `netman.py` ensures that only one thread can communicate with NetworkManager at a time. This synchronizes:
-* **Background tests**: Connecting, deactivating, and falling back.
-* **UI Status updates**: Periodic scanning and connection status checks.
+## Safe starting point
 
-### Persistent Fallback and Resilience
-To ensure the device remains accessible even after failed configuration attempts:
-* **Auto-Capture**: On startup, the script attempts to capture and save the current working WiFi connection as a persistent fallback point in `tidetracker_persistent_data.json`.
-* **Automatic Reversion**: If a new connection attempt fails (due to incorrect credentials or lack of internet), the background thread automatically attempts to restore the previous working connection before deciding to relaunch the hotspot.
+All card, network, fixture, power, camera, and HIL tools default to inspection,
+dry-run, or simulation. Real execution requires an explicit `--execute` (or
+PowerShell `-Execute`) in addition to the tool's apply/confirmation guard.
+
+Do not run an execute/apply command until the named SD card or hardware action
+has been reviewed and explicitly approved. No repository test requires attached
+hardware.
+
+Start with:
+
+```text
+python -m pytest
+python lab/hil_orchestrator.py --simulate --cycles 2 --artifact-dir <new-directory>
+```
+
+Card creation and release signing are documented in
+[`docs/IMAGE_RELEASE.md`](docs/IMAGE_RELEASE.md). Physical wiring and signed
+electrical approval are in [`docs/WIRING_SAFETY.md`](docs/WIRING_SAFETY.md).
+The complete lab and promotion sequence is in
+[`docs/LAB_RUNBOOK.md`](docs/LAB_RUNBOOK.md).
+
+## Installed field layout
+
+- Runtime: `/usr/local/lib/tidetracker/app`
+- Assets: `/usr/share/tidetracker`
+- Waveshare driver: `/usr/lib/tidetracker/e-ink_lib`
+- Public release key: `/etc/tidetracker/release-ed25519.pub.pem`
+- Pinned lab approver key: `/etc/tidetracker/lab-safety-approver.pub.pem`
+- Persistent data/update root: `/var/lib/tidetracker` (`TIDEDATA`)
+- Non-secret config: `/var/lib/tidetracker/config/config.json`
+- Wi-Fi secrets: mode-0600 NetworkManager profiles only
+
+The cycle and portal are hardened root services because binding port 80 and
+performing NetworkManager transactions require privilege. The SSH account can
+write only the upload area; a narrowly validated root helper stages signed
+bundles and exposes fixed read-only result/metrics commands.

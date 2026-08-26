@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+
+export PYTHONPATH=/usr/local/lib/tidetracker/app
+export TIDETRACKER_ASSET_DIR="${TIDETRACKER_ASSET_DIR:-/usr/share/tidetracker}"
+export TIDETRACKER_EINK_LIB="${TIDETRACKER_EINK_LIB:-/usr/lib/tidetracker/e-ink_lib}"
+exec /usr/bin/python3 -c 'from tidetracker.cli import main; raise SystemExit(main())' "$@"

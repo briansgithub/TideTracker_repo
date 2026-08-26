@@ -1,0 +1,25 @@
+[Unit]
+Description=TideTracker ephemeral controller Wi-Fi test plane
+After=NetworkManager.service systemd-resolved.service
+Requires=NetworkManager.service systemd-resolved.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/libexec/tidetracker-controller-portal-matrix serve
+ExecStopPost=/usr/bin/python3 /usr/local/libexec/tidetracker-controller-portal-matrix recover
+Restart=no
+TimeoutStartSec=25
+TimeoutStopSec=90
+KillMode=mixed
+UMask=0077
+StandardInput=null
+StandardOutput=null
+StandardError=null
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/run/tidetracker-portal-matrix /proc/sys/net/ipv4/ip_forward
+
+[Install]
+WantedBy=multi-user.target

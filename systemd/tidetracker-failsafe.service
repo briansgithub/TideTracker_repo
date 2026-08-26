@@ -1,0 +1,29 @@
+[Unit]
+Description=TideTracker terminal-result and DONE failsafe
+After=local-fs.target
+ConditionPathIsExecutable=/usr/local/libexec/tidetracker-failsafe
+
+[Service]
+Type=oneshot
+User=root
+EnvironmentFile=-/etc/tidetracker/runtime.env
+RuntimeDirectory=tidetracker
+RuntimeDirectoryMode=0750
+RuntimeDirectoryPreserve=yes
+ExecCondition=/bin/sh -c 'test -f /etc/tidetracker/role && test ! -L /etc/tidetracker/role && test "$(cat /etc/tidetracker/role)" = zero'
+ExecStart=/usr/local/libexec/tidetracker-failsafe
+TimeoutStartSec=15
+TimeoutStopSec=2
+KillMode=control-group
+SendSIGKILL=yes
+UMask=0027
+PrivateTmp=true
+PrivateDevices=false
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/tidetracker /run/tidetracker
+RestrictAddressFamilies=AF_UNIX

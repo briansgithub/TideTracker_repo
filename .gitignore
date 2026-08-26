@@ -1,3 +1,24 @@
 no_wifi.pdn
 .code-workspace
 .idea/*
+
+# Python build and test output
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+build/
+dist/
+*.egg-info/
+.venv/
+
+# TideTracker runtime and lab output
+artifacts/
+lab/artifacts/
+lab/state/
+release-out/
+*.incoming
+*.part

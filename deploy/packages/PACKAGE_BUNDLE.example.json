@@ -1,0 +1,65 @@
+{
+  "schema_version": 2,
+  "architecture": "armhf",
+  "roles": {
+    "controller": {
+      "requested": [
+        "ca-certificates",
+        "dnsmasq-base",
+        "fswebcam",
+        "hostapd",
+        "iproute2",
+        "iw",
+        "network-manager",
+        "nftables",
+        "openssh-client",
+        "openssh-server",
+        "openssl",
+        "overlayroot",
+        "python3",
+        "python3-serial",
+        "raspi-config",
+        "rfkill",
+        "sudo",
+        "systemd-resolved",
+        "systemd-timesyncd",
+        "util-linux"
+      ],
+      "packages": ["replace-with-exact-sorted-controller-dependency-closure"]
+    },
+    "zero": {
+      "requested": [
+        "ca-certificates",
+        "iproute2",
+        "network-manager",
+        "nftables",
+        "openssh-client",
+        "openssh-server",
+        "openssl",
+        "overlayroot",
+        "python3",
+        "python3-gpiozero",
+        "python3-lgpio",
+        "python3-pil",
+        "python3-spidev",
+        "raspi-config",
+        "rfkill",
+        "sudo",
+        "systemd-resolved",
+        "systemd-timesyncd",
+        "util-linux"
+      ],
+      "packages": ["replace-with-exact-sorted-zero-dependency-closure"]
+    }
+  },
+  "packages": [
+    {
+      "name": "example",
+      "version": "1.0-1",
+      "architecture": "armhf",
+      "filename": "example_1.0-1_armhf.deb",
+      "size": 1234,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ]
+}

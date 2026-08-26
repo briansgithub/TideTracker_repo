@@ -1,0 +1,299 @@
+#!/bin/sh
+set -eu
+
+execute=false
+if test "${1:-}" = --execute; then
+    execute=true
+    shift
+fi
+test "$#" -ge 1 || {
+    echo 'usage: tidetracker-lab-control [--execute] COMMAND [ARG]' >&2; exit 64;
+}
+command_name=$1
+shift
+
+require_zero_evidence_role() {
+    test "$(/usr/bin/id -u)" -eq 0 || {
+        echo 'network evidence requires root' >&2; exit 1;
+    }
+    test -f /etc/tidetracker/role && test ! -L /etc/tidetracker/role \
+        && test "$(cat /etc/tidetracker/role)" = zero || {
+        echo 'network evidence is restricted to the Pi Zero role' >&2; exit 1;
+    }
+}
+
+case "$command_name" in
+    cycle)
+        test "$#" -eq 0 || exit 64
+        test "$execute" = true || { echo 'cycle requires --execute' >&2; exit 64; }
+        exec systemctl start --wait tidetracker-cycle.service
+        ;;
+    portal-start)
+        test "$#" -eq 0 || exit 64
+        test "$execute" = true || { echo 'portal-start requires --execute' >&2; exit 64; }
+        exec systemctl start tidetracker-portal.service
+        ;;
+    portal-stop)
+        test "$#" -eq 0 || exit 64
+        test "$execute" = true || { echo 'portal-stop requires --execute' >&2; exit 64; }
+        exec systemctl stop tidetracker-portal.service
+        ;;
+    status)
+        test "$#" -eq 0 || exit 64
+        exec systemctl --no-pager --full status tidetracker-cycle.service
+        ;;
+    journal)
+        test "$#" -eq 0 || exit 64
+        exec journalctl --no-pager -u tidetracker-cycle.service -u tidetracker-failsafe.service -n 500 -o short-iso-precise
+        ;;
+    last-result)
+        test "$#" -eq 0 || exit 64
+        exec cat /var/lib/tidetracker/state/cycle/last_result.json
+        ;;
+    metrics-latest)
+        test "$#" -eq 0 || exit 64
+        latest=$(find /var/lib/tidetracker/telemetry -maxdepth 1 -type f -name '*.json' \
+            ! -name '*.supervisor.json' \
+            -printf '%T@ %p\n' | sort -nr | head -n 1 | cut -d' ' -f2-)
+        test -n "$latest" && test -f "$latest" || { echo 'no cycle metrics are available' >&2; exit 1; }
+        exec cat -- "$latest"
+        ;;
+    supervisor-last)
+        test "$#" -eq 0 || exit 64
+        exec cat /var/lib/tidetracker/state/supervisor/last_execution.json
+        ;;
+    fault-set)
+        test "$execute" = true || { echo 'fault-set requires --execute' >&2; exit 64; }
+        test "$#" -eq 1 || { echo 'fault-set requires one fault kind' >&2; exit 64; }
+        case "$1" in dns|tls|http_503) fault_kind=$1 ;; *) echo 'invalid NOAA fault kind' >&2; exit 64 ;; esac
+        fault_dir=/var/lib/tidetracker/state/hil
+        fault_path="$fault_dir/noaa-fault.request"
+        install -d -m 0700 -o root -g root "$fault_dir"
+        test ! -e "$fault_path" || { echo 'a NOAA fault request is already pending' >&2; exit 1; }
+        temporary=$(mktemp "$fault_dir/.noaa-fault.request.XXXXXX")
+        trap 'rm -f -- "$temporary"' EXIT HUP INT TERM
+        printf '%s\n' "$fault_kind" > "$temporary"
+        chmod 0600 "$temporary"
+        sync -f "$temporary"
+        mv -f -- "$temporary" "$fault_path"
+        sync -f "$fault_dir"
+        trap - EXIT HUP INT TERM
+        printf '{"pending":true,"kind":"%s"}\n' "$fault_kind"
+        ;;
+    fault-status)
+        test "$#" -eq 0 || exit 64
+        fault_path=/var/lib/tidetracker/state/hil/noaa-fault.request
+        if test -f "$fault_path" && test ! -L "$fault_path"; then
+            IFS= read -r fault_kind < "$fault_path"
+            case "$fault_kind" in dns|tls|http_503) ;; *) echo 'invalid pending NOAA fault request' >&2; exit 1 ;; esac
+            printf '{"pending":true,"kind":"%s"}\n' "$fault_kind"
+        else
+            printf '{"pending":false,"kind":null}\n'
+        fi
+        ;;
+    fault-clear)
+        test "$#" -eq 0 || exit 64
+        test "$execute" = true || { echo 'fault-clear requires --execute' >&2; exit 64; }
+        rm -f -- /var/lib/tidetracker/state/hil/noaa-fault.request
+        sync -f /var/lib/tidetracker/state/hil
+        printf '{"pending":false,"kind":null}\n'
+        ;;
+    usb-policy)
+        test "$#" -eq 0 || exit 64
+        never_default=$(nmcli -g ipv4.never-default connection show tidetracker-usb-management)
+        ignore_dns=$(nmcli -g ipv4.ignore-auto-dns connection show tidetracker-usb-management)
+        gateway=$(nmcli -g ipv4.gateway connection show tidetracker-usb-management)
+        dns=$(nmcli -g ipv4.dns connection show tidetracker-usb-management)
+        test "$never_default" = yes && test "$ignore_dns" = yes \
+            && test -z "$gateway" && test -z "$dns" || {
+            echo 'USB management profile permits default route, gateway, or DNS' >&2; exit 1;
+        }
+        firewall=$(nft list table inet tidetracker_usb)
+        printf '%s\n' "$firewall" | grep -F 'iifname "usb0" ip saddr 10.77.0.1 ip daddr 10.77.0.2 tcp dport 22 accept' >/dev/null
+        printf '%s\n' "$firewall" | grep -F 'iifname "usb0" drop' >/dev/null
+        printf '%s\n' "$firewall" | grep -F 'oifname "usb0" ip saddr 10.77.0.2 ip daddr 10.77.0.1 tcp sport 22 ct state established,related accept' >/dev/null
+        test "$(printf '%s\n' "$firewall" | grep -F -c 'oifname "usb0" drop')" -ge 2
+        printf '{"never_default":true,"ignore_auto_dns":true,"gateway":null,"dns":[],"firewall_enforced":true}\n'
+        ;;
+    resolver-policy)
+        test "$#" -eq 0 || exit 64
+        systemctl is-active --quiet systemd-resolved.service
+        test "$(readlink -f /etc/resolv.conf)" = /run/systemd/resolve/stub-resolv.conf
+        grep -Eq '^[[:space:]]*dns=systemd-resolved[[:space:]]*$' \
+            /etc/NetworkManager/conf.d/10-tidetracker-resolved.conf
+        resolvectl status wlan0 >/dev/null
+        printf '{"service_active":true,"stub_resolver":true,"networkmanager_backend":"systemd-resolved","wlan0_link_visible":true}\n'
+        ;;
+    swap-policy)
+        test "$#" -eq 0 || exit 64
+        test "$(awk 'NR > 1 { count += 1 } END { print count + 0 }' /proc/swaps)" -eq 0
+        test "$(systemctl is-enabled dphys-swapfile.service 2>/dev/null || true)" = masked
+        test ! -e /var/swap
+        printf '{"active_entries":0,"dphys_swapfile_masked":true,"swapfile_absent":true}\n'
+        ;;
+    storage-policy)
+        test "$#" -eq 0 || exit 64
+        role=$(cat /etc/tidetracker/role)
+        case "$role" in
+            zero) expected_uuid=54540000-0000-4000-8000-000000000002 ;;
+            controller) expected_uuid=54540000-0000-4000-8000-000000000001 ;;
+            *) echo 'invalid role' >&2; exit 1 ;;
+        esac
+        test "$(findmnt -n -o FSTYPE --target /)" = overlay
+        test "$(findmnt -n -o FSTYPE --target /var/lib/tidetracker)" = ext4
+        test "$(findmnt -n -o UUID --target /var/lib/tidetracker)" = "$expected_uuid"
+        case ",$(findmnt -n -o OPTIONS --target /var/lib/tidetracker)," in *,rw,*) ;; *) exit 1 ;; esac
+        boot_target=/boot/firmware
+        mountpoint -q "$boot_target" || boot_target=/boot
+        mountpoint -q "$boot_target"
+        case ",$(findmnt -n -o OPTIONS --target "$boot_target")," in *,ro,*) ;; *) exit 1 ;; esac
+        test "$(findmnt -n -o UUID --target /etc/NetworkManager/system-connections)" = "$expected_uuid"
+        test "$(findmnt -n -o FSROOT --target /etc/NetworkManager/system-connections)" = /networkmanager
+        grep -Fx 'overlayroot=""' /etc/overlayroot.conf >/dev/null
+        grep -Eq '(^|[[:space:]])overlayroot=tmpfs:recurse=0([[:space:]]|$)' /proc/cmdline
+        printf '{"root_overlay":true,"boot_read_only":true,"data_uuid":"%s","data_read_write":true,"networkmanager_bind_from_data":true,"overlay_recurse":false}\n' "$expected_uuid"
+        ;;
+    network-profile-evidence)
+        test "$execute" = false || {
+            echo 'network-profile-evidence is read-only and rejects --execute' >&2; exit 64;
+        }
+        test "$#" -eq 5 || {
+            echo 'network-profile-evidence requires CASE_ID SSID_SHA256 SECURITY HIDDEN OPERATION' >&2
+            exit 64
+        }
+        case_id=$1
+        ssid_sha256=$2
+        security=$3
+        hidden=$4
+        operation=$5
+        case "$case_id:$security:$hidden:$operation" in
+            visible_open_test:open:false:test|\
+            visible_open_force_save:open:false:force-save|\
+            hidden_open_test:open:true:test|\
+            hidden_open_force_save:open:true:force-save|\
+            visible_wpa_personal_test:wpa-personal:false:test|\
+            visible_wpa_personal_force_save:wpa-personal:false:force-save|\
+            hidden_wpa_personal_test:wpa-personal:true:test|\
+            hidden_wpa_personal_force_save:wpa-personal:true:force-save|\
+            visible_wpa_enterprise_test:wpa-enterprise:false:test|\
+            visible_wpa_enterprise_force_save:wpa-enterprise:false:force-save|\
+            hidden_wpa_enterprise_test:wpa-enterprise:true:test|\
+            hidden_wpa_enterprise_force_save:wpa-enterprise:true:force-save) ;;
+            *) echo 'network profile evidence request is not allowed' >&2; exit 64 ;;
+        esac
+        case "$ssid_sha256" in *[!0-9a-f]*|'') echo 'invalid SSID SHA-256' >&2; exit 64 ;; esac
+        test "${#ssid_sha256}" -eq 64 || { echo 'invalid SSID SHA-256' >&2; exit 64; }
+        require_zero_evidence_role
+        export PYTHONPATH=/usr/local/lib/tidetracker/app
+        exec /usr/bin/python3 -m tidetracker.network_evidence network-profile-evidence \
+            "$case_id" "$ssid_sha256" "$security" "$hidden" "$operation"
+        ;;
+    network-rollback-evidence)
+        test "$execute" = false || {
+            echo 'network-rollback-evidence is read-only and rejects --execute' >&2; exit 64;
+        }
+        test "$#" -eq 1 || {
+            echo 'network-rollback-evidence requires SSID_SHA256' >&2; exit 64;
+        }
+        ssid_sha256=$1
+        case "$ssid_sha256" in *[!0-9a-f]*|'') echo 'invalid SSID SHA-256' >&2; exit 64 ;; esac
+        test "${#ssid_sha256}" -eq 64 || { echo 'invalid SSID SHA-256' >&2; exit 64; }
+        require_zero_evidence_role
+        export PYTHONPATH=/usr/local/lib/tidetracker/app
+        exec /usr/bin/python3 -m tidetracker.network_evidence network-rollback-evidence \
+            "$ssid_sha256"
+        ;;
+    network-secret-artifact-scan)
+        test "$execute" = false || {
+            echo 'network-secret-artifact-scan is read-only and rejects --execute' >&2; exit 64;
+        }
+        test "$#" -eq 0 || {
+            echo 'network-secret-artifact-scan does not accept arguments' >&2; exit 64;
+        }
+        require_zero_evidence_role
+        export PYTHONPATH=/usr/local/lib/tidetracker/app
+        exec /usr/bin/python3 -m tidetracker.network_evidence network-secret-artifact-scan
+        ;;
+    update-bundle)
+        test "$execute" = true || { echo 'update-bundle requires --execute' >&2; exit 64; }
+        test "$#" -eq 1 || { echo 'update-bundle requires one bundle basename' >&2; exit 64; }
+        bundle_name=$1
+        case "$bundle_name" in
+            ''|*[!A-Za-z0-9._-]*|.*) echo 'unsafe bundle basename' >&2; exit 64 ;;
+        esac
+        bundle_path="/var/lib/tidetracker/uploads/$bundle_name"
+        test ! -e /var/lib/tidetracker/state/hil/update-cut.json || {
+            echo 'an interrupted update must be recovered before ordinary staging' >&2; exit 1;
+        }
+        test -f "$bundle_path" && test ! -L "$bundle_path" || {
+            echo 'bundle is missing, not regular, or a symbolic link' >&2; exit 1;
+        }
+        exec /usr/local/bin/tidetracker-update stage --bundle "$bundle_path"
+        ;;
+    update-cut)
+        test "$execute" = true || { echo 'update-cut requires --execute' >&2; exit 64; }
+        test "$#" -eq 4 || {
+            echo 'update-cut requires BUNDLE PHASE RELEASE_ID BUNDLE_SHA256' >&2; exit 64;
+        }
+        bundle_name=$1
+        phase=$2
+        release_id=$3
+        bundle_sha256=$4
+        case "$bundle_name" in
+            ''|*[!A-Za-z0-9._-]*|.*) echo 'unsafe bundle basename' >&2; exit 64 ;;
+        esac
+        case "$phase" in begin|stage|verify|activate) ;; *) echo 'invalid update phase' >&2; exit 64 ;; esac
+        case "$release_id" in
+            ''|*[!A-Za-z0-9._-]*|.*) echo 'unsafe release ID' >&2; exit 64 ;;
+        esac
+        test "${#release_id}" -le 64 || { echo 'release ID is too long' >&2; exit 64; }
+        case "$bundle_sha256" in *[!0-9a-f]*|'') echo 'invalid bundle SHA-256' >&2; exit 64 ;; esac
+        test "${#bundle_sha256}" -eq 64 || { echo 'invalid bundle SHA-256' >&2; exit 64; }
+        bundle_path="/var/lib/tidetracker/uploads/$bundle_name"
+        test -f "$bundle_path" && test ! -L "$bundle_path" || {
+            echo 'bundle is missing, not regular, or a symbolic link' >&2; exit 1;
+        }
+        install -d -m 0700 -o root -g root /var/lib/tidetracker/state/hil
+        exec 9>/var/lib/tidetracker/state/hil/update-cut.lock
+        /usr/bin/flock -n 9 || { echo 'update interruption control is already active' >&2; exit 1; }
+        export PYTHONPATH=/usr/local/lib/tidetracker/app
+        exec /usr/bin/python3 -m tidetracker.hil_update cut "$bundle_path" "$phase" \
+            "$release_id" "$bundle_sha256"
+        ;;
+    update-cut-recover)
+        test "$execute" = true || { echo 'update-cut-recover requires --execute' >&2; exit 64; }
+        test "$#" -eq 3 || {
+            echo 'update-cut-recover requires PHASE RELEASE_ID BUNDLE_SHA256' >&2; exit 64;
+        }
+        phase=$1
+        release_id=$2
+        bundle_sha256=$3
+        case "$phase" in begin|stage|verify|activate) ;; *) echo 'invalid update phase' >&2; exit 64 ;; esac
+        case "$release_id" in
+            ''|*[!A-Za-z0-9._-]*|.*) echo 'unsafe release ID' >&2; exit 64 ;;
+        esac
+        test "${#release_id}" -le 64 || { echo 'release ID is too long' >&2; exit 64; }
+        case "$bundle_sha256" in *[!0-9a-f]*|'') echo 'invalid bundle SHA-256' >&2; exit 64 ;; esac
+        test "${#bundle_sha256}" -eq 64 || { echo 'invalid bundle SHA-256' >&2; exit 64; }
+        install -d -m 0700 -o root -g root /var/lib/tidetracker/state/hil
+        exec 9>/var/lib/tidetracker/state/hil/update-cut.lock
+        /usr/bin/flock -n 9 || { echo 'update interruption control is already active' >&2; exit 1; }
+        export PYTHONPATH=/usr/local/lib/tidetracker/app
+        exec /usr/bin/python3 -m tidetracker.hil_update recover "$phase" "$release_id" \
+            "$bundle_sha256"
+        ;;
+    reboot)
+        test "$#" -eq 0 || exit 64
+        test "$execute" = true || { echo 'reboot requires --execute' >&2; exit 64; }
+        exec systemctl reboot
+        ;;
+    poweroff)
+        test "$#" -eq 0 || exit 64
+        test "$execute" = true || { echo 'poweroff requires --execute' >&2; exit 64; }
+        exec systemctl poweroff
+        ;;
+    *)
+        echo 'usage: tidetracker-lab-control [--execute] cycle|portal-start|portal-stop|status|journal|last-result|metrics-latest|supervisor-last|fault-set KIND|fault-status|fault-clear|usb-policy|resolver-policy|swap-policy|storage-policy|network-profile-evidence CASE_ID SSID_SHA256 SECURITY HIDDEN OPERATION|network-rollback-evidence SSID_SHA256|network-secret-artifact-scan|update-bundle NAME|update-cut NAME PHASE RELEASE_ID SHA256|update-cut-recover PHASE RELEASE_ID SHA256|reboot|poweroff' >&2
+        exit 64
+        ;;
+esac

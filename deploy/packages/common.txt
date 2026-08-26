@@ -1,0 +1,14 @@
+ca-certificates
+iproute2
+network-manager
+openssh-client
+openssh-server
+openssl
+overlayroot
+python3
+raspi-config
+rfkill
+sudo
+systemd-timesyncd
+systemd-resolved
+util-linux

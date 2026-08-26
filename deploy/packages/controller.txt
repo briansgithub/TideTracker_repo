@@ -1,0 +1,6 @@
+dnsmasq-base
+fswebcam
+hostapd
+iw
+nftables
+python3-serial

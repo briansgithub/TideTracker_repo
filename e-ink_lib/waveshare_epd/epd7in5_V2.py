@@ -29,6 +29,7 @@
 
 
 import logging
+import time
 from . import epdconfig
 
 # Display resolution
@@ -37,14 +38,22 @@ EPD_HEIGHT      = 480
 
 logger = logging.getLogger(__name__)
 
+
+class DisplayTimeoutError(TimeoutError):
+    """Raised when the panel BUSY signal does not release before its deadline."""
+
 class EPD:
-    def __init__(self):
+    def __init__(self, busy_timeout_seconds=120.0, monotonic=time.monotonic):
         self.reset_pin = epdconfig.RST_PIN
         self.dc_pin = epdconfig.DC_PIN
         self.busy_pin = epdconfig.BUSY_PIN
         self.cs_pin = epdconfig.CS_PIN
         self.width = EPD_WIDTH
         self.height = EPD_HEIGHT
+        self.busy_timeout_seconds = busy_timeout_seconds
+        self.monotonic = monotonic
+        self.last_busy_seconds = 0.0
+        self.total_busy_seconds = 0.0
     
     # Hardware reset
     def reset(self):
@@ -73,13 +82,25 @@ class EPD:
         epdconfig.SPI.writebytes2(data)
         epdconfig.digital_write(self.cs_pin, 1)
 
-    def ReadBusy(self):
+    def ReadBusy(self, timeout_seconds=None):
         logger.debug("e-Paper busy")
+        timeout = self.busy_timeout_seconds if timeout_seconds is None else timeout_seconds
+        started = self.monotonic()
+        deadline = started + timeout
         self.send_command(0x71)
         busy = epdconfig.digital_read(self.busy_pin)
         while(busy == 0):
+            if self.monotonic() >= deadline:
+                self.last_busy_seconds = self.monotonic() - started
+                self.total_busy_seconds += self.last_busy_seconds
+                raise DisplayTimeoutError(
+                    f"e-paper BUSY remained asserted for {self.last_busy_seconds:.3f}s"
+                )
+            epdconfig.delay_ms(10)
             self.send_command(0x71)
             busy = epdconfig.digital_read(self.busy_pin)
+        self.last_busy_seconds = self.monotonic() - started
+        self.total_busy_seconds += self.last_busy_seconds
         epdconfig.delay_ms(20)
         logger.debug("e-Paper busy release")
         
