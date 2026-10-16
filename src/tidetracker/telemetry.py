@@ -247,17 +247,21 @@ class UartPhaseTelemetry:
             release_id = str(fields.get("release_id", ""))
             execution_source = str(fields.get("execution_source", ""))
             image_build_id = str(fields.get("image_build_id", ""))
+            key_policy_sha256 = str(fields.get("key_policy_sha256", ""))
             if self._SAFE_ID.fullmatch(release_id) is None:
                 raise ValueError("UART target release ID is invalid")
             if execution_source not in {"built-in", "verified-release"}:
                 raise ValueError("UART target execution source is invalid")
             if self._SHA256.fullmatch(image_build_id) is None:
                 raise ValueError("UART image build ID is invalid")
+            if self._SHA256.fullmatch(key_policy_sha256) is None:
+                raise ValueError("UART key policy SHA-256 is invalid")
             record.update(
                 {
                     "release_id": release_id,
                     "execution_source": execution_source,
                     "image_build_id": image_build_id,
+                    "key_policy_sha256": key_policy_sha256,
                 }
             )
         else:

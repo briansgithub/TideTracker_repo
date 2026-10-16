@@ -76,6 +76,7 @@ DEFAULT_PUBLIC_KEY = Path("/etc/tidetracker/release-ed25519.pub.pem")
 DEFAULT_DONE_MARKER = Path("/run/tidetracker/done-signalled")
 DEFAULT_UART_DEVICE = Path("/dev/serial0")
 DEFAULT_IMAGE_BUILD_ID = Path("/etc/tidetracker/image-build-id")
+DEFAULT_KEY_POLICY_SHA256 = Path("/etc/tidetracker/key-policy.sha256")
 DEFAULT_NOAA_FAULT_REQUEST = Path("/var/lib/tidetracker/state/hil/noaa-fault.request")
 DEFAULT_NOAA_FAULT_RUNTIME = Path("/run/tidetracker-hil/noaa-fault")
 DEFAULT_FAILSAFE = Path("/usr/local/libexec/tidetracker-failsafe")
@@ -115,6 +116,16 @@ def _image_build_identity() -> str:
     value = path.read_text(encoding="ascii").strip()
     if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
         raise ValueError("image build identity is not a lowercase SHA-256 digest")
+    return value
+
+
+def _key_policy_identity() -> str:
+    path = _environment_path("TIDETRACKER_KEY_POLICY_SHA256_FILE", DEFAULT_KEY_POLICY_SHA256)
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 128:
+        raise ValueError("key policy identity file is invalid")
+    value = path.read_text(encoding="ascii").strip()
+    if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
+        raise ValueError("key policy identity is not a lowercase SHA-256 digest")
     return value
 
 
@@ -241,6 +252,7 @@ def _run_builtin_cycle(args: argparse.Namespace, *, defer_done: bool) -> int:
                 release_id=release_id,
                 execution_source=execution_source,
                 image_build_id=_image_build_identity(),
+                key_policy_sha256=_key_policy_identity(),
             )
             telemetry = CompositeTelemetry(file_telemetry, uart)
         system_clock = SystemClock()

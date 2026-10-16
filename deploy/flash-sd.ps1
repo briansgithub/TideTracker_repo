@@ -10,6 +10,10 @@ param(
     [string]$ExpectedImageSha256,
     [string]$ImageReleasePublicKey,
     [string]$ExpectedImageReleasePublicKeySha256,
+    [string]$WorkstationToControllerSshPublicKey,
+    [string]$ControllerToZeroSshPublicKey,
+    [string]$ApplicationReleasePublicKey,
+    [string]$LabSafetyPublicKey,
     [string]$OpenSslPath,
     [string]$ExpectedOpenSslSha256,
     [string]$Confirmation,
@@ -131,6 +135,190 @@ function New-PrivateSnapshotFile {
     }
 }
 
+function Get-BytesSha256 {
+    param([byte[]]$Bytes)
+    return (
+        [BitConverter]::ToString([Security.Cryptography.SHA256]::HashData($Bytes)) `
+            -replace '-', ''
+    ).ToLowerInvariant()
+}
+
+function Get-OpenSshEd25519KeyIdentity {
+    param(
+        [byte[]]$Bytes,
+        [string]$Label
+    )
+    try {
+        $utf8 = [Text.UTF8Encoding]::new($false, $true)
+        $line = $utf8.GetString($Bytes).Trim()
+    }
+    catch {
+        throw "$Label is not strict UTF-8."
+    }
+    if ($line.Contains("`n") -or $line.Contains("`r")) {
+        throw "$Label must contain exactly one OpenSSH public-key record."
+    }
+    $parts = @($line -split '[\t ]+', 3)
+    if ($parts.Count -lt 2 -or $parts[0] -cne 'ssh-ed25519') {
+        throw "$Label must be an OpenSSH Ed25519 public key."
+    }
+    try {
+        [byte[]]$wire = [Convert]::FromBase64String($parts[1])
+    }
+    catch {
+        throw "$Label has invalid OpenSSH base64 key material."
+    }
+    if ($wire.Length -ne 51) {
+        throw "$Label has invalid Ed25519 wire-key length."
+    }
+    [uint32]$typeLength =
+        ([uint32]$wire[0] -shl 24) -bor ([uint32]$wire[1] -shl 16) -bor `
+        ([uint32]$wire[2] -shl 8) -bor [uint32]$wire[3]
+    [uint32]$keyLength =
+        ([uint32]$wire[15] -shl 24) -bor ([uint32]$wire[16] -shl 16) -bor `
+        ([uint32]$wire[17] -shl 8) -bor [uint32]$wire[18]
+    $type = [Text.Encoding]::ASCII.GetString($wire, 4, 11)
+    if ($typeLength -ne 11 -or $type -cne 'ssh-ed25519' -or $keyLength -ne 32) {
+        throw "$Label has invalid Ed25519 wire-key fields."
+    }
+    [byte[]]$derPrefix = 0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00
+    [byte[]]$der = $derPrefix + $wire[19..50]
+    return [pscustomobject]@{
+        RawSha256 = Get-BytesSha256 -Bytes $Bytes
+        CanonicalSha256 = Get-BytesSha256 -Bytes $der
+    }
+}
+
+function Get-PemEd25519KeyIdentity {
+    param(
+        [byte[]]$Bytes,
+        [string]$Label,
+        [string]$OpenSsl
+    )
+    $snapshot = New-PrivateSnapshotFile -Bytes $Bytes -Suffix 'pub.pem'
+    $derPath = Join-Path (
+        [IO.Path]::GetTempPath()
+    ) "tidetracker-flash-$([Guid]::NewGuid().ToString('N')).pub.der"
+    try {
+        & $OpenSsl pkey -pubin -in $snapshot.Path -outform DER -out $derPath 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not [IO.File]::Exists($derPath)) {
+            throw "$Label must be an Ed25519 public PEM key."
+        }
+        [byte[]]$der = [IO.File]::ReadAllBytes($derPath)
+        [byte[]]$expectedPrefix = 0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00
+        if ($der.Length -ne 44) {
+            throw "$Label must be an Ed25519 public PEM key."
+        }
+        for ($index = 0; $index -lt $expectedPrefix.Length; $index++) {
+            if ($der[$index] -ne $expectedPrefix[$index]) {
+                throw "$Label must be an Ed25519 public PEM key."
+            }
+        }
+        return [pscustomobject]@{
+            RawSha256 = Get-BytesSha256 -Bytes $Bytes
+            CanonicalSha256 = Get-BytesSha256 -Bytes $der
+        }
+    }
+    finally {
+        $snapshot.Stream.Dispose()
+        [IO.File]::Delete($snapshot.Path)
+        [IO.File]::Delete($derPath)
+    }
+}
+
+function Test-RoleImageKeySeparation {
+    param(
+        [byte[]]$ImageReleaseKeyBytes,
+        [byte[]]$WorkstationToControllerSshKeyBytes,
+        [byte[]]$ControllerToZeroSshKeyBytes,
+        [byte[]]$ApplicationReleaseKeyBytes,
+        [byte[]]$LabSafetyKeyBytes,
+        [object]$Manifest,
+        [string]$OpenSsl,
+        [string]$ExpectedOpenSslHash
+    )
+    $lockedOpenSsl = Open-LockedRegularFile -Path $OpenSsl -Label 'OpenSSL executable'
+    try {
+        if ((Get-StreamSha256 -Stream $lockedOpenSsl.Stream) -cne $ExpectedOpenSslHash.ToLowerInvariant()) {
+            throw 'OpenSSL executable changed during key-policy verification.'
+        }
+        $image = Get-PemEd25519KeyIdentity `
+            -Bytes $ImageReleaseKeyBytes -Label 'Image release public key' -OpenSsl $lockedOpenSsl.Path
+        $workstationSsh = Get-OpenSshEd25519KeyIdentity `
+            -Bytes $WorkstationToControllerSshKeyBytes `
+            -Label 'Workstation-to-controller SSH public key'
+        $controllerSsh = Get-OpenSshEd25519KeyIdentity `
+            -Bytes $ControllerToZeroSshKeyBytes `
+            -Label 'Controller-to-Zero SSH public key'
+        $application = Get-PemEd25519KeyIdentity `
+            -Bytes $ApplicationReleaseKeyBytes -Label 'Application release public key' `
+            -OpenSsl $lockedOpenSsl.Path
+        $lab = Get-PemEd25519KeyIdentity `
+            -Bytes $LabSafetyKeyBytes -Label 'Lab safety public key' -OpenSsl $lockedOpenSsl.Path
+        $identities = [ordered]@{
+            application_release = $application
+            controller_to_zero_ssh = $controllerSsh
+            image_release = $image
+            lab_safety = $lab
+            workstation_to_controller_ssh = $workstationSsh
+        }
+        foreach ($entry in $identities.GetEnumerator()) {
+            $rawField = "$($entry.Key)_public_key_sha256"
+            $canonicalField = "$($entry.Key)_key_material_sha256"
+            if (
+                $entry.Value.RawSha256 -cne [string]$Manifest.$rawField -or
+                $entry.Value.CanonicalSha256 -cne [string]$Manifest.$canonicalField
+            ) {
+                throw "Key-policy input '$($entry.Key)' does not match the signed image manifest."
+            }
+        }
+        $canonical = @(
+            $image.CanonicalSha256,
+            $workstationSsh.CanonicalSha256,
+            $controllerSsh.CanonicalSha256,
+            $application.CanonicalSha256,
+            $lab.CanonicalSha256
+        )
+        if (@($canonical | Sort-Object -Unique).Count -ne $canonical.Count) {
+            throw 'Both SSH, application-release, lab-safety, and image-release keys must all be separate.'
+        }
+        $policyRecord = [ordered]@{
+            application_release_key_material_sha256 = $application.CanonicalSha256
+            application_release_public_key_sha256 = $application.RawSha256
+            controller_to_zero_ssh_key_material_sha256 = $controllerSsh.CanonicalSha256
+            controller_to_zero_ssh_public_key_sha256 = $controllerSsh.RawSha256
+            image_release_key_material_sha256 = $image.CanonicalSha256
+            image_release_public_key_sha256 = $image.RawSha256
+            lab_safety_key_material_sha256 = $lab.CanonicalSha256
+            lab_safety_public_key_sha256 = $lab.RawSha256
+            schema_version = 1
+            workstation_to_controller_ssh_key_material_sha256 = $workstationSsh.CanonicalSha256
+            workstation_to_controller_ssh_public_key_sha256 = $workstationSsh.RawSha256
+        }
+        $policyBytes = [Text.Encoding]::ASCII.GetBytes(
+            ($policyRecord | ConvertTo-Json -Compress)
+        )
+        $policyHash = (
+            [BitConverter]::ToString([Security.Cryptography.SHA256]::HashData($policyBytes)) `
+                -replace '-', ''
+        ).ToLowerInvariant()
+        if ($policyHash -cne [string]$Manifest.key_policy_sha256) {
+            throw 'Signed image manifest has an inconsistent canonical five-key policy digest.'
+        }
+        return [pscustomobject]@{
+            ImageReleaseCanonicalSha256 = $image.CanonicalSha256
+            WorkstationToControllerSshCanonicalSha256 = $workstationSsh.CanonicalSha256
+            ControllerToZeroSshCanonicalSha256 = $controllerSsh.CanonicalSha256
+            ApplicationReleaseCanonicalSha256 = $application.CanonicalSha256
+            LabSafetyCanonicalSha256 = $lab.CanonicalSha256
+            KeyPolicySha256 = $policyHash
+        }
+    }
+    finally {
+        $lockedOpenSsl.Stream.Dispose()
+    }
+}
+
 function Assert-NoDuplicateJsonProperties {
     param(
         [System.Text.Json.JsonElement]$Element,
@@ -160,6 +348,13 @@ function Test-RoleImageManifest {
         [string]$Role,
         [string]$ActualImageHash
     )
+    $keyIdentityPrefixes = @(
+        'workstation_to_controller_ssh',
+        'controller_to_zero_ssh',
+        'application_release',
+        'lab_safety',
+        'image_release'
+    )
     $requiredProperties = @(
         'schema_version',
         'role',
@@ -167,14 +362,17 @@ function Test-RoleImageManifest {
         'image_sha256',
         'image_build_id',
         'application_sha256',
-        'release_public_key_sha256',
-        'lab_safety_public_key_sha256',
         'package_bundle_sha256',
-        'ssh_authorized_key_sha256',
-        'data_mib'
+        'data_mib',
+        'key_policy_sha256'
     )
+    foreach ($prefix in $keyIdentityPrefixes) {
+        $requiredProperties += "${prefix}_public_key_sha256"
+        $requiredProperties += "${prefix}_key_material_sha256"
+    }
     [int64]$schemaVersion = 0
     [int64]$dataMiB = 0
+    [System.Text.Json.JsonElement]$schemaElement = [System.Text.Json.JsonElement]::new()
     try {
         $utf8 = [Text.UTF8Encoding]::new($false, $true)
         $manifestText = $utf8.GetString($ManifestBytes)
@@ -184,6 +382,21 @@ function Test-RoleImageManifest {
                 throw 'Role-image manifest root must be an object.'
             }
             Assert-NoDuplicateJsonProperties -Element $document.RootElement
+            if (-not $document.RootElement.TryGetProperty('schema_version', [ref]$schemaElement)) {
+                throw 'Role-image manifest is missing schema_version.'
+            }
+            if (
+                $schemaElement.ValueKind -ne [System.Text.Json.JsonValueKind]::Number -or
+                -not $schemaElement.TryGetInt64([ref]$schemaVersion)
+            ) {
+                throw 'Role-image manifest schema_version must be the integer 2.'
+            }
+            if ($schemaVersion -eq 1) {
+                throw 'Role-image manifest schema 1 is explicitly unsupported; rebuild as schema 2.'
+            }
+            if ($schemaVersion -ne 2) {
+                throw 'Role-image manifest schema_version must be the integer 2.'
+            }
             $actualProperties = @($document.RootElement.EnumerateObject() | ForEach-Object { $_.Name })
             $propertyDifference = @(
                 Compare-Object `
@@ -192,15 +405,7 @@ function Test-RoleImageManifest {
                     -CaseSensitive
             )
             if ($actualProperties.Count -ne $requiredProperties.Count -or $propertyDifference.Count -ne 0) {
-                throw 'Role-image manifest properties do not match the exact schema-1 field set.'
-            }
-            $schemaElement = $document.RootElement.GetProperty('schema_version')
-            if (
-                $schemaElement.ValueKind -ne [System.Text.Json.JsonValueKind]::Number -or
-                -not $schemaElement.TryGetInt64([ref]$schemaVersion) -or
-                $schemaVersion -ne 1
-            ) {
-                throw 'Role-image manifest schema_version must be the integer 1.'
+                throw 'Role-image manifest properties do not match the exact schema-2 field set.'
             }
             $dataElement = $document.RootElement.GetProperty('data_mib')
             if (
@@ -219,13 +424,19 @@ function Test-RoleImageManifest {
                 'image_sha256',
                 'image_build_id',
                 'application_sha256',
-                'release_public_key_sha256',
-                'lab_safety_public_key_sha256',
                 'package_bundle_sha256',
-                'ssh_authorized_key_sha256'
+                'key_policy_sha256'
             )) {
                 if ($document.RootElement.GetProperty($field).ValueKind -ne [System.Text.Json.JsonValueKind]::String) {
                     throw "Role-image manifest field '$field' must be a string."
+                }
+            }
+            foreach ($prefix in $keyIdentityPrefixes) {
+                foreach ($suffix in @('public_key_sha256', 'key_material_sha256')) {
+                    $field = "${prefix}_${suffix}"
+                    if ($document.RootElement.GetProperty($field).ValueKind -ne [System.Text.Json.JsonValueKind]::String) {
+                        throw "Role-image manifest field '$field' must be a string."
+                    }
                 }
             }
         }
@@ -245,14 +456,21 @@ function Test-RoleImageManifest {
         'image_sha256',
         'image_build_id',
         'application_sha256',
-        'release_public_key_sha256',
-        'lab_safety_public_key_sha256',
         'package_bundle_sha256',
-        'ssh_authorized_key_sha256'
+        'key_policy_sha256'
     )) {
         $value = [string]$manifest.$field
         if ($value -cnotmatch '^[0-9a-f]{64}$') {
             throw "Role-image manifest field '$field' is not a lowercase SHA-256 digest."
+        }
+    }
+    foreach ($prefix in $keyIdentityPrefixes) {
+        foreach ($suffix in @('public_key_sha256', 'key_material_sha256')) {
+            $field = "${prefix}_${suffix}"
+            $value = [string]$manifest.$field
+            if ($value -cnotmatch '^[0-9a-f]{64}$') {
+                throw "Role-image manifest field '$field' is not a lowercase SHA-256 digest."
+            }
         }
     }
     if ([string]$manifest.image_sha256 -cne $ActualImageHash) {
@@ -262,12 +480,10 @@ function Test-RoleImageManifest {
         application_sha256 = [string]$manifest.application_sha256
         base_archive_sha256 = [string]$manifest.base_archive_sha256
         data_mib = $dataMiB
-        lab_safety_public_key_sha256 = [string]$manifest.lab_safety_public_key_sha256
+        key_policy_sha256 = [string]$manifest.key_policy_sha256
         package_bundle_sha256 = [string]$manifest.package_bundle_sha256
-        release_public_key_sha256 = [string]$manifest.release_public_key_sha256
         role = [string]$manifest.role
         schema_version = $schemaVersion
-        ssh_authorized_key_sha256 = [string]$manifest.ssh_authorized_key_sha256
     }
     $buildRecordBytes = [Text.Encoding]::UTF8.GetBytes(
         ($buildRecord | ConvertTo-Json -Compress)
@@ -525,6 +741,16 @@ try {
     if ([string]::IsNullOrWhiteSpace($ImageReleasePublicKey)) {
         throw '-ImageReleasePublicKey is required.'
     }
+    foreach ($keyArgument in @(
+        @{ Name = '-WorkstationToControllerSshPublicKey'; Value = $WorkstationToControllerSshPublicKey },
+        @{ Name = '-ControllerToZeroSshPublicKey'; Value = $ControllerToZeroSshPublicKey },
+        @{ Name = '-ApplicationReleasePublicKey'; Value = $ApplicationReleasePublicKey },
+        @{ Name = '-LabSafetyPublicKey'; Value = $LabSafetyPublicKey }
+    )) {
+        if ([string]::IsNullOrWhiteSpace([string]$keyArgument.Value)) {
+            throw "$($keyArgument.Name) is required for canonical key-separation verification."
+        }
+    }
 
     $disk = Get-Disk -Number $DiskNumber
     $serial = ([string]$disk.SerialNumber).Trim()
@@ -553,6 +779,10 @@ try {
     $manifestBytes = Read-LockedFileBytes -Path $manifestPath -Label 'Role-image manifest' -MaximumBytes 1MB
     $signatureBytes = Read-LockedFileBytes -Path $signaturePath -Label 'Role-image manifest signature' -MaximumBytes 4KB
     $publicKeyBytes = Read-LockedFileBytes -Path $ImageReleasePublicKey -Label 'Image release public key' -MaximumBytes 64KB
+    $workstationSshKeyBytes = Read-LockedFileBytes -Path $WorkstationToControllerSshPublicKey -Label 'Workstation-to-controller SSH public key' -MaximumBytes 64KB
+    $controllerSshKeyBytes = Read-LockedFileBytes -Path $ControllerToZeroSshPublicKey -Label 'Controller-to-Zero SSH public key' -MaximumBytes 64KB
+    $applicationReleaseKeyBytes = Read-LockedFileBytes -Path $ApplicationReleasePublicKey -Label 'Application release public key' -MaximumBytes 64KB
+    $labSafetyKeyBytes = Read-LockedFileBytes -Path $LabSafetyPublicKey -Label 'Lab safety public key' -MaximumBytes 64KB
     $manifestHash = ([BitConverter]::ToString([Security.Cryptography.SHA256]::HashData($manifestBytes)) -replace '-', '').ToLowerInvariant()
     $manifestSignatureHash = ([BitConverter]::ToString([Security.Cryptography.SHA256]::HashData($signatureBytes)) -replace '-', '').ToLowerInvariant()
     $verificationIdentity = Test-RoleImageSignature `
@@ -566,6 +796,15 @@ try {
         -ManifestBytes $manifestBytes `
         -Role $ExpectedRole `
         -ActualImageHash $actualImageHash
+    $keyPolicy = Test-RoleImageKeySeparation `
+        -ImageReleaseKeyBytes $publicKeyBytes `
+        -WorkstationToControllerSshKeyBytes $workstationSshKeyBytes `
+        -ControllerToZeroSshKeyBytes $controllerSshKeyBytes `
+        -ApplicationReleaseKeyBytes $applicationReleaseKeyBytes `
+        -LabSafetyKeyBytes $labSafetyKeyBytes `
+        -Manifest $roleManifest `
+        -OpenSsl $OpenSslPath `
+        -ExpectedOpenSslHash $ExpectedOpenSslSha256
     Test-RoleImageLayout `
         -ImageStream $imageSource.Stream `
         -ImageLength $imageSource.Length `
@@ -584,6 +823,12 @@ try {
         manifest_sha256 = $manifestHash
         manifest_signature_sha256 = $manifestSignatureHash
         image_release_public_key_sha256 = $verificationIdentity.PublicKeySha256
+        image_release_key_material_sha256 = $keyPolicy.ImageReleaseCanonicalSha256
+        workstation_to_controller_ssh_key_material_sha256 = $keyPolicy.WorkstationToControllerSshCanonicalSha256
+        controller_to_zero_ssh_key_material_sha256 = $keyPolicy.ControllerToZeroSshCanonicalSha256
+        application_release_key_material_sha256 = $keyPolicy.ApplicationReleaseCanonicalSha256
+        lab_safety_key_material_sha256 = $keyPolicy.LabSafetyCanonicalSha256
+        key_policy_sha256 = $keyPolicy.KeyPolicySha256
         openssl_sha256 = $verificationIdentity.OpenSslSha256
     } | ConvertTo-Json -Compress
     $sha = [Security.Cryptography.SHA256]::Create()
@@ -608,6 +853,7 @@ try {
     Write-Host "  Manifest SHA256: $manifestHash"
     Write-Host "  Manifest signature SHA256: $manifestSignatureHash"
     Write-Host "  Image signing key SHA256: $($verificationIdentity.PublicKeySha256)"
+    Write-Host "  Canonical key separation: verified (both SSH/application/lab/image)"
     Write-Host "  OpenSSL SHA256: $($verificationIdentity.OpenSslSha256)"
     Write-Host "  Confirmation: $requiredConfirmation"
 

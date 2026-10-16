@@ -1,4 +1,12 @@
 #!/bin/sh
 set -eu
 
+export PYTHONPATH=/usr/local/lib/tidetracker/app
+
+for argument in "$@"; do
+    if test "$argument" = --execute; then
+        exec /usr/bin/sudo -n -- /usr/local/sbin/tidetracker-hil-root "$@"
+    fi
+done
+
 exec /usr/bin/python3 /usr/local/lib/tidetracker/lab/hil_orchestrator.py "$@"

@@ -50,8 +50,15 @@ The complete lab and promotion sequence is in
 - Runtime: `/usr/local/lib/tidetracker/app`
 - Assets: `/usr/share/tidetracker`
 - Waveshare driver: `/usr/lib/tidetracker/e-ink_lib`
-- Public release key: `/etc/tidetracker/release-ed25519.pub.pem`
+- Public application-release key: `/etc/tidetracker/release-ed25519.pub.pem`
 - Pinned lab approver key: `/etc/tidetracker/lab-safety-approver.pub.pem`
+- Public image-release key: `/etc/tidetracker/image-release-ed25519.pub.pem`
+- Pinned SSH public identities: `/etc/tidetracker/workstation-controller-ssh.pub`
+  and `/etc/tidetracker/controller-zero-ssh.pub`
+- Canonical five-key policy: `/etc/tidetracker/key-policy.json` and
+  `/etc/tidetracker/key-policy.sha256`
+- Controller-only SSH automation key: `/var/lib/tidetracker/controller/ssh/controller-to-zero-ed25519`
+  (root-owned mode `0600`; never installed on the Zero)
 - Persistent data/update root: `/var/lib/tidetracker` (`TIDEDATA`)
 - Non-secret config: `/var/lib/tidetracker/config/config.json`
 - Wi-Fi secrets: mode-0600 NetworkManager profiles only

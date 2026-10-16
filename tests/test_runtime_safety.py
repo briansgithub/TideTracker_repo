@@ -314,6 +314,7 @@ def test_uart_fixture_identity_and_update_boundary_are_strict() -> None:
         release_id="release-1",
         execution_source="verified-release",
         image_build_id=digest,
+        key_policy_sha256=digest,
     )
     uart.emit(
         "update_phase_boundary",
@@ -333,6 +334,15 @@ def test_uart_fixture_identity_and_update_boundary_are_strict() -> None:
             release_id="release-1",
             execution_source="verified-release",
             image_build_id="not-a-hash",
+            key_policy_sha256=digest,
+        )
+    with pytest.raises(ValueError, match="key policy"):
+        uart.emit(
+            "target_identity",
+            release_id="release-1",
+            execution_source="verified-release",
+            image_build_id=digest,
+            key_policy_sha256="not-a-hash",
         )
 
 

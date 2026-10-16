@@ -19,6 +19,13 @@ from datetime import datetime
 from typing import Any
 
 from tidetracker.benchmark import CycleMetrics, evaluate_promotion
+from tidetracker.key_policy import (
+    MATERIAL_FIELDS,
+    RAW_FIELDS,
+    KeyPolicyError,
+    build_key_policy,
+    read_public_key,
+)
 
 DEFAULT_APPROVAL_PUBLIC_KEY = pathlib.Path("/etc/tidetracker/lab-safety-approver.pub.pem")
 OPENSSL_PATH = pathlib.Path("/usr/bin/openssl")
@@ -468,14 +475,17 @@ def load_image_manifest(
     expected_image_sha256: str,
     expected_image_build_id: str,
     expected_openssl_sha256: str,
+    workstation_to_controller_ssh_public_key: pathlib.Path,
+    controller_to_zero_ssh_public_key: pathlib.Path,
+    application_release_public_key: pathlib.Path,
+    lab_safety_public_key: pathlib.Path,
 ) -> dict[str, Any]:
-    lab_approval_key_sha256 = hashlib.sha256(
-        _stable_file_bytes(
-            DEFAULT_APPROVAL_PUBLIC_KEY,
-            "pinned lab approval key",
-            16 * 1024,
-        )
-    ).hexdigest()
+    pinned_lab_key = _stable_file_bytes(
+        DEFAULT_APPROVAL_PUBLIC_KEY,
+        "pinned lab approval key",
+        16 * 1024,
+    )
+    lab_approval_key_sha256 = hashlib.sha256(pinned_lab_key).hexdigest()
     signed = _load_signed_json(
         path,
         label="role-image manifest",
@@ -489,11 +499,13 @@ def load_image_manifest(
         "image_sha256",
         "image_build_id",
         "application_sha256",
-        "release_public_key_sha256",
-        "lab_safety_public_key_sha256",
         "package_bundle_sha256",
-        "ssh_authorized_key_sha256",
+        "key_policy_sha256",
+        *RAW_FIELDS,
+        *MATERIAL_FIELDS,
     )
+    if type(manifest.get("schema_version")) is int and manifest.get("schema_version") == 1:
+        raise CampaignError("role-image manifest schema 1 is explicitly unsupported")
     if (
         not _hex_digest(expected_public_key_sha256)
         or not _hex_digest(expected_manifest_sha256)
@@ -508,29 +520,55 @@ def load_image_manifest(
             *required_digests,
             "data_mib",
         }
-        or manifest.get("schema_version") != 1
+        or type(manifest.get("schema_version")) is not int
+        or manifest.get("schema_version") != 2
         or manifest.get("role") != "zero"
         or any(not _hex_digest(manifest.get(field)) for field in required_digests)
         or manifest.get("image_sha256") != expected_image_sha256
         or manifest.get("image_build_id") != expected_image_build_id
-        or manifest.get("lab_safety_public_key_sha256") != lab_approval_key_sha256
-        or manifest.get("release_public_key_sha256") == lab_approval_key_sha256
         or not _hex_digest(expected_image_build_id)
         or not isinstance(manifest.get("data_mib"), int)
         or isinstance(manifest.get("data_mib"), bool)
         or not 512 <= manifest["data_mib"] <= 8192
     ):
         raise CampaignError("signed role-image manifest does not match the accepted Zero image")
+    try:
+        policy = build_key_policy(
+            workstation_to_controller_ssh=read_public_key(
+                workstation_to_controller_ssh_public_key,
+                "workstation-to-controller SSH public key",
+            ),
+            controller_to_zero_ssh=read_public_key(
+                controller_to_zero_ssh_public_key,
+                "controller-to-Zero SSH public key",
+            ),
+            application_release=read_public_key(
+                application_release_public_key,
+                "application release public key",
+            ),
+            lab_safety=read_public_key(lab_safety_public_key, "lab safety public key"),
+            image_release=read_public_key(public_key, "image release public key"),
+        )
+    except KeyPolicyError as exc:
+        raise CampaignError("five-key release policy inputs are invalid") from exc
+    if (
+        policy["lab_safety_public_key_sha256"] != lab_approval_key_sha256
+        or hashlib.sha256(pinned_lab_key).hexdigest()
+        != policy["lab_safety_public_key_sha256"]
+        or signed.approval_public_key_sha256
+        != policy["image_release_public_key_sha256"]
+        or any(manifest[field] != policy[field] for field in (*RAW_FIELDS, *MATERIAL_FIELDS))
+        or manifest["key_policy_sha256"] != policy["key_policy_sha256"]
+    ):
+        raise CampaignError("signed role-image manifest does not match the canonical five-key policy")
     build_record = {
-        "schema_version": 1,
+        "schema_version": 2,
         "role": manifest["role"],
         "base_archive_sha256": manifest["base_archive_sha256"],
         "application_sha256": manifest["application_sha256"],
-        "release_public_key_sha256": manifest["release_public_key_sha256"],
-        "lab_safety_public_key_sha256": manifest["lab_safety_public_key_sha256"],
         "package_bundle_sha256": manifest["package_bundle_sha256"],
         "data_mib": manifest["data_mib"],
-        "ssh_authorized_key_sha256": manifest["ssh_authorized_key_sha256"],
+        "key_policy_sha256": manifest["key_policy_sha256"],
     }
     computed_build_id = hashlib.sha256(
         json.dumps(build_record, sort_keys=True, separators=(",", ":")).encode("ascii")
@@ -546,9 +584,11 @@ def load_image_manifest(
         "image_sha256": expected_image_sha256,
         "image_build_id": expected_image_build_id,
         "application_sha256": manifest["application_sha256"],
-        "release_public_key_sha256": manifest["release_public_key_sha256"],
+        "application_release_public_key_sha256": manifest[
+            "application_release_public_key_sha256"
+        ],
         "package_bundle_sha256": manifest["package_bundle_sha256"],
-        "ssh_authorized_key_sha256": manifest["ssh_authorized_key_sha256"],
+        "key_policy_sha256": manifest["key_policy_sha256"],
     }
 
 
@@ -560,6 +600,7 @@ def _validate_target_identity(
     image_build_id: str,
     image_sha256: str,
     image_manifest_sha256: str,
+    key_policy_sha256: str,
 ) -> None:
     if session.get("target_identity") != {
         "release_id": release_id,
@@ -567,6 +608,7 @@ def _validate_target_identity(
         "image_build_id": image_build_id,
         "image_sha256": image_sha256,
         "image_manifest_sha256": image_manifest_sha256,
+        "key_policy_sha256": key_policy_sha256,
         "attestation": "verified_signed_safety_gate",
     }:
         raise CampaignError("HIL session target identity does not match the accepted image")
@@ -593,6 +635,7 @@ def _validate_session_envelope(
         or identity.get("image_manifest_sha256")
         != gate.get("target_image_manifest_sha256")
         or identity.get("image_build_id") != gate.get("target_image_build_id")
+        or identity.get("key_policy_sha256") != gate.get("target_key_policy_sha256")
         or identity.get("attestation") != "verified_signed_safety_gate"
         or not isinstance(fixture, dict)
         or fixture.get("hardware_id") != gate.get("hardware_id")
@@ -652,6 +695,7 @@ def _environment_identity(session: dict[str, Any]) -> dict[str, Any]:
             "image_build_id": gate["target_image_build_id"],
             "image_sha256": gate["target_image_sha256"],
             "image_manifest_sha256": gate["target_image_manifest_sha256"],
+            "key_policy_sha256": gate["target_key_policy_sha256"],
         },
     }
 
@@ -704,6 +748,7 @@ def _validate_signed_gate(
         or not _hex_digest(gate.get("target_image_sha256"))
         or not _hex_digest(gate.get("target_image_manifest_sha256"))
         or not _hex_digest(gate.get("target_image_build_id"))
+        or not _hex_digest(gate.get("target_key_policy_sha256"))
         or not isinstance(gate.get("approval_nonce"), str)
         or re.fullmatch(r"[A-Za-z0-9_-]{16,128}", gate["approval_nonce"]) is None
         or not isinstance(gate.get("valid_until"), str)
@@ -867,6 +912,7 @@ def load_campaign(
     expected_image_build_id: str | None = None,
     expected_image_sha256: str | None = None,
     expected_image_manifest_sha256: str | None = None,
+    expected_key_policy_sha256: str | None = None,
     expected_openssl_sha256: str,
     evidence_records: list[dict[str, Any]] | None = None,
 ) -> tuple[CampaignCycle, ...]:
@@ -899,6 +945,7 @@ def load_campaign(
         expected_image_build_id,
         expected_image_sha256,
         expected_image_manifest_sha256,
+        expected_key_policy_sha256,
     )
     if any(value is not None for value in expected_identity):
         if not all(isinstance(value, str) for value in expected_identity):
@@ -906,6 +953,7 @@ def load_campaign(
         assert expected_image_build_id is not None
         assert expected_image_sha256 is not None
         assert expected_image_manifest_sha256 is not None
+        assert expected_key_policy_sha256 is not None
         _validate_target_identity(
             session,
             release_id=expected_release_id,
@@ -913,6 +961,7 @@ def load_campaign(
             image_build_id=expected_image_build_id,
             image_sha256=expected_image_sha256,
             image_manifest_sha256=expected_image_manifest_sha256,
+            key_policy_sha256=expected_key_policy_sha256,
         )
     environment_identity = _environment_identity(session)
     if evidence_records is not None:
@@ -1566,6 +1615,7 @@ def _validate_field_cycle(
     expected_release_id: str,
     expected_execution_source: str,
     expected_image_build_id: str,
+    expected_key_policy_sha256: str,
 ) -> bool:
     if session.get("field_cycle_requested") is not True:
         return False
@@ -1608,6 +1658,7 @@ def _validate_field_cycle(
         "release_id": expected_release_id,
         "execution_source": expected_execution_source,
         "image_build_id": expected_image_build_id,
+        "key_policy_sha256": expected_key_policy_sha256,
         "matched_signed_target_identity": True,
     }:
         raise CampaignError("field UART identity does not match the accepted image")
@@ -1623,6 +1674,7 @@ def load_release_evidence(
     expected_image_build_id: str,
     expected_image_sha256: str,
     expected_image_manifest_sha256: str,
+    expected_key_policy_sha256: str,
     expected_openssl_sha256: str,
 ) -> dict[str, Any]:
     if not paths:
@@ -1661,6 +1713,7 @@ def load_release_evidence(
             image_build_id=expected_image_build_id,
             image_sha256=expected_image_sha256,
             image_manifest_sha256=expected_image_manifest_sha256,
+            key_policy_sha256=expected_key_policy_sha256,
         )
         _validate_session_envelope(
             session,
@@ -1723,6 +1776,7 @@ def load_release_evidence(
                 expected_release_id=expected_release_id,
                 expected_execution_source=expected_execution_source,
                 expected_image_build_id=expected_image_build_id,
+                expected_key_policy_sha256=expected_key_policy_sha256,
             )
             recognized = True
         if not recognized:
@@ -1756,6 +1810,7 @@ def load_release_evidence(
             "image_build_id": expected_image_build_id,
             "image_sha256": expected_image_sha256,
             "image_manifest_sha256": expected_image_manifest_sha256,
+            "key_policy_sha256": expected_key_policy_sha256,
         },
         "lifecycle_power_cut_phases": sorted(lifecycle_phases),
         "update_power_cut_phases": sorted(UPDATE_POWER_CUT_PHASES),
@@ -1804,6 +1859,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--legacy-report", type=pathlib.Path, required=True)
     parser.add_argument("--image-manifest", type=pathlib.Path, required=True)
     parser.add_argument("--image-release-public-key", type=pathlib.Path, required=True)
+    parser.add_argument(
+        "--workstation-to-controller-ssh-public-key", type=pathlib.Path, required=True
+    )
+    parser.add_argument(
+        "--controller-to-zero-ssh-public-key", type=pathlib.Path, required=True
+    )
+    parser.add_argument("--application-release-public-key", type=pathlib.Path, required=True)
+    parser.add_argument("--lab-safety-public-key", type=pathlib.Path, required=True)
     parser.add_argument("--expected-image-release-public-key-sha256", required=True)
     parser.add_argument("--expected-image-manifest-sha256", required=True)
     parser.add_argument("--expected-image-sha256", required=True)
@@ -1826,13 +1889,21 @@ def main(argv: list[str] | None = None) -> int:
         expected_image_sha256=arguments.expected_image_sha256,
         expected_image_build_id=arguments.expected_image_build_id,
         expected_openssl_sha256=arguments.expected_openssl_sha256,
+        workstation_to_controller_ssh_public_key=(
+            arguments.workstation_to_controller_ssh_public_key.resolve()
+        ),
+        controller_to_zero_ssh_public_key=(
+            arguments.controller_to_zero_ssh_public_key.resolve()
+        ),
+        application_release_public_key=arguments.application_release_public_key.resolve(),
+        lab_safety_public_key=arguments.lab_safety_public_key.resolve(),
     )
     legacy_report = load_legacy_report(
         arguments.legacy_report.resolve(),
         expected_candidate_release_id=arguments.expected_candidate_release_id,
         expected_candidate_bundle_sha256=arguments.expected_candidate_bundle_sha256,
         expected_candidate_release_public_key_sha256=image_manifest[
-            "release_public_key_sha256"
+            "application_release_public_key_sha256"
         ],
         expected_openssl_sha256=arguments.expected_openssl_sha256,
     )
@@ -1848,6 +1919,7 @@ def main(argv: list[str] | None = None) -> int:
             expected_image_build_id=arguments.expected_image_build_id,
             expected_image_sha256=arguments.expected_image_sha256,
             expected_image_manifest_sha256=arguments.expected_image_manifest_sha256,
+            expected_key_policy_sha256=image_manifest["key_policy_sha256"],
             expected_openssl_sha256=arguments.expected_openssl_sha256,
             evidence_records=baseline_records,
         )
@@ -1863,6 +1935,7 @@ def main(argv: list[str] | None = None) -> int:
             expected_image_build_id=arguments.expected_image_build_id,
             expected_image_sha256=arguments.expected_image_sha256,
             expected_image_manifest_sha256=arguments.expected_image_manifest_sha256,
+            expected_key_policy_sha256=image_manifest["key_policy_sha256"],
             expected_openssl_sha256=arguments.expected_openssl_sha256,
             evidence_records=candidate_records,
         )
@@ -1875,6 +1948,7 @@ def main(argv: list[str] | None = None) -> int:
         expected_image_build_id=arguments.expected_image_build_id,
         expected_image_sha256=arguments.expected_image_sha256,
         expected_image_manifest_sha256=arguments.expected_image_manifest_sha256,
+        expected_key_policy_sha256=image_manifest["key_policy_sha256"],
         expected_openssl_sha256=arguments.expected_openssl_sha256,
     )
     campaign_environment = _require_consistent_environment(

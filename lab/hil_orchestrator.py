@@ -31,6 +31,13 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
+from tidetracker.key_policy import (
+    KeyPolicyError,
+    build_key_policy,
+    openssh_ed25519_der,
+    validate_key_policy,
+)
+
 
 class HilError(RuntimeError):
     """A release-gating HIL failure."""
@@ -99,10 +106,24 @@ class AuthorizationGuard:
 DEFAULT_SAFETY_PUBLIC_KEY = pathlib.Path("/etc/tidetracker/lab-safety-approver.pub.pem")
 DEFAULT_EXECUTION_LOCK = pathlib.Path("/var/lib/tidetracker/controller/hil.lock")
 DEFAULT_ARTIFACT_ROOT = pathlib.Path("/var/lib/tidetracker/controller/hil-results")
+CONTROLLER_SSH_ROOT = pathlib.Path("/var/lib/tidetracker/controller/ssh")
+CONTROLLER_TO_ZERO_IDENTITY = CONTROLLER_SSH_ROOT / "controller-to-zero-ed25519"
+CONTROLLER_TO_ZERO_KNOWN_HOSTS = CONTROLLER_SSH_ROOT / "zero-known-hosts"
+WORKSTATION_TO_CONTROLLER_PUBLIC_KEY = pathlib.Path(
+    "/etc/tidetracker/workstation-controller-ssh.pub"
+)
+CONTROLLER_TO_ZERO_PUBLIC_KEY = pathlib.Path("/etc/tidetracker/controller-zero-ssh.pub")
+APPLICATION_RELEASE_PUBLIC_KEY = pathlib.Path("/etc/tidetracker/release-ed25519.pub.pem")
+IMAGE_RELEASE_PUBLIC_KEY = pathlib.Path("/etc/tidetracker/image-release-ed25519.pub.pem")
+CONTROLLER_KEY_POLICY = pathlib.Path("/etc/tidetracker/key-policy.json")
+CONTROLLER_KEY_POLICY_SHA256 = pathlib.Path("/etc/tidetracker/key-policy.sha256")
 CONTROLLER_MACHINE_ID_PATH = pathlib.Path("/etc/machine-id")
 CONTROLLER_DATA_UUID = "54540000-0000-4000-8000-000000000001"
 FIXED_OPENSSL = pathlib.Path("/usr/bin/openssl")
 FIXED_FINDMNT = pathlib.Path("/usr/bin/findmnt")
+FIXED_SSH = pathlib.Path("/usr/bin/ssh")
+FIXED_SFTP = pathlib.Path("/usr/bin/sftp")
+FIXED_SSH_KEYGEN = pathlib.Path("/usr/bin/ssh-keygen")
 MAX_UART_LOG_BYTES = 4 * 1024 * 1024
 MAX_SECRET_SCAN_INPUT_BYTES = 64 * 1024
 MAX_SECRET_SCAN_VALUES = 32
@@ -1236,14 +1257,56 @@ class SshTarget:
 
     def _common(self) -> list[str]:
         return [
+            "-F",
+            "/dev/null",
             "-o",
             "BatchMode=yes",
             "-o",
             "IdentitiesOnly=yes",
             "-o",
+            "IdentityAgent=none",
+            "-o",
+            "PreferredAuthentications=publickey",
+            "-o",
+            "AuthenticationMethods=publickey",
+            "-o",
+            "PubkeyAuthentication=yes",
+            "-o",
+            "PubkeyAcceptedAlgorithms=ssh-ed25519",
+            "-o",
+            "PasswordAuthentication=no",
+            "-o",
+            "KbdInteractiveAuthentication=no",
+            "-o",
+            "ChallengeResponseAuthentication=no",
+            "-o",
+            "GSSAPIAuthentication=no",
+            "-o",
+            "HostbasedAuthentication=no",
+            "-o",
+            "NumberOfPasswordPrompts=0",
+            "-o",
+            "GlobalKnownHostsFile=/dev/null",
+            "-o",
             "StrictHostKeyChecking=yes",
             "-o",
             f"UserKnownHostsFile={self.settings.known_hosts_file}",
+            "-o",
+            "UpdateHostKeys=no",
+            "-o",
+            "HostKeyAlgorithms=ssh-ed25519",
+            "-o",
+            "CanonicalizeHostname=no",
+            "-o",
+            "ProxyCommand=none",
+            "-o",
+            "ProxyJump=none",
+            "-o",
+            "AddKeysToAgent=no",
+            "-o",
+            "ForwardAgent=no",
+            "-o",
+            "ClearAllForwardings=yes",
             "-o",
             f"ConnectTimeout={self.settings.connect_timeout_seconds}",
             "-i",
@@ -1277,7 +1340,7 @@ class SshTarget:
 
     def _ssh_command(self, remote_command: str) -> list[str]:
         return [
-            "ssh",
+            str(FIXED_SSH),
             *self._common(),
             f"{self.settings.user}@{self.settings.host}",
             remote_command,
@@ -1322,7 +1385,13 @@ class SshTarget:
         if any(character in local_path for character in {'"', "\n", "\r"}):
             raise HilError("bundle path contains characters unsafe for SFTP batch mode")
         batch = f'put "{local_path}" "{partial_path}"\n'
-        command = ["sftp", "-b", "-", *self._common(), f"{self.settings.user}@{self.settings.host}"]
+        command = [
+            str(FIXED_SFTP),
+            "-b",
+            "-",
+            *self._common(),
+            f"{self.settings.user}@{self.settings.host}",
+        ]
         self.authorization_guard.require("target SFTP upload")
         timeout = self.authorization_guard.bounded_timeout(240, "target SFTP upload")
         subprocess.run(
@@ -2596,6 +2665,7 @@ class Orchestrator:
             "image_build_id": "simulated-image-build",
             "image_sha256": "0" * 64,
             "image_manifest_sha256": "0" * 64,
+            "key_policy_sha256": "0" * 64,
             "attestation": "simulation",
         }
         self.controller_artifact_policy = controller_artifact_policy
@@ -2713,12 +2783,14 @@ class Orchestrator:
                 identity.get("release_id") != expected.get("release_id")
                 or identity.get("execution_source") != expected.get("execution_source")
                 or identity.get("image_build_id") != expected.get("image_build_id")
+                or identity.get("key_policy_sha256") != expected.get("key_policy_sha256")
             ):
                 raise HilError("field UART target identity differs from signed image/release identity")
             evidence["target_identity"] = {
                 "release_id": identity["release_id"],
                 "execution_source": identity["execution_source"],
                 "image_build_id": identity["image_build_id"],
+                "key_policy_sha256": identity["key_policy_sha256"],
                 "matched_signed_target_identity": True,
             }
         return evidence
@@ -3741,7 +3813,11 @@ def verify_safety_gate(
         or re.fullmatch(r"[0-9a-f]{64}", controller_machine_id_sha256) is None
     ):
         raise HilError("safety gate controller machine identity does not match this Pi 3")
-    for field in ("target_image_sha256", "target_image_manifest_sha256"):
+    for field in (
+        "target_image_sha256",
+        "target_image_manifest_sha256",
+        "target_key_policy_sha256",
+    ):
         if (
             value.get(field) != expected_identity.get(field)
             or not isinstance(value.get(field), str)
@@ -3849,6 +3925,7 @@ def verify_safety_gate(
         "target_image_sha256": value["target_image_sha256"],
         "target_image_manifest_sha256": value["target_image_manifest_sha256"],
         "target_image_build_id": image_build_id,
+        "target_key_policy_sha256": value["target_key_policy_sha256"],
         "hardware_inventory": hardware_inventory,
         "tool_identities": tool_identities,
         "approval_nonce": approval_nonce,
@@ -3976,6 +4053,228 @@ def validate_controller_artifact_destination(
     }
 
 
+def _read_pinned_root_file(
+    path: pathlib.Path, label: str, *, mode: int, maximum: int = 64 * 1024
+) -> bytes:
+    try:
+        before_path = path.lstat()
+    except OSError as exc:
+        raise HilError(f"{label} is unavailable") from exc
+    if (
+        stat.S_ISLNK(before_path.st_mode)
+        or not stat.S_ISREG(before_path.st_mode)
+        or before_path.st_uid != 0
+        or stat.S_IMODE(before_path.st_mode) != mode
+        or not 0 < before_path.st_size <= maximum
+    ):
+        raise HilError(f"{label} must be a root-owned regular mode-{mode:04o} file")
+    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as exc:
+        raise HilError(f"cannot open {label}") from exc
+    try:
+        before = os.fstat(descriptor)
+        chunks: list[bytes] = []
+        total = 0
+        while True:
+            chunk = os.read(descriptor, min(16 * 1024, maximum + 1 - total))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            total += len(chunk)
+            if total > maximum:
+                raise HilError(f"{label} exceeds its size limit")
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    try:
+        after_path = path.lstat()
+    except OSError as exc:
+        raise HilError(f"{label} disappeared while it was read") from exc
+    stable = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+    if (
+        total != before.st_size
+        or (before.st_dev, before.st_ino) != (before_path.st_dev, before_path.st_ino)
+        or any(getattr(before, field) != getattr(after, field) for field in stable)
+        or any(getattr(before, field) != getattr(after_path, field) for field in stable)
+    ):
+        raise HilError(f"{label} changed while it was read")
+    return b"".join(chunks)
+
+
+def _require_fixed_ssh_executable(path: pathlib.Path, label: str) -> None:
+    try:
+        metadata = path.lstat()
+    except OSError as exc:
+        raise HilError(f"fixed {label} is unavailable") from exc
+    if (
+        stat.S_ISLNK(metadata.st_mode)
+        or not stat.S_ISREG(metadata.st_mode)
+        or metadata.st_uid != 0
+        or metadata.st_mode & 0o022
+        or not os.access(path, os.X_OK)
+    ):
+        raise HilError(f"fixed {label} must be a root-owned non-writable executable")
+
+
+def _known_host_ed25519_der(payload: bytes) -> bytes:
+    try:
+        line = payload.decode("utf-8", errors="strict").strip()
+    except UnicodeDecodeError as exc:
+        raise HilError("Zero known_hosts is not strict UTF-8") from exc
+    fields = line.split()
+    if len(fields) != 3 or fields[0] != "10.77.0.2" or fields[1] != "ssh-ed25519":
+        raise HilError("Zero known_hosts must contain exactly the 10.77.0.2 ED25519 record")
+    try:
+        return openssh_ed25519_der(f"{fields[1]} {fields[2]}".encode("ascii"), "Zero host key")
+    except (UnicodeEncodeError, KeyPolicyError) as exc:
+        raise HilError("Zero known_hosts contains invalid ED25519 key material") from exc
+
+
+def _validate_reconstructed_key_policy(
+    policy: dict[str, Any],
+    policy_hash_text: str,
+    installed_public_keys: dict[str, bytes],
+) -> str:
+    try:
+        reconstructed_policy = build_key_policy(**installed_public_keys)
+    except (KeyPolicyError, TypeError) as exc:
+        raise HilError("installed public identities are not a valid five-key policy") from exc
+    if policy_hash_text != policy["key_policy_sha256"] or policy != reconstructed_policy:
+        raise HilError("installed public identities do not match the pinned five-key policy")
+    return str(policy["key_policy_sha256"])
+
+
+def validate_controller_ssh_material(
+    identity: pathlib.Path,
+    known_hosts: pathlib.Path,
+    *,
+    host: str = "10.77.0.2",
+    user: str = "tidetracker",
+) -> str:
+    """Require one noninteractive identity and one exact Zero host-key record."""
+
+    if (
+        host != "10.77.0.2"
+        or user != "tidetracker"
+        or identity != CONTROLLER_TO_ZERO_IDENTITY
+        or known_hosts != CONTROLLER_TO_ZERO_KNOWN_HOSTS
+    ):
+        raise HilError("real HIL must use the pinned controller-to-Zero SSH endpoint")
+    for executable, label in (
+        (FIXED_SSH, "/usr/bin/ssh"),
+        (FIXED_SFTP, "/usr/bin/sftp"),
+        (FIXED_SSH_KEYGEN, "/usr/bin/ssh-keygen"),
+    ):
+        _require_fixed_ssh_executable(executable, label)
+    try:
+        resolved_root = CONTROLLER_SSH_ROOT.resolve(strict=True)
+        root_metadata = CONTROLLER_SSH_ROOT.lstat()
+    except OSError as exc:
+        raise HilError("controller SSH directory is unavailable") from exc
+    if (
+        resolved_root != CONTROLLER_SSH_ROOT
+        or stat.S_ISLNK(root_metadata.st_mode)
+        or not stat.S_ISDIR(root_metadata.st_mode)
+        or root_metadata.st_uid != 0
+        or stat.S_IMODE(root_metadata.st_mode) != 0o700
+    ):
+        raise HilError("controller SSH directory must be root-owned mode 0700")
+    _read_pinned_root_file(identity, "controller-to-Zero private key", mode=0o600)
+    known_hosts_bytes = _read_pinned_root_file(known_hosts, "Zero known_hosts", mode=0o600)
+    _known_host_ed25519_der(known_hosts_bytes)
+    public_key_paths = {
+        "workstation_to_controller_ssh": WORKSTATION_TO_CONTROLLER_PUBLIC_KEY,
+        "controller_to_zero_ssh": CONTROLLER_TO_ZERO_PUBLIC_KEY,
+        "application_release": APPLICATION_RELEASE_PUBLIC_KEY,
+        "lab_safety": DEFAULT_SAFETY_PUBLIC_KEY,
+        "image_release": IMAGE_RELEASE_PUBLIC_KEY,
+    }
+    installed_public_keys = {
+        name: _read_pinned_root_file(path, f"pinned {name} public key", mode=0o644)
+        for name, path in public_key_paths.items()
+    }
+    expected_public_bytes = installed_public_keys["controller_to_zero_ssh"]
+    try:
+        expected_public_der = openssh_ed25519_der(
+            expected_public_bytes, "pinned controller-to-Zero public key"
+        )
+    except KeyPolicyError as exc:
+        raise HilError("pinned controller-to-Zero public key is invalid") from exc
+    derived = subprocess.run(
+        [str(FIXED_SSH_KEYGEN), "-y", "-P", "", "-f", str(identity)],
+        stdin=subprocess.DEVNULL,
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=10,
+        env={"HOME": "/root", "LANG": "C", "LC_ALL": "C", "PATH": "/usr/bin:/bin"},
+    )
+    if derived.returncode != 0 or len(derived.stdout.encode("utf-8")) > 16 * 1024:
+        raise HilError("controller-to-Zero private key is encrypted, invalid, or noninteractive")
+    try:
+        derived_public_der = openssh_ed25519_der(
+            derived.stdout.encode("utf-8"), "derived controller-to-Zero public key"
+        )
+    except KeyPolicyError as exc:
+        raise HilError("controller-to-Zero private key has an invalid public identity") from exc
+    if derived_public_der != expected_public_der:
+        raise HilError("controller-to-Zero private key does not match the pinned public identity")
+    policy_bytes = _read_pinned_root_file(
+        CONTROLLER_KEY_POLICY, "controller key policy", mode=0o644
+    )
+    policy_hash_bytes = _read_pinned_root_file(
+        CONTROLLER_KEY_POLICY_SHA256, "controller key-policy digest", mode=0o644
+    )
+
+    def reject_duplicates(items: list[tuple[str, Any]]) -> dict[str, Any]:
+        value: dict[str, Any] = {}
+        for key, item in items:
+            if key in value:
+                raise ValueError("duplicate key-policy property")
+            value[key] = item
+        return value
+
+    try:
+        policy_value = json.loads(
+            policy_bytes.decode("utf-8", errors="strict"), object_pairs_hook=reject_duplicates
+        )
+        policy = validate_key_policy(policy_value)
+        policy_hash_text = policy_hash_bytes.decode("ascii", errors="strict").strip()
+    except (UnicodeDecodeError, ValueError, KeyPolicyError) as exc:
+        raise HilError("controller key policy is invalid") from exc
+    policy_digest = _validate_reconstructed_key_policy(
+        policy, policy_hash_text, installed_public_keys
+    )
+    if not FIXED_FINDMNT.is_file() or FIXED_FINDMNT.is_symlink():
+        raise HilError("fixed /usr/bin/findmnt is unavailable")
+    result = subprocess.run(
+        [
+            str(FIXED_FINDMNT),
+            "-n",
+            "-o",
+            "UUID,FSTYPE,OPTIONS",
+            "--target",
+            str(CONTROLLER_SSH_ROOT),
+        ],
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=15,
+    )
+    fields = result.stdout.strip().split(maxsplit=2)
+    if (
+        result.returncode != 0
+        or len(fields) != 3
+        or fields[0] != CONTROLLER_DATA_UUID
+        or fields[1] != "ext4"
+        or "rw" not in fields[2].split(",")
+    ):
+        raise HilError("controller SSH material is not on writable ext4 TIDEDATA")
+    return policy_digest
+
+
 def planned_actions(
     cycles: int,
     bundle: pathlib.Path | None,
@@ -4075,6 +4374,8 @@ def main(argv: list[str] | None = None) -> int:
         raise HilError("--execute and --simulate are mutually exclusive")
     if arguments.execute and arguments.execute_confirmation != "EXECUTE-TIDETRACKER-HIL":
         raise HilError("real HIL requires --execute-confirmation EXECUTE-TIDETRACKER-HIL")
+    if arguments.execute and getattr(os, "geteuid", lambda: -1)() != 0:
+        raise HilError("real HIL requires the root-only tidetracker HIL launcher")
     if arguments.accelerated_cycles and (
         arguments.cycles is not None or arguments.soak_hours is not None
     ):
@@ -4195,6 +4496,7 @@ def main(argv: list[str] | None = None) -> int:
     execution_lock: HilExecutionLock | None = None
     controller_artifact_policy: dict[str, Any] | None = None
     controller_machine_id_sha256 = "0" * 64
+    controller_key_policy_sha256 = "0" * 64
     target_identity: dict[str, Any] | None = None
     hardware_inventory: dict[str, dict[str, str]] | None = None
     tool_identities: dict[str, dict[str, Any]] | None = None
@@ -4222,9 +4524,6 @@ def main(argv: list[str] | None = None) -> int:
         controller_artifact_policy = validate_controller_artifact_destination(
             artifact_directory, config
         )
-        for executable in ("sftp", "ssh"):
-            if shutil.which(executable) is None:
-                raise HilError(f"required HIL executable is unavailable: {executable}")
         fixture_config = config.get("fixture")
         ssh_config = config.get("target")
         uart_config = config.get("uart")
@@ -4239,13 +4538,12 @@ def main(argv: list[str] | None = None) -> int:
         known_hosts = pathlib.Path(
             os.path.abspath(pathlib.Path(ssh_config["known_hosts_file"]).expanduser())
         )
-        if (
-            not identity.is_file()
-            or identity.is_symlink()
-            or not known_hosts.is_file()
-            or known_hosts.is_symlink()
-        ):
-            raise HilError("identity_file and known_hosts must be regular, non-symlink files")
+        controller_key_policy_sha256 = validate_controller_ssh_material(
+            identity,
+            known_hosts,
+            host=str(ssh_config.get("host", "")),
+            user=str(ssh_config.get("user", "")),
+        )
         camera_config = config.get("camera", {})
         camera = Camera(
             camera_config.get("command"),
@@ -4279,6 +4577,7 @@ def main(argv: list[str] | None = None) -> int:
         image_sha256 = safety_identity.get("target_image_sha256")
         image_manifest_sha256 = safety_identity.get("target_image_manifest_sha256")
         image_build_id = safety_identity.get("target_image_build_id")
+        target_key_policy_sha256 = safety_identity.get("target_key_policy_sha256")
         hardware_inventory = validate_hardware_inventory(
             safety_identity.get("hardware_inventory"),
             label="safety_identity.hardware_inventory",
@@ -4306,6 +4605,8 @@ def main(argv: list[str] | None = None) -> int:
             or re.fullmatch(r"[0-9a-f]{64}", image_build_id) is None
         ):
             raise HilError("safety_identity.target_image_build_id is invalid")
+        if target_key_policy_sha256 != controller_key_policy_sha256:
+            raise HilError("target key policy does not match the live controller key policy")
         safety_gate = verify_safety_gate(
             pathlib.Path(os.path.abspath(arguments.safety_gate.expanduser())),
             DEFAULT_SAFETY_PUBLIC_KEY,
@@ -4317,6 +4618,7 @@ def main(argv: list[str] | None = None) -> int:
                 "target_image_sha256": image_sha256,
                 "target_image_manifest_sha256": image_manifest_sha256,
                 "target_image_build_id": image_build_id,
+                "target_key_policy_sha256": controller_key_policy_sha256,
                 "hardware_inventory": hardware_inventory,
                 "tool_identities": tool_identities,
             },
@@ -4346,6 +4648,7 @@ def main(argv: list[str] | None = None) -> int:
             "image_build_id": image_build_id,
             "image_sha256": image_sha256,
             "image_manifest_sha256": image_manifest_sha256,
+            "key_policy_sha256": controller_key_policy_sha256,
             "attestation": "verified_signed_safety_gate",
         }
         fixture_port = fixture_config.get("port")

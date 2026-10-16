@@ -6,10 +6,13 @@ role=
 root_mount=
 boot_mount=
 data_mount=
-ssh_key=
+workstation_controller_ssh_key=
+controller_zero_ssh_key=
 release_key=
 lab_safety_key=
+image_release_key=
 image_build_id=
+key_policy_hash=
 package_bundle=
 application_source=$(CDPATH='' cd -- "$script_dir/.." && pwd)
 loop_device=
@@ -20,9 +23,11 @@ confirmation=
 usage() {
     cat <<'EOF'
 usage: provision-profile.sh --role controller|zero --root-mount DIR \
-  --boot-mount DIR --data-mount DIR --ssh-public-key FILE \
-  --release-public-key FILE [--application-source DIR] \
-  --lab-safety-public-key FILE --image-build-id SHA256 --package-bundle DIR \
+  --boot-mount DIR --data-mount DIR \
+  --workstation-to-controller-ssh-public-key FILE \
+  --controller-to-zero-ssh-public-key FILE --application-release-public-key FILE \
+  --lab-safety-public-key FILE --image-release-public-key FILE \
+  --image-build-id SHA256 --key-policy-sha256 SHA256 --package-bundle DIR \
   --loop-device /dev/loopN \
   [--apply --execute --confirmation PROVISION-controller|PROVISION-zero]
 
@@ -37,10 +42,13 @@ while test "$#" -gt 0; do
         --root-mount) root_mount=${2:?}; shift 2 ;;
         --boot-mount) boot_mount=${2:?}; shift 2 ;;
         --data-mount) data_mount=${2:?}; shift 2 ;;
-        --ssh-public-key) ssh_key=${2:?}; shift 2 ;;
-        --release-public-key) release_key=${2:?}; shift 2 ;;
+        --workstation-to-controller-ssh-public-key) workstation_controller_ssh_key=${2:?}; shift 2 ;;
+        --controller-to-zero-ssh-public-key) controller_zero_ssh_key=${2:?}; shift 2 ;;
+        --application-release-public-key) release_key=${2:?}; shift 2 ;;
         --lab-safety-public-key) lab_safety_key=${2:?}; shift 2 ;;
+        --image-release-public-key) image_release_key=${2:?}; shift 2 ;;
         --image-build-id) image_build_id=${2:?}; shift 2 ;;
+        --key-policy-sha256) key_policy_hash=${2:?}; shift 2 ;;
         --package-bundle) package_bundle=${2:?}; shift 2 ;;
         --application-source) application_source=${2:?}; shift 2 ;;
         --loop-device) loop_device=${2:?}; shift 2 ;;
@@ -53,7 +61,9 @@ while test "$#" -gt 0; do
 done
 
 case "$role" in controller|zero) ;; *) echo '--role must be controller or zero' >&2; exit 64 ;; esac
-for path in "$root_mount" "$boot_mount" "$data_mount" "$ssh_key" "$release_key" "$lab_safety_key" "$image_build_id" "$application_source" "$package_bundle" "$loop_device"; do
+for path in "$root_mount" "$boot_mount" "$data_mount" "$workstation_controller_ssh_key" \
+    "$controller_zero_ssh_key" "$release_key" "$lab_safety_key" "$image_release_key" \
+    "$image_build_id" "$key_policy_hash" "$application_source" "$package_bundle" "$loop_device"; do
     test -n "$path" || { echo 'all mount, key, and application arguments are required' >&2; exit 64; }
 done
 case "$image_build_id" in
@@ -62,19 +72,29 @@ esac
 test "${#image_build_id}" -eq 64 || {
     echo '--image-build-id must contain exactly 64 hexadecimal characters' >&2; exit 64;
 }
+case "$key_policy_hash" in
+    *[!0-9a-f]*|'') echo '--key-policy-sha256 must be a lowercase SHA-256 digest' >&2; exit 64 ;;
+esac
+test "${#key_policy_hash}" -eq 64 || {
+    echo '--key-policy-sha256 must contain exactly 64 hexadecimal characters' >&2; exit 64;
+}
 test -d "$root_mount" && test -d "$boot_mount" && test -d "$data_mount"
-test -f "$ssh_key" && test -s "$ssh_key"
+test -f "$workstation_controller_ssh_key" && test -s "$workstation_controller_ssh_key"
+test -f "$controller_zero_ssh_key" && test -s "$controller_zero_ssh_key"
 test -f "$release_key" && test -s "$release_key"
 test -f "$lab_safety_key" && test -s "$lab_safety_key"
+test -f "$image_release_key" && test -s "$image_release_key"
 test -d "$application_source/src/tidetracker" && test -f "$application_source/pyproject.toml"
 test -d "$package_bundle" || { echo 'offline package bundle is missing' >&2; exit 1; }
 
 root_mount=$(readlink -f "$root_mount")
 boot_mount=$(readlink -f "$boot_mount")
 data_mount=$(readlink -f "$data_mount")
-ssh_key=$(readlink -f "$ssh_key")
+workstation_controller_ssh_key=$(readlink -f "$workstation_controller_ssh_key")
+controller_zero_ssh_key=$(readlink -f "$controller_zero_ssh_key")
 release_key=$(readlink -f "$release_key")
 lab_safety_key=$(readlink -f "$lab_safety_key")
+image_release_key=$(readlink -f "$image_release_key")
 application_source=$(readlink -f "$application_source")
 package_bundle=$(readlink -f "$package_bundle")
 loop_device=$(readlink -f "$loop_device")
@@ -85,45 +105,32 @@ case "$loop_number" in ''|*[!0-9]*)
     echo '--loop-device must resolve exactly to /dev/loopN' >&2; exit 1 ;;
 esac
 
-for command_name in dpkg-deb openssl python3 sha256sum ssh-keygen; do
+for command_name in dpkg-deb python3 sha256sum; do
     command -v "$command_name" >/dev/null 2>&1 || {
         echo "missing required command: $command_name" >&2; exit 1;
     }
 done
-ssh-keygen -l -f "$ssh_key" >/dev/null 2>&1 || {
-    echo 'SSH public key is invalid' >&2; exit 1;
+key_policy_json=$(PYTHONPATH="$application_source/src" python3 -m tidetracker.key_policy \
+    --workstation-to-controller-ssh-public-key "$workstation_controller_ssh_key" \
+    --controller-to-zero-ssh-public-key "$controller_zero_ssh_key" \
+    --application-release-public-key "$release_key" \
+    --lab-safety-public-key "$lab_safety_key" \
+    --image-release-public-key "$image_release_key")
+actual_key_policy_hash=$(printf '%s' "$key_policy_json" | python3 -c \
+    'import json,sys; print(json.load(sys.stdin)["key_policy_sha256"])')
+test "$actual_key_policy_hash" = "$key_policy_hash" || {
+    echo 'canonical key policy does not match --key-policy-sha256' >&2; exit 1;
 }
-test "$(awk 'NR == 1 { print $1 }' "$ssh_key")" = ssh-ed25519 || {
-    echo 'SSH public key must be Ed25519' >&2; exit 1;
-}
-openssl pkey -pubin -in "$release_key" -text -noout 2>/dev/null | grep -q ED25519 || {
-    echo 'release public key must be an Ed25519 public PEM key' >&2; exit 1;
-}
-openssl pkey -pubin -in "$lab_safety_key" -text -noout 2>/dev/null | grep -q ED25519 || {
-    echo 'lab safety public key must be an Ed25519 public PEM key' >&2; exit 1;
-}
-ssh_key_hash=$(
-    ssh-keygen -e -m PKCS8 -f "$ssh_key" \
-        | openssl pkey -pubin -outform DER 2>/dev/null | sha256sum | awk '{print $1}'
-)
-release_canonical_hash=$(
-    openssl pkey -pubin -in "$release_key" -outform DER 2>/dev/null | sha256sum | awk '{print $1}'
-)
-lab_safety_canonical_hash=$(
-    openssl pkey -pubin -in "$lab_safety_key" -outform DER 2>/dev/null | sha256sum | awk '{print $1}'
-)
-if test "$ssh_key_hash" = "$release_canonical_hash" \
-    || test "$ssh_key_hash" = "$lab_safety_canonical_hash" \
-    || test "$release_canonical_hash" = "$lab_safety_canonical_hash"; then
-    echo 'SSH, release, and lab-safety trust keys must all be separate' >&2
-    exit 1
-fi
+case "$role" in
+    controller) ssh_key=$workstation_controller_ssh_key ;;
+    zero) ssh_key=$controller_zero_ssh_key ;;
+esac
 
 for required_file in stations.csv Ubuntu-Regular.ttf Ubuntu-Medium.ttf Ubuntu-Bold.ttf \
     sun_rise.png sun_set.png no_wifi.bmp plot_image.bmp e-ink_lib/waveshare_epd/__init__.py \
     e-ink_lib/waveshare_epd/epdconfig.py e-ink_lib/waveshare_epd/epd7in5_V2.py \
-    src/tidetracker/cli.py lab/hil_orchestrator.py lab/hil_config.example.json \
-    lab/evaluate_promotion.py; do
+    src/tidetracker/cli.py lab/hil_orchestrator.py lab/hil_root_launcher.py \
+    lab/hil_config.example.json lab/evaluate_promotion.py; do
     test -f "$application_source/$required_file" || {
         echo "application source is missing $required_file" >&2; exit 1;
     }
@@ -157,10 +164,14 @@ TideTracker offline provisioning plan
   root:       $root_mount
   boot:       $boot_mount
   TIDEDATA:   $data_mount
-  SSH key:    $ssh_key
-  release key: $release_key
+  workstation-to-controller SSH key: $workstation_controller_ssh_key
+  controller-to-Zero SSH key: $controller_zero_ssh_key
+  selected authorized key: $ssh_key
+  application release key: $release_key
   lab safety key: $lab_safety_key
+  image release key: $image_release_key
   image build ID: $image_build_id
+  canonical key policy: $key_policy_hash
   application: $application_source
   loop device: $loop_device (boot p1, root p2, TIDEDATA p3)
   packages:   $packages
@@ -347,14 +358,24 @@ TIDETRACKER_CONFIG=/var/lib/tidetracker/config/config.json
 TIDETRACKER_UPDATE_ROOT=/var/lib/tidetracker
 TIDETRACKER_RELEASE_PUBLIC_KEY=/etc/tidetracker/release-ed25519.pub.pem
 TIDETRACKER_IMAGE_BUILD_ID_FILE=/etc/tidetracker/image-build-id
+TIDETRACKER_KEY_POLICY_SHA256_FILE=/etc/tidetracker/key-policy.sha256
 TIDETRACKER_ASSET_DIR=/usr/share/tidetracker
 TIDETRACKER_EINK_LIB=/usr/lib/tidetracker/e-ink_lib
 TIDETRACKER_STATIONS=/usr/share/tidetracker/stations.csv
 EOF
 chmod 0644 "$root_mount/etc/tidetracker/runtime.env"
 install -m 0600 "$ssh_key" "$root_mount/etc/tidetracker/provision-authorized-key"
+install -m 0644 "$workstation_controller_ssh_key" \
+    "$root_mount/etc/tidetracker/workstation-controller-ssh.pub"
+install -m 0644 "$controller_zero_ssh_key" \
+    "$root_mount/etc/tidetracker/controller-zero-ssh.pub"
 install -m 0644 "$release_key" "$root_mount/etc/tidetracker/release-ed25519.pub.pem"
 install -m 0644 "$lab_safety_key" "$root_mount/etc/tidetracker/lab-safety-approver.pub.pem"
+install -m 0644 "$image_release_key" "$root_mount/etc/tidetracker/image-release-ed25519.pub.pem"
+printf '%s\n' "$key_policy_json" > "$root_mount/etc/tidetracker/key-policy.json"
+printf '%s\n' "$key_policy_hash" > "$root_mount/etc/tidetracker/key-policy.sha256"
+chmod 0644 "$root_mount/etc/tidetracker/key-policy.json" \
+    "$root_mount/etc/tidetracker/key-policy.sha256"
 printf '%s\n' "$image_build_id" > "$root_mount/etc/tidetracker/image-build-id"
 chmod 0644 "$root_mount/etc/tidetracker/image-build-id"
 
@@ -372,12 +393,12 @@ while IFS= read -r application_item; do
             driver_file=${application_item#e-ink_lib/waveshare_epd/}
             destination="$root_mount/usr/lib/tidetracker/e-ink_lib/waveshare_epd/$driver_file"
             ;;
-        lab/hil_orchestrator.py|lab/hil_config.example.json|lab/evaluate_promotion.py)
+        lab/hil_orchestrator.py|lab/hil_root_launcher.py|lab/hil_config.example.json|lab/evaluate_promotion.py)
             test "$role" = controller || continue
             destination="$root_mount/usr/local/lib/tidetracker/lab/${application_item#lab/}"
             ;;
         deploy/*|systemd/*) continue ;;
-        pyproject.toml) continue ;;
+        .dockerignore|pyproject.toml) continue ;;
         *) echo "unmapped validated application input: $application_item" >&2; exit 1 ;;
     esac
     install -d -m 0755 "$(dirname -- "$destination")"
@@ -395,6 +416,8 @@ for command_file in tidetracker tidetracker-update; do
 done
 if test "$role" = controller; then
     install -m 0755 "$script_dir/bin/tidetracker-hil" "$root_mount/usr/local/bin/tidetracker-hil"
+    install -m 0755 "$application_source/lab/hil_root_launcher.py" \
+        "$root_mount/usr/local/sbin/tidetracker-hil-root"
     install -m 0755 "$script_dir/bin/tidetracker-promote" \
         "$root_mount/usr/local/bin/tidetracker-promote"
     install -m 0755 "$script_dir/sbin/tidetracker-controller-wifi-control" \
@@ -405,11 +428,9 @@ if test "$role" = controller; then
         "$root_mount/etc/systemd/system/tidetracker-controller-test-plane.service"
 fi
 
-release_key_hash=$(sha256sum "$release_key" | awk '{print $1}')
-lab_safety_key_hash=$(sha256sum "$lab_safety_key" | awk '{print $1}')
 ssh_key_hash=$(sha256sum "$ssh_key" | awk '{print $1}')
-printf '{"schema_version":1,"image_build_id":"%s","application_sha256":"%s","ssh_authorized_key_sha256":"%s","release_public_key_sha256":"%s","lab_safety_public_key_sha256":"%s","package_bundle_sha256":"%s"}\n' \
-    "$image_build_id" "$application_hash" "$ssh_key_hash" "$release_key_hash" "$lab_safety_key_hash" "$package_bundle_hash" \
+printf '{"schema_version":2,"image_build_id":"%s","application_sha256":"%s","role_authorized_ssh_public_key_sha256":"%s","key_policy_sha256":"%s","package_bundle_sha256":"%s"}\n' \
+    "$image_build_id" "$application_hash" "$ssh_key_hash" "$key_policy_hash" "$package_bundle_hash" \
     > "$root_mount/etc/tidetracker/application-build.json"
 cleanup_chroot_build
 trap - 0 1 2 15
@@ -457,6 +478,8 @@ install -d -m 0755 "$root_mount/etc/sudoers.d"
 printf 'tidetracker ALL=(root) NOPASSWD: /usr/local/sbin/tidetracker-lab-control *\n' > "$root_mount/etc/sudoers.d/90-tidetracker-lab"
 if test "$role" = controller; then
     printf 'tidetracker ALL=(root) NOPASSWD: /usr/local/sbin/tidetracker-controller-wifi-control *\n' \
+        >> "$root_mount/etc/sudoers.d/90-tidetracker-lab"
+    printf 'tidetracker ALL=(root) NOPASSWD: /usr/local/sbin/tidetracker-hil-root *\n' \
         >> "$root_mount/etc/sudoers.d/90-tidetracker-lab"
     install -d -m 0700 "$data_mount/controller"
     cat > "$data_mount/controller/controller-lab.env" <<'EOF'

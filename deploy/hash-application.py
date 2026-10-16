@@ -11,6 +11,7 @@ import stat
 import sys
 
 FIXED_FILES = (
+    ".dockerignore",
     "pyproject.toml",
     "stations.csv",
     "Ubuntu-Regular.ttf",
@@ -24,6 +25,7 @@ FIXED_FILES = (
     "e-ink_lib/waveshare_epd/epdconfig.py",
     "e-ink_lib/waveshare_epd/epd7in5_V2.py",
     "lab/hil_orchestrator.py",
+    "lab/hil_root_launcher.py",
     "lab/hil_config.example.json",
     "lab/evaluate_promotion.py",
     "deploy/bin/tidetracker",
@@ -32,6 +34,9 @@ FIXED_FILES = (
     "deploy/bin/tidetracker-update",
     "deploy/build-role-image.sh",
     "deploy/configure-controller-network.sh",
+    "deploy/container/Dockerfile",
+    "deploy/container/preflight-sparse-image.sh",
+    "deploy/create-package-lock.py",
     "deploy/flash-sd.ps1",
     "deploy/hash-application.py",
     "deploy/image-lock.json",
@@ -47,6 +52,8 @@ FIXED_FILES = (
     "deploy/packages/PACKAGE_BUNDLE.example.json",
     "deploy/packages/zero.txt",
     "deploy/prepare-base-image.ps1",
+    "deploy/prepare-keystore.ps1",
+    "deploy/prepare-package-bundle.sh",
     "deploy/profiles/controller.json",
     "deploy/profiles/zero.json",
     "deploy/provision-profile.sh",

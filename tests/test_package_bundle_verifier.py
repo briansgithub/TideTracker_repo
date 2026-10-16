@@ -71,7 +71,9 @@ def test_validation_returns_only_selected_role_closure(
     common.write_text("common-pkg\n", encoding="utf-8")
     controller.write_text("controller-only\n", encoding="utf-8")
     metadata = iter(
-        f"{entry['name']}\n{entry['version']}\n{entry['architecture']}\n" for entry in entries
+        f"Package: {entry['name']}\nVersion: {entry['version']}\n"
+        f"Architecture: {entry['architecture']}\n"
+        for entry in entries
     )
     monkeypatch.setattr(
         verifier.subprocess,
@@ -111,7 +113,9 @@ def test_validation_rejects_global_package_outside_both_role_closures(
     common.write_text("common-pkg\n", encoding="utf-8")
     zero.write_text("zero-only\n", encoding="utf-8")
     metadata = iter(
-        f"{entry['name']}\n{entry['version']}\n{entry['architecture']}\n" for entry in entries
+        f"Package: {entry['name']}\nVersion: {entry['version']}\n"
+        f"Architecture: {entry['architecture']}\n"
+        for entry in entries
     )
     monkeypatch.setattr(
         verifier.subprocess,
@@ -121,3 +125,37 @@ def test_validation_rejects_global_package_outside_both_role_closures(
 
     with pytest.raises(verifier.BundleError, match="exact union of role closures"):
         verifier.validate(bundle, "zero", [common, zero])
+
+
+def test_validation_accepts_debian_tilde_in_package_filename(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    verifier = load_verifier()
+    bundle, entries = make_bundle(tmp_path)
+    entry = entries[0]
+    old_path = bundle / "debs" / str(entry["filename"])
+    filename = "common-pkg_1.0~deb12u1_armhf.deb"
+    old_path.rename(bundle / "debs" / filename)
+    entry["filename"] = filename
+    lock_path = bundle / "packages.lock.json"
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    lock["packages"] = entries
+    lock_path.write_text(json.dumps(lock, separators=(",", ":")), encoding="utf-8")
+    common = tmp_path / "common.txt"
+    controller = tmp_path / "controller.txt"
+    common.write_text("common-pkg\n", encoding="utf-8")
+    controller.write_text("controller-only\n", encoding="utf-8")
+    metadata = iter(
+        f"Package: {child['name']}\nVersion: {child['version']}\n"
+        f"Architecture: {child['architecture']}\n"
+        for child in entries
+    )
+    monkeypatch.setattr(
+        verifier.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, next(metadata), ""),
+    )
+
+    selected, _, _ = verifier.validate(bundle, "controller", [common, controller])
+
+    assert [child["name"] for child in selected] == ["common-pkg", "controller-only"]

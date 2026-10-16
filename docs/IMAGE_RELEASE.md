@@ -3,16 +3,19 @@
 `deploy/image-lock.json` pins Raspberry Pi OS Legacy Lite 32-bit Bookworm and
 archive SHA-256
 `8a044f4c55feb9b0626ab2060a2eef15c3f57327dd610a0a4cac02cdb959166e`.
-Changing it is an OS upgrade. The builder never refreshes APT or downloads a
-package.
+Changing it is an OS upgrade. The role-image builder never refreshes APT or
+downloads a package. Package retrieval is a separate, explicitly approved
+preparation phase; release image builds consume only its frozen output.
 
 ## Inputs and image build
 
 Prepare these outside Git:
 
-- one OpenSSH Ed25519 public key for key-only SSH;
-- separate Ed25519 PEM public keys for signed application releases and lab
-  approvals (the three canonical keys must differ);
+- two distinct OpenSSH Ed25519 keypairs: workstation-to-controller management
+  and controller-to-Zero automation. Pass both public keys to every role build;
+  the role chooses its authorized key while the manifest binds both identities;
+- separate Ed25519 PEM public keys for application releases, lab approvals, and
+  role-image releases. All five canonical public keys must differ;
 - a reviewed offline ARMHF package closure. It contains
   `packages.lock.json` and `debs/`; the lock follows
   `deploy/packages/PACKAGE_BUNDLE.example.json` and records every `.deb` name,
@@ -24,6 +27,101 @@ Prepare these outside Git:
   `nftables` for the isolated portal test plane; regenerate the schema-2 lock
   after any role-list change and never copy an older closure forward.
 
+### Create the guarded Windows keystore
+
+`deploy/prepare-keystore.ps1` creates all five identities before either role
+image is built. Its destination is fixed at
+`%LOCALAPPDATA%\TideTracker\keystore\v1`; it rejects drive `D:`, the repository,
+reparse points, and any existing `v1`. The default invocation is a write-free
+plan:
+
+```powershell
+$Repo = 'B:\Desktop\W\Programming_write\Python_workspaces\TideTracker_repo'
+& "$Repo\deploy\prepare-keystore.ps1"
+```
+
+Separately inspect and record the exact Windows OpenSSL and `ssh-keygen`
+executables and their SHA-256 digests. Creation requires all three authorization
+switches plus those previously accepted identities; do not calculate and accept
+the digests inline in the creation command:
+
+```powershell
+$OpenSsl = 'C:\Program Files\Git\usr\bin\openssl.exe'
+$OpenSslSha256 = '<separately-reviewed-64-hex>'
+$SshKeygen = 'C:\Windows\System32\OpenSSH\ssh-keygen.exe'
+$SshKeygenSha256 = '<separately-reviewed-64-hex>'
+
+& "$Repo\deploy\prepare-keystore.ps1" `
+  -OpenSslPath $OpenSsl -ExpectedOpenSslSha256 $OpenSslSha256 `
+  -SshKeygenPath $SshKeygen -ExpectedSshKeygenSha256 $SshKeygenSha256 `
+  -Apply -Execute -Confirmation CREATE-TIDETRACKER-KEYSTORE-v1
+```
+
+The script locks both executable files against changes, creates a restricted
+temporary sibling before generating secrets, and grants only the current
+Windows SID and `SYSTEM` full control. It validates every private/public pair,
+requires five distinct canonical Ed25519 identities, and atomically renames the
+completed tree to `v1` without replacement. A failed run cleans only its exact
+validated temporary sibling.
+
+The three signing keys and both SSH keys are intentionally unencrypted for the
+closed-loop automation workflow; the Windows account ACL is therefore the
+private-key trust boundary. The output uses these public filenames:
+
+```text
+public/
+  workstation-to-controller-ssh-ed25519.pub
+  controller-to-zero-ssh-ed25519.pub
+  application-release-ed25519.public.pem
+  lab-safety-approval-ed25519.public.pem
+  image-release-ed25519.public.pem
+records/
+  key-policy.json
+  public-keystore-record.json
+```
+
+`public-keystore-record.json` contains only public fingerprints/digests and
+tool provenance; it contains no private bytes, paths, or hashes. Record the
+printed key-policy digest separately. Never copy or mount the `private/` tree
+into Git, a container, a build-input directory, or either role image. Installing
+the controller-to-Zero private half on an already booted controller is a later,
+separately approved controller mutation.
+
+### Prepare the offline package bundle
+
+Run package preparation on a privileged Linux/ARM host, or on a Linux host with
+working ARMHF binfmt. The command verifies the compressed archive against
+`deploy/image-lock.json` before doing anything. Its default mode is read-only
+and makes no network request:
+
+```text
+sudo sh deploy/prepare-package-bundle.sh \
+  --archive <2026-06-18-raspios-bookworm-armhf-lite.img.xz> \
+  --output <new-package-bundle>
+```
+
+After reviewing that plan, enable the one networked preparation phase:
+
+```text
+sudo sh deploy/prepare-package-bundle.sh \
+  --archive <2026-06-18-raspios-bookworm-armhf-lite.img.xz> \
+  --output <new-package-bundle> \
+  --apply --execute --confirmation PREPARE-PACKAGE-BUNDLE
+```
+
+The preparer works only on a private decompressed image copy. It uses that
+image's signed APT sources, refuses insecure trust overrides, disables
+recommended packages, keeps controller and Zero solver caches separate, and
+proves APT did not alter the private dpkg status database. It then emits only
+`packages.lock.json` and `debs/`, atomically publishes the new directory, and
+runs `deploy/verify-package-bundle.py` for both roles. Existing output or stale
+partial directories are hard stops.
+
+APT repositories can advance after preparation. The reviewed, content-addressed
+bundle is the immutable release input; rerunning live resolution at a later date
+is not a substitute for retaining the accepted bundle. Review package names and
+versions in the generated schema-2 lock before accepting its printed digest.
+
 The image builder verifies all package bytes and Debian control metadata before
 mutation. It stages and installs only the selected role's closure under a
 network namespace with no interfaces, checks the resulting dpkg database
@@ -31,28 +129,45 @@ against that role, and hashes the entire reviewed bundle into the image
 manifest. A missing, extra, or cross-role-only package is a hard stop; the
 repository intentionally does not fetch one during a release build.
 
-1. Inspect `deploy/prepare-base-image.ps1`; use `-Apply -Execute` only after the
+1. Create and accept the guarded `v1` keystore above.
+2. Inspect `deploy/prepare-base-image.ps1`; use `-Apply -Execute` only after the
    download/decompression action is approved.
-2. On a Linux/ARM or binfmt-enabled build host, inspect the role build:
+3. On a Linux/ARM or binfmt-enabled build host, inspect the role build:
 
 ```text
 sudo sh deploy/build-role-image.sh --archive <base.img.xz> --output <role.img> \
-  --role controller|zero --ssh-public-key <ssh.pub> \
-  --release-public-key <release.pub.pem> \
-  --lab-safety-public-key <approval.pub.pem> \
+  --role controller|zero \
+  --workstation-to-controller-ssh-public-key <workstation-to-controller-ssh-ed25519.pub> \
+  --controller-to-zero-ssh-public-key <controller-to-zero-ssh-ed25519.pub> \
+  --application-release-public-key <application-release-ed25519.public.pem> \
+  --lab-safety-public-key <lab-safety-approval-ed25519.public.pem> \
+  --image-release-public-key <image-release-ed25519.public.pem> \
   --package-bundle <reviewed-offline-bundle>
 ```
 
-3. After review, add `--apply --execute --confirmation BUILD-<role>`. The
+4. After review, add `--apply --execute --confirmation BUILD-<role>`. The
    builder creates a partial copy, proves boot/root/data are p1/p2/p3 of its
    exact loop device, creates a role-specific fixed-UUID `TIDEDATA`, installs
    the runtime/assets/Waveshare driver/services, and emits `.sha256` plus
-   `.manifest.json`. The deterministic image build ID and signed manifest bind
-   the exact SSH authorized-key file hash as well as every other build input.
-4. Sign the exact role manifest bytes outside the image with the accepted
+   `.manifest.json`. All three final paths and their partial paths must be new;
+   the builder refuses any pre-existing one, fsyncs the bytes, and publishes
+   each output without replacement. The schema-2 deterministic image build ID binds the
+   canonical five-key policy digest; the manifest records both raw and
+   canonical identities for both SSH keys and all three signing authorities.
+5. Sign the exact role manifest bytes outside the image with the accepted
    image-release Ed25519 private key; store the raw signature as
-   `<role.img>.manifest.json.sig`. Keep every private key off both Pis and out of
-   Git.
+   `<role.img>.manifest.json.sig`. The builder uses its public half only to
+   reject canonical key reuse and does not install it into the image.
+
+Signing private keys never belong on either Pi: keep the application-release,
+lab-approval, and image-release private keys on the trusted workstation or
+offline signer and out of Git. The one intentional private-key exception is not
+a signing authority: the dedicated controller-to-Zero SSH automation key lives
+only on controller `TIDEDATA` as
+`/var/lib/tidetracker/controller/ssh/controller-to-zero-ed25519`, owned by root
+with mode `0600`. The workstation-to-controller SSH private key remains on the
+workstation. Never copy either SSH private key to the Zero, and never reuse an
+SSH key as an application, lab, or image signing key.
 
 Build one immutable Zero image artifact. Flash that exact hashed/signed artifact
 independently to the development and pristine field cards; do not rebuild a
@@ -69,17 +184,24 @@ selected-card dry run requires PowerShell 7.2 or newer and all of:
 - `-ExpectedImageSha256` copied from the separately accepted release record
   (the adjacent manifest is never its own trust anchor);
 - the accepted image-release public key and its separately recorded SHA-256.
+- both exact SSH public keys plus the application-release, lab-safety, and
+  image-release public keys whose raw and canonical hashes appear in the signed
+  manifest;
 - an explicit `-OpenSslPath` and the separately accepted executable digest in
   `-ExpectedOpenSslSha256`; release verification never searches `PATH`.
 
-The flasher requires the exact schema-1 manifest field set, recomputes its
+The flasher requires the exact schema-2 manifest field set, explicitly rejects
+schema 1, recomputes its
 deterministic image build ID, and accepts only an integer `data_mib` from 512
 through 8192. It verifies the signed role manifest, role, image hash,
 package-bundle hash, minimum image size, MBR signature, exact p1/p2/p3 partition
 types, non-overlap, an empty p4 entry, and a p3 sector count and image boundary
-that exactly match signed `data_mib`. Duplicate JSON properties, including case
+that exactly match signed `data_mib`. It also binds all five supplied public-key
+files to their signed raw and canonical hashes,
+and recomputes the aggregate policy digest from all five supplied public keys.
+Any canonical key reuse is rejected. Duplicate JSON properties, including case
 variants, are rejected.
-The manifest, signature, and accepted key are copied into private immutable
+The manifest, signature, and accepted keys are copied into private immutable
 verification snapshots. The image and the explicitly selected OpenSSL binary
 are opened with write/delete sharing denied; those exact handles remain locked
 while their digests and signature are checked. The image handle is retained
@@ -112,6 +234,9 @@ The SSH policy requires public key authentication, disables password/keyboard
 and root login, and allows only `tidetracker`. The Zero SSH user has no gpio/spi
 group access; production hardware runs in the hardened root service. The
 controller user receives only `dialout` and `video` for fixture/UART/UVC access.
+On the controller it also creates an empty root-owned mode-`0700`
+`TIDEDATA/controller/ssh` directory; provisioning never creates or embeds its
+private automation key.
 
 NetworkManager uses enabled `systemd-resolved`, the stub `resolv.conf`, and an
 explicit resolver backend. Root and boot become read-only/overlay-backed after
@@ -135,7 +260,7 @@ Zero setup AP (`tidetracker-zero-portal`, SSID `TideTracker-Setup`).
 ## Release record
 
 Record the base hash, signed role-image manifest/signature/key hashes, exact
-image hash, SSH authorized-key hash, offline package-bundle hash, signed
+image hash, both SSH public-key hashes, the five-key policy digest, offline package-bundle hash, signed
 application bundle hash/release ID, Git commit, fixture firmware, card/reader
 identity, legacy replay report, and HIL sessions. A field card is promotable
 only after the final cold cycle with USB physically disconnected. Keep the old
@@ -155,9 +280,9 @@ separate host-specific trust inputs. They identify different executables and
 must not be substituted for one another or folded into the portable image build
 ID.
 
-Promotion also requires the signed Zero role-image manifest and its separately
-accepted image-release public key/hash. Supply the externally recorded manifest
-digest, image digest, and image build ID; all candidate benchmark and auxiliary
+Promotion also requires the signed Zero role-image manifest and all five
+separately accepted public-key files. Supply the externally recorded manifest
+digest, image digest, image build ID, and matching policy; all candidate benchmark and auxiliary
 HIL sessions must name that exact identity. The signed evidence set must cover
 all lifecycle and update power cuts, the full Wi-Fi and portal profile matrix,
 twelve accelerated cold cycles, accepted camera comparisons, and the final

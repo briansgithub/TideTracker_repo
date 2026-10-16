@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import importlib.util
 import json
 import pathlib
@@ -21,9 +22,31 @@ BUNDLE_SHA = "c" * 64
 IMAGE_SHA = "1" * 64
 IMAGE_MANIFEST_SHA = "2" * 64
 IMAGE_BUILD_ID = "e" * 64
+KEY_POLICY_SHA = "d" * 64
 RELEASE_KEY_SHA = "9" * 64
 OPENSSL_BYTES = b"test-openssl-executable"
 OPENSSL_SHA = promotion.hashlib.sha256(OPENSSL_BYTES).hexdigest()
+
+
+def openssh_public_key(fill: int) -> bytes:
+    key_type = b"ssh-ed25519"
+    raw = bytes([fill]) * 32
+    wire = (
+        len(key_type).to_bytes(4, "big")
+        + key_type
+        + len(raw).to_bytes(4, "big")
+        + raw
+    )
+    return b"ssh-ed25519 " + base64.b64encode(wire) + b" test\n"
+
+
+def pem_public_key(fill: int) -> bytes:
+    der = bytes.fromhex("302a300506032b6570032100") + bytes([fill]) * 32
+    return (
+        b"-----BEGIN PUBLIC KEY-----\n"
+        + base64.b64encode(der)
+        + b"\n-----END PUBLIC KEY-----\n"
+    )
 
 
 def hardware_inventory() -> dict[str, dict[str, str]]:
@@ -72,6 +95,7 @@ def expected_environment_identity() -> dict[str, object]:
             "image_build_id": IMAGE_BUILD_ID,
             "image_sha256": IMAGE_SHA,
             "image_manifest_sha256": IMAGE_MANIFEST_SHA,
+            "key_policy_sha256": KEY_POLICY_SHA,
         },
     }
 
@@ -217,6 +241,7 @@ def write_campaign(
         "target_image_sha256": IMAGE_SHA,
         "target_image_manifest_sha256": IMAGE_MANIFEST_SHA,
         "target_image_build_id": IMAGE_BUILD_ID,
+        "target_key_policy_sha256": KEY_POLICY_SHA,
         "hardware_inventory": hardware_inventory(),
         "tool_identities": tool_identities(),
         "approval_nonce": "approval_nonce_1234",
@@ -260,6 +285,7 @@ def write_campaign(
                     "image_build_id": IMAGE_BUILD_ID,
                     "image_sha256": IMAGE_SHA,
                     "image_manifest_sha256": IMAGE_MANIFEST_SHA,
+                    "key_policy_sha256": KEY_POLICY_SHA,
                     "attestation": "verified_signed_safety_gate",
                 },
                 "expected_release_id": release_id,
@@ -327,7 +353,8 @@ def configure_report_verification(
         "load_image_manifest",
         lambda *args, **kwargs: {
             "verification": "test",
-            "release_public_key_sha256": RELEASE_KEY_SHA,
+            "application_release_public_key_sha256": RELEASE_KEY_SHA,
+            "key_policy_sha256": KEY_POLICY_SHA,
         },
     )
     monkeypatch.setattr(
@@ -737,6 +764,7 @@ def write_complete_release_evidence(
         "release_id": "candidate-v2",
         "execution_source": "verified-release",
         "image_build_id": IMAGE_BUILD_ID,
+        "key_policy_sha256": KEY_POLICY_SHA,
         "matched_signed_target_identity": True,
     }
     field_session = {
@@ -828,6 +856,14 @@ def test_promotion_requires_interleaved_fixture_and_radio_metrics(
             str(tmp_path / "zero.img.manifest.json"),
             "--image-release-public-key",
             str(tmp_path / "image-release.pub.pem"),
+            "--workstation-to-controller-ssh-public-key",
+            str(tmp_path / "workstation-controller.pub"),
+            "--controller-to-zero-ssh-public-key",
+            str(tmp_path / "controller-zero.pub"),
+            "--application-release-public-key",
+            str(tmp_path / "application-release.pub.pem"),
+            "--lab-safety-public-key",
+            str(tmp_path / "lab-safety.pub.pem"),
             "--expected-image-release-public-key-sha256",
             "3" * 64,
             "--expected-image-manifest-sha256",
@@ -999,6 +1035,14 @@ def test_promotion_rejects_non_alternating_order(
                 str(tmp_path / "zero.img.manifest.json"),
                 "--image-release-public-key",
                 str(tmp_path / "image-release.pub.pem"),
+                "--workstation-to-controller-ssh-public-key",
+                str(tmp_path / "workstation-controller.pub"),
+                "--controller-to-zero-ssh-public-key",
+                str(tmp_path / "controller-zero.pub"),
+                "--application-release-public-key",
+                str(tmp_path / "application-release.pub.pem"),
+                "--lab-safety-public-key",
+                str(tmp_path / "lab-safety.pub.pem"),
                 "--expected-image-release-public-key-sha256",
                 "3" * 64,
                 "--expected-image-manifest-sha256",
@@ -1089,6 +1133,7 @@ def test_release_evidence_requires_every_signed_hardware_gate(tmp_path: pathlib.
         expected_image_build_id=IMAGE_BUILD_ID,
         expected_image_sha256=IMAGE_SHA,
         expected_image_manifest_sha256=IMAGE_MANIFEST_SHA,
+        expected_key_policy_sha256=KEY_POLICY_SHA,
         expected_openssl_sha256=OPENSSL_SHA,
     )
 
@@ -1112,6 +1157,7 @@ def test_release_evidence_rejects_mutated_camera_artifact(tmp_path: pathlib.Path
             expected_image_build_id=IMAGE_BUILD_ID,
             expected_image_sha256=IMAGE_SHA,
             expected_image_manifest_sha256=IMAGE_MANIFEST_SHA,
+            expected_key_policy_sha256=KEY_POLICY_SHA,
             expected_openssl_sha256=OPENSSL_SHA,
         )
 
@@ -1134,6 +1180,7 @@ def test_release_evidence_rejects_done_pulse_outside_signed_bounds(
             expected_image_build_id=IMAGE_BUILD_ID,
             expected_image_sha256=IMAGE_SHA,
             expected_image_manifest_sha256=IMAGE_MANIFEST_SHA,
+            expected_key_policy_sha256=KEY_POLICY_SHA,
             expected_openssl_sha256=OPENSSL_SHA,
         )
 
@@ -1162,6 +1209,7 @@ def test_release_evidence_rejects_camera_tool_substitution(tmp_path: pathlib.Pat
             expected_image_build_id=IMAGE_BUILD_ID,
             expected_image_sha256=IMAGE_SHA,
             expected_image_manifest_sha256=IMAGE_MANIFEST_SHA,
+            expected_key_policy_sha256=KEY_POLICY_SHA,
             expected_openssl_sha256=OPENSSL_SHA,
         )
 
@@ -1192,6 +1240,7 @@ def test_release_evidence_rejects_usb_probe_tool_substitution(tmp_path: pathlib.
             expected_image_build_id=IMAGE_BUILD_ID,
             expected_image_sha256=IMAGE_SHA,
             expected_image_manifest_sha256=IMAGE_MANIFEST_SHA,
+            expected_key_policy_sha256=KEY_POLICY_SHA,
             expected_openssl_sha256=OPENSSL_SHA,
         )
 
@@ -1300,35 +1349,48 @@ def test_signed_role_image_manifest_binds_external_image_identity(
     tmp_path: pathlib.Path,
 ) -> None:
     manifest = tmp_path / "zero.img.manifest.json"
-    key = promotion.DEFAULT_APPROVAL_PUBLIC_KEY
-    lab_key_hash = promotion.hashlib.sha256(key.read_bytes()).hexdigest()
+    keys = {
+        "workstation_to_controller_ssh": openssh_public_key(1),
+        "controller_to_zero_ssh": openssh_public_key(2),
+        "application_release": pem_public_key(3),
+        "lab_safety": pem_public_key(4),
+        "image_release": pem_public_key(5),
+    }
+    key_paths: dict[str, pathlib.Path] = {}
+    for name, payload in keys.items():
+        path = tmp_path / f"{name}.pub"
+        path.write_bytes(payload)
+        key_paths[name] = path
+    promotion.DEFAULT_APPROVAL_PUBLIC_KEY.write_bytes(keys["lab_safety"])
+    policy = promotion.build_key_policy(**keys)
     build_inputs = {
-        "schema_version": 1,
+        "schema_version": 2,
         "role": "zero",
         "base_archive_sha256": "7" * 64,
         "application_sha256": "8" * 64,
-        "release_public_key_sha256": "9" * 64,
-        "lab_safety_public_key_sha256": lab_key_hash,
         "package_bundle_sha256": "b" * 64,
-        "ssh_authorized_key_sha256": "f" * 64,
         "data_mib": 512,
+        "key_policy_sha256": policy["key_policy_sha256"],
     }
     image_build_id = promotion.hashlib.sha256(
         json.dumps(build_inputs, sort_keys=True, separators=(",", ":")).encode("ascii")
     ).hexdigest()
     manifest.write_text(
         json.dumps(
-            {
-                **build_inputs,
-                "image_sha256": IMAGE_SHA,
+                {
+                    **build_inputs,
+                    **{
+                        field: policy[field]
+                        for field in (*promotion.RAW_FIELDS, *promotion.MATERIAL_FIELDS)
+                    },
+                    "image_sha256": IMAGE_SHA,
                 "image_build_id": image_build_id,
             }
         ),
         encoding="utf-8",
     )
     manifest.with_name(f"{manifest.name}.sig").write_bytes(b"signature")
-    image_key = tmp_path / "image-release.pub.pem"
-    image_key.write_bytes(b"separate-image-release-key")
+    image_key = key_paths["image_release"]
     result = promotion.load_image_manifest(
         manifest,
         public_key=image_key,
@@ -1339,7 +1401,38 @@ def test_signed_role_image_manifest_binds_external_image_identity(
         expected_image_sha256=IMAGE_SHA,
         expected_image_build_id=image_build_id,
         expected_openssl_sha256=OPENSSL_SHA,
+        workstation_to_controller_ssh_public_key=key_paths[
+            "workstation_to_controller_ssh"
+        ],
+        controller_to_zero_ssh_public_key=key_paths["controller_to_zero_ssh"],
+        application_release_public_key=key_paths["application_release"],
+        lab_safety_public_key=key_paths["lab_safety"],
     )
 
     assert result["image_sha256"] == IMAGE_SHA
     assert result["image_build_id"] == image_build_id
+
+
+def test_role_image_manifest_schema_one_is_explicitly_rejected(
+    tmp_path: pathlib.Path,
+) -> None:
+    manifest = tmp_path / "legacy.img.manifest.json"
+    manifest.write_text('{"schema_version":1}', encoding="utf-8")
+    manifest.with_name(f"{manifest.name}.sig").write_bytes(b"signature")
+    key = tmp_path / "image.pub.pem"
+    key.write_bytes(pem_public_key(9))
+
+    with pytest.raises(promotion.CampaignError, match="schema 1 is explicitly unsupported"):
+        promotion.load_image_manifest(
+            manifest,
+            public_key=key,
+            expected_public_key_sha256=promotion.hashlib.sha256(key.read_bytes()).hexdigest(),
+            expected_manifest_sha256=promotion.hashlib.sha256(manifest.read_bytes()).hexdigest(),
+            expected_image_sha256=IMAGE_SHA,
+            expected_image_build_id=IMAGE_BUILD_ID,
+            expected_openssl_sha256=OPENSSL_SHA,
+            workstation_to_controller_ssh_public_key=key,
+            controller_to_zero_ssh_public_key=key,
+            application_release_public_key=key,
+            lab_safety_public_key=key,
+        )

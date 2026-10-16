@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import importlib.util
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -12,6 +14,8 @@ import unittest
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest import mock
+
+from tidetracker.key_policy import build_key_policy
 
 MODULE_PATH = pathlib.Path(__file__).with_name("hil_orchestrator.py")
 SPEC = importlib.util.spec_from_file_location("hil_orchestrator", MODULE_PATH)
@@ -43,6 +47,27 @@ def tool_identities() -> dict[str, dict[str, object]]:
 
 def authorization_guard() -> Any:
     return hil.AuthorizationGuard(datetime.now(UTC) + timedelta(hours=1))
+
+
+def openssh_public_key(fill: int) -> bytes:
+    key_type = b"ssh-ed25519"
+    raw = bytes([fill]) * 32
+    wire = (
+        len(key_type).to_bytes(4, "big")
+        + key_type
+        + len(raw).to_bytes(4, "big")
+        + raw
+    )
+    return b"ssh-ed25519 " + base64.b64encode(wire) + b" test\n"
+
+
+def pem_public_key(fill: int) -> bytes:
+    der = bytes.fromhex("302a300506032b6570032100") + bytes([fill]) * 32
+    return (
+        b"-----BEGIN PUBLIC KEY-----\n"
+        + base64.b64encode(der)
+        + b"\n-----END PUBLIC KEY-----\n"
+    )
 
 
 class HilOrchestratorTests(unittest.TestCase):
@@ -127,6 +152,21 @@ class HilOrchestratorTests(unittest.TestCase):
             )
             self.assertEqual(exit_code, 0)
             self.assertFalse(output.exists())
+
+    def test_real_cli_rejects_non_root_before_reading_private_config(self) -> None:
+        with (
+            mock.patch.object(hil.os, "geteuid", return_value=1000, create=True),
+            self.assertRaisesRegex(hil.HilError, "root-only tidetracker HIL launcher"),
+        ):
+            hil.main(
+                [
+                    "--execute",
+                    "--execute-confirmation",
+                    "EXECUTE-TIDETRACKER-HIL",
+                    "--config",
+                    "must-not-be-read.json",
+                ]
+            )
 
     def test_invalid_fixture_transition_fails(self) -> None:
         fixture = hil.SimulationFixture(done_delay_seconds=0)
@@ -376,6 +416,7 @@ class HilOrchestratorTests(unittest.TestCase):
                 "target_image_sha256": "3" * 64,
                 "target_image_manifest_sha256": "4" * 64,
                 "target_image_build_id": "5" * 64,
+                "target_key_policy_sha256": "7" * 64,
                 "hardware_inventory": hardware_inventory(),
                 "tool_identities": tool_identities(),
                 "approved_operations": ["cycles", "update_power_cuts"],
@@ -424,6 +465,7 @@ class HilOrchestratorTests(unittest.TestCase):
                         "target_image_sha256": "3" * 64,
                         "target_image_manifest_sha256": "4" * 64,
                         "target_image_build_id": "5" * 64,
+                        "target_key_policy_sha256": "7" * 64,
                         "hardware_inventory": hardware_inventory(),
                         "tool_identities": tool_identities(),
                     },
@@ -495,6 +537,7 @@ class HilOrchestratorTests(unittest.TestCase):
                             "release_id": "candidate-1",
                             "execution_source": "verified-release",
                             "image_build_id": "5" * 64,
+                            "key_policy_sha256": "7" * 64,
                         },
                     ],
                 }
@@ -513,6 +556,7 @@ class HilOrchestratorTests(unittest.TestCase):
                     "image_build_id": "5" * 64,
                     "image_sha256": "3" * 64,
                     "image_manifest_sha256": "4" * 64,
+                    "key_policy_sha256": "7" * 64,
                     "attestation": "verified_signed_safety_gate",
                 },
                 authorization_guard=authorization_guard(),
@@ -651,11 +695,213 @@ class HilOrchestratorTests(unittest.TestCase):
             target.network_secret_artifact_scan(("z-secret", "a-secret"))
         run.assert_not_called()
 
+    def test_target_ssh_uses_only_fixed_noninteractive_identity_policy(self) -> None:
+        target = hil.SshTarget(
+            hil.SshSettings(
+                host="10.77.0.2",
+                user="tidetracker",
+                identity_file=hil.CONTROLLER_TO_ZERO_IDENTITY,
+                known_hosts_file=hil.CONTROLLER_TO_ZERO_KNOWN_HOSTS,
+            ),
+            authorization_guard=authorization_guard(),
+        )
+
+        command = target._ssh_command("true")
+        self.assertEqual(hil.FIXED_SSH.as_posix(), "/usr/bin/ssh")
+        self.assertEqual(command[0], str(hil.FIXED_SSH))
+        self.assertEqual(command[1:3], ["-F", "/dev/null"])
+        rendered = " ".join(command)
+        for option in (
+            "BatchMode=yes",
+            "IdentitiesOnly=yes",
+            "IdentityAgent=none",
+            "PreferredAuthentications=publickey",
+            "AuthenticationMethods=publickey",
+            "PubkeyAcceptedAlgorithms=ssh-ed25519",
+            "PasswordAuthentication=no",
+            "KbdInteractiveAuthentication=no",
+            "GSSAPIAuthentication=no",
+            "HostbasedAuthentication=no",
+            "NumberOfPasswordPrompts=0",
+            "GlobalKnownHostsFile=/dev/null",
+            f"UserKnownHostsFile={hil.CONTROLLER_TO_ZERO_KNOWN_HOSTS}",
+            "StrictHostKeyChecking=yes",
+            "UpdateHostKeys=no",
+            "HostKeyAlgorithms=ssh-ed25519",
+            "ProxyCommand=none",
+            "ProxyJump=none",
+        ):
+            self.assertIn(option, rendered)
+
+    def test_known_hosts_rejects_any_record_beyond_exact_zero_ed25519(self) -> None:
+        record = b"10.77.0.2 " + b" ".join(openssh_public_key(2).split()[:2]) + b"\n"
+        self.assertEqual(len(hil._known_host_ed25519_der(record)), 44)
+        for invalid in (
+            record + record,
+            record.replace(b"10.77.0.2", b"zero.local"),
+            record.replace(b"ssh-ed25519", b"ssh-rsa"),
+        ):
+            with self.assertRaises(hil.HilError):
+                hil._known_host_ed25519_der(invalid)
+
+    def test_hil_reconstructs_all_five_installed_public_identities(self) -> None:
+        keys = {
+            "workstation_to_controller_ssh": openssh_public_key(1),
+            "controller_to_zero_ssh": openssh_public_key(2),
+            "application_release": pem_public_key(3),
+            "lab_safety": pem_public_key(4),
+            "image_release": pem_public_key(5),
+        }
+        policy = build_key_policy(**keys)
+
+        self.assertEqual(
+            hil._validate_reconstructed_key_policy(
+                policy, str(policy["key_policy_sha256"]), keys
+            ),
+            policy["key_policy_sha256"],
+        )
+
+        changed = {**keys, "image_release": pem_public_key(9)}
+        with self.assertRaisesRegex(hil.HilError, "pinned five-key policy"):
+            hil._validate_reconstructed_key_policy(
+                policy, str(policy["key_policy_sha256"]), changed
+            )
+
     def test_private_pattern_scan_catches_json_escaped_and_unicode_values(self) -> None:
         private = 'private-"-p\u00e4ssword'
         payload = json.dumps({"password": private}, ensure_ascii=True).encode("utf-8")
         self.assertFalse(private.encode("utf-8") in payload)
         self.assertTrue(any(pattern in payload for pattern in hil._private_value_patterns((private,))))
+
+    @unittest.skipIf(sys.platform == "win32", "POSIX key modes are enforced on the controller")
+    def test_controller_ssh_material_requires_root_only_tidetracker_data(self) -> None:
+        if os.geteuid() != 0:
+            self.skipTest("actual root ownership is required")
+        for executable in (hil.FIXED_SSH, hil.FIXED_SFTP, hil.FIXED_SSH_KEYGEN):
+            if not executable.is_file():
+                self.skipTest(f"controller executable unavailable: {executable}")
+        with tempfile.TemporaryDirectory() as raw_temp:
+            root = pathlib.Path(raw_temp) / "ssh"
+            root.mkdir(mode=0o700)
+            identity = root / "controller-to-zero-ed25519"
+            known_hosts = root / "zero-known-hosts"
+            identity.write_text("private-key-placeholder", encoding="ascii")
+            controller_public = openssh_public_key(2)
+            known_hosts.write_bytes(
+                b"10.77.0.2 " + b" ".join(controller_public.split()[:2]) + b"\n"
+            )
+            identity.chmod(0o600)
+            known_hosts.chmod(0o600)
+            public_key = pathlib.Path(raw_temp) / "controller-zero.pub"
+            public_key.write_bytes(controller_public)
+            public_key.chmod(0o644)
+            workstation_public = pathlib.Path(raw_temp) / "workstation-controller.pub"
+            application_public = pathlib.Path(raw_temp) / "application-release.pub.pem"
+            lab_public = pathlib.Path(raw_temp) / "lab-safety.pub.pem"
+            image_public = pathlib.Path(raw_temp) / "image-release.pub.pem"
+            workstation_public.write_bytes(openssh_public_key(1))
+            application_public.write_bytes(pem_public_key(3))
+            lab_public.write_bytes(pem_public_key(4))
+            image_public.write_bytes(pem_public_key(5))
+            for installed_public in (
+                workstation_public,
+                application_public,
+                lab_public,
+                image_public,
+            ):
+                installed_public.chmod(0o644)
+            policy = build_key_policy(
+                workstation_to_controller_ssh=openssh_public_key(1),
+                controller_to_zero_ssh=controller_public,
+                application_release=pem_public_key(3),
+                lab_safety=pem_public_key(4),
+                image_release=pem_public_key(5),
+            )
+            policy_file = pathlib.Path(raw_temp) / "key-policy.json"
+            policy_hash_file = pathlib.Path(raw_temp) / "key-policy.sha256"
+            policy_file.write_text(json.dumps(policy), encoding="ascii")
+            policy_hash_file.write_text(f"{policy['key_policy_sha256']}\n", encoding="ascii")
+            policy_file.chmod(0o644)
+            policy_hash_file.chmod(0o644)
+            findmnt = pathlib.Path(raw_temp) / "findmnt"
+            findmnt.write_text("placeholder", encoding="ascii")
+            findmnt.chmod(0o700)
+
+            def completed(command: list[str], **kwargs: object) -> object:
+                del kwargs
+                if pathlib.Path(command[0]) == hil.FIXED_SSH_KEYGEN:
+                    return subprocess.CompletedProcess(command, 0, controller_public.decode(), "")
+                return subprocess.CompletedProcess(
+                    command, 0, f"{hil.CONTROLLER_DATA_UUID} ext4 rw,noatime\n", ""
+                )
+
+            with (
+                mock.patch.object(hil, "CONTROLLER_SSH_ROOT", root),
+                mock.patch.object(hil, "CONTROLLER_TO_ZERO_IDENTITY", identity),
+                mock.patch.object(hil, "CONTROLLER_TO_ZERO_KNOWN_HOSTS", known_hosts),
+                mock.patch.object(
+                    hil, "WORKSTATION_TO_CONTROLLER_PUBLIC_KEY", workstation_public
+                ),
+                mock.patch.object(hil, "CONTROLLER_TO_ZERO_PUBLIC_KEY", public_key),
+                mock.patch.object(hil, "APPLICATION_RELEASE_PUBLIC_KEY", application_public),
+                mock.patch.object(hil, "DEFAULT_SAFETY_PUBLIC_KEY", lab_public),
+                mock.patch.object(hil, "IMAGE_RELEASE_PUBLIC_KEY", image_public),
+                mock.patch.object(hil, "CONTROLLER_KEY_POLICY", policy_file),
+                mock.patch.object(hil, "CONTROLLER_KEY_POLICY_SHA256", policy_hash_file),
+                mock.patch.object(hil, "FIXED_FINDMNT", findmnt),
+                mock.patch.object(hil.subprocess, "run", side_effect=completed) as run,
+            ):
+                digest = hil.validate_controller_ssh_material(identity, known_hosts)
+
+            self.assertEqual(digest, policy["key_policy_sha256"])
+            self.assertEqual(run.call_args.args[0][-1], str(root))
+
+            application_public.write_bytes(pem_public_key(9))
+            application_public.chmod(0o644)
+            with (
+                mock.patch.object(hil, "CONTROLLER_SSH_ROOT", root),
+                mock.patch.object(hil, "CONTROLLER_TO_ZERO_IDENTITY", identity),
+                mock.patch.object(hil, "CONTROLLER_TO_ZERO_KNOWN_HOSTS", known_hosts),
+                mock.patch.object(
+                    hil, "WORKSTATION_TO_CONTROLLER_PUBLIC_KEY", workstation_public
+                ),
+                mock.patch.object(hil, "CONTROLLER_TO_ZERO_PUBLIC_KEY", public_key),
+                mock.patch.object(hil, "APPLICATION_RELEASE_PUBLIC_KEY", application_public),
+                mock.patch.object(hil, "DEFAULT_SAFETY_PUBLIC_KEY", lab_public),
+                mock.patch.object(hil, "IMAGE_RELEASE_PUBLIC_KEY", image_public),
+                mock.patch.object(hil, "CONTROLLER_KEY_POLICY", policy_file),
+                mock.patch.object(hil, "CONTROLLER_KEY_POLICY_SHA256", policy_hash_file),
+                mock.patch.object(hil, "FIXED_FINDMNT", findmnt),
+                mock.patch.object(hil.subprocess, "run", side_effect=completed),
+                self.assertRaisesRegex(hil.HilError, "pinned five-key policy"),
+            ):
+                hil.validate_controller_ssh_material(identity, known_hosts)
+
+    @unittest.skipIf(sys.platform == "win32", "POSIX key modes are enforced on the controller")
+    def test_controller_ssh_material_rejects_group_readable_private_key(self) -> None:
+        if os.geteuid() != 0:
+            self.skipTest("actual root ownership is required")
+        for executable in (hil.FIXED_SSH, hil.FIXED_SFTP, hil.FIXED_SSH_KEYGEN):
+            if not executable.is_file():
+                self.skipTest(f"controller executable unavailable: {executable}")
+        with tempfile.TemporaryDirectory() as raw_temp:
+            root = pathlib.Path(raw_temp) / "ssh"
+            root.mkdir(mode=0o700)
+            identity = root / "controller-to-zero-ed25519"
+            known_hosts = root / "zero-known-hosts"
+            identity.write_text("private-key-placeholder", encoding="ascii")
+            known_hosts.write_bytes(
+                b"10.77.0.2 " + b" ".join(openssh_public_key(2).split()[:2]) + b"\n"
+            )
+            identity.chmod(0o640)
+            known_hosts.chmod(0o600)
+            with (
+                mock.patch.object(hil, "CONTROLLER_SSH_ROOT", root),
+                mock.patch.object(hil, "CONTROLLER_TO_ZERO_IDENTITY", identity),
+                mock.patch.object(hil, "CONTROLLER_TO_ZERO_KNOWN_HOSTS", known_hosts),
+                self.assertRaisesRegex(hil.HilError, "private key.*0600"),
+            ):
+                hil.validate_controller_ssh_material(identity, known_hosts)
 
 
 if __name__ == "__main__":

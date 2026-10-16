@@ -3,8 +3,8 @@
   "target": {
     "host": "10.77.0.2",
     "user": "tidetracker",
-    "identity_file": "C:/replace/with/tidetracker_lab_ed25519",
-    "known_hosts_file": "C:/replace/with/tidetracker_known_hosts"
+    "identity_file": "/var/lib/tidetracker/controller/ssh/controller-to-zero-ed25519",
+    "known_hosts_file": "/var/lib/tidetracker/controller/ssh/zero-known-hosts"
   },
   "fixture": {
     "port": "COM5",
@@ -22,6 +22,7 @@
     "target_image_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
     "target_image_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
     "target_image_build_id": "0000000000000000000000000000000000000000000000000000000000000000",
+    "target_key_policy_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
     "hardware_inventory": {
       "usb_data_isolator": {
         "model": "replace-with-exact-isolator-model",

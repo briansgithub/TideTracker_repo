@@ -1,0 +1,10 @@
+# Deny the repository build context by default. The builder image needs only
+# its recipe and the preflight executable copied by that recipe.
+**
+!.dockerignore
+!deploy/
+deploy/*
+!deploy/container/
+deploy/container/*
+!deploy/container/Dockerfile
+!deploy/container/preflight-sparse-image.sh

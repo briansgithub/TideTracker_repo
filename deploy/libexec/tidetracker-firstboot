@@ -226,11 +226,88 @@ for group in $groups; do
     getent group "$group" >/dev/null 2>&1 && usermod -a -G "$group" tidetracker
 done
 
-if test -s "$key_file"; then
-    ssh-keygen -l -f "$key_file" >/dev/null
-    install -d -m 0700 -o tidetracker -g tidetracker /home/tidetracker/.ssh
-    install -m 0600 -o tidetracker -g tidetracker "$key_file" /home/tidetracker/.ssh/authorized_keys
-fi
+test -s "$key_file" || { echo 'provisioned SSH authorized key is unavailable' >&2; exit 1; }
+PYTHONPATH=/usr/local/lib/tidetracker/app /usr/bin/python3 - "$role" "$key_file" <<'PY'
+import hashlib
+import json
+import pathlib
+import stat
+import sys
+
+from tidetracker.key_policy import (
+    KeyPolicyError,
+    build_key_policy,
+    openssh_ed25519_der,
+    read_public_key,
+    validate_key_policy,
+)
+
+role, key_text = sys.argv[1:]
+key_path = pathlib.Path(key_text)
+policy_path = pathlib.Path("/etc/tidetracker/key-policy.json")
+policy_hash_path = pathlib.Path("/etc/tidetracker/key-policy.sha256")
+public_key_paths = {
+    "workstation_to_controller_ssh": pathlib.Path(
+        "/etc/tidetracker/workstation-controller-ssh.pub"
+    ),
+    "controller_to_zero_ssh": pathlib.Path("/etc/tidetracker/controller-zero-ssh.pub"),
+    "application_release": pathlib.Path("/etc/tidetracker/release-ed25519.pub.pem"),
+    "lab_safety": pathlib.Path("/etc/tidetracker/lab-safety-approver.pub.pem"),
+    "image_release": pathlib.Path("/etc/tidetracker/image-release-ed25519.pub.pem"),
+}
+for path, mode, label in (
+    (key_path, 0o600, "provisioned authorized key"),
+    (policy_path, 0o644, "key policy"),
+    (policy_hash_path, 0o644, "key-policy digest"),
+    *((path, 0o644, f"{name} public key") for name, path in public_key_paths.items()),
+):
+    metadata = path.lstat()
+    if (
+        path.is_symlink()
+        or not stat.S_ISREG(metadata.st_mode)
+        or metadata.st_uid != 0
+        or stat.S_IMODE(metadata.st_mode) != mode
+    ):
+        raise SystemExit(f"{label} has unsafe ownership, mode, or file type")
+
+
+def reject_duplicates(items: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for name, value in items:
+        if name in result:
+            raise ValueError(f"duplicate key-policy field: {name}")
+        result[name] = value
+    return result
+
+
+try:
+    policy = validate_key_policy(
+        json.loads(policy_path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicates)
+    )
+    public_keys = {
+        name: read_public_key(path, f"{name} public key")
+        for name, path in public_key_paths.items()
+    }
+    reconstructed_policy = build_key_policy(**public_keys)
+    key = read_public_key(key_path, "provisioned authorized key")
+    canonical = openssh_ed25519_der(key, "provisioned authorized key")
+    policy_hash = policy_hash_path.read_text(encoding="ascii").strip()
+except (OSError, UnicodeError, ValueError, KeyPolicyError) as exc:
+    raise SystemExit("installed five-key policy is invalid") from exc
+prefix = (
+    "workstation_to_controller_ssh" if role == "controller" else "controller_to_zero_ssh"
+)
+if (
+    policy_hash != policy["key_policy_sha256"]
+    or policy != reconstructed_policy
+    or hashlib.sha256(key).hexdigest() != policy[f"{prefix}_public_key_sha256"]
+    or hashlib.sha256(canonical).hexdigest() != policy[f"{prefix}_key_material_sha256"]
+):
+    raise SystemExit("role-authorized SSH key does not match the installed five-key policy")
+PY
+ssh-keygen -l -f "$key_file" >/dev/null
+install -d -m 0700 -o tidetracker -g tidetracker /home/tidetracker/.ssh
+install -m 0600 -o tidetracker -g tidetracker "$key_file" /home/tidetracker/.ssh/authorized_keys
 sshd -t
 
 install -d -m 0750 -o root -g root \
@@ -242,6 +319,10 @@ install -d -m 0700 -o root -g root "$data_dir/state/hil"
 if test "$role" = controller; then
     install -d -m 0750 -o root -g tidetracker "$data_dir/controller"
     install -d -m 0770 -o root -g tidetracker "$data_dir/controller/hil-results"
+    # The controller-to-Zero automation identity is the only private key that
+    # belongs on either Pi.  Create its persistent root-only TIDEDATA location,
+    # but never generate or copy key material during image provisioning.
+    install -d -m 0700 -o root -g root "$data_dir/controller/ssh"
     touch "$data_dir/controller/hil.lock"
     chown root:tidetracker "$data_dir/controller/hil.lock"
     chmod 0660 "$data_dir/controller/hil.lock"

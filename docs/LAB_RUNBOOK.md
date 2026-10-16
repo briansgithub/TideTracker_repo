@@ -21,7 +21,8 @@ operation. Real HIL then requires:
 - signed `approved_operations` scope for every requested campaign and, for
   updater cuts, every requested `approved_update_power_cut_phases` boundary;
 - exact signed image SHA-256, role-manifest SHA-256, deterministic image build
-  ID, and Pi 3 controller machine-ID SHA-256 matching the private controller
+  ID, canonical five-key policy digest, and Pi 3 controller machine-ID SHA-256
+  matching the private controller
   configuration. The orchestrator hashes one bounded, regular, root-owned
   `/etc/machine-id` snapshot and binds the verified value into every session;
 - an exact model plus serial/asset ID for the USB data isolator, switched-power
@@ -32,11 +33,21 @@ operation. Real HIL then requires:
   probe: canonical absolute argv, resolved executable size/SHA-256, and the
   size/SHA-256 of every explicitly listed support/config/reference file.
 
-All camera tools, SSH keys/known-hosts, fixture/UART ports, controller NM
+All camera tools, the dedicated controller-to-Zero SSH key/known-hosts, fixture/UART ports, controller NM
 profiles, Wi-Fi tests, field USB probe, signed gate, and electrical identity are
 preflighted before fixture serial opens. A controller-wide nonblocking lock is
 held from before serial open through final power-off/close, so a second agent
 cannot race the rig. The lock records the session path and gate hash.
+
+The ordinary `tidetracker-hil` wrapper remains unprivileged for plans and
+simulation. An exact `--execute` request is routed through the installed
+root-only launcher, which accepts only the real `tidetracker` account and then
+clears the inherited environment. Target access pins `/usr/bin/ssh` and
+`/usr/bin/sftp`, ignores every SSH configuration file and agent, permits only
+public-key authentication, and accepts exactly one `10.77.0.2 ssh-ed25519`
+record in the dedicated root-owned known-hosts file. The private key must derive
+the controller-to-Zero public identity recorded in the installed five-key
+policy before the fixture can be opened.
 
 Real artifacts may be written only as a new direct child of
 `/var/lib/tidetracker/controller/hil-results`. The orchestrator verifies that
@@ -52,9 +63,26 @@ the fixed `/usr/bin/openssl`.
 2. Create cards from the exact signed artifacts in `docs/IMAGE_RELEASE.md`.
 3. Complete `docs/WIRING_SAFETY.md`; capture real readings and sign a copy of
    `lab/safety_gate.example.json` outside Git.
-4. Configure the controller AP over Ethernet. Enroll the Zero USB host key in a
-   dedicated `known_hosts`; never disable host-key verification.
-5. Copy `lab/hil_config.example.json` outside Git. Set fixture/UART ports, SSH
+4. Before either role build, run the guarded `deploy/prepare-keystore.ps1`
+   workflow in `docs/IMAGE_RELEASE.md`. It atomically creates the two distinct
+   SSH identities plus the application, lab, and image signing identities under
+   `%LOCALAPPDATA%\TideTracker\keystore\v1`; both builds receive all five public
+   halves and never receive the `private/` tree. Record the public policy digest
+   and retain the public-only keystore record. After controller first boot,
+   stop for explicit controller-mutation approval before installing only
+   `private/controller-to-zero-ssh-ed25519` at
+   `/var/lib/tidetracker/controller/ssh/controller-to-zero-ed25519`, root-owned
+   mode `0600`; the HIL command uses a constrained sudo launcher because the
+   unprivileged `tidetracker` account cannot read it. The workstation-to-controller
+   private half stays on the workstation and only its public half is authorized
+   by the controller. After the Zero's first boot, verify its host-key fingerprint by
+   the isolated UART channel before storing it in the root-owned mode-`0600`
+   `/var/lib/tidetracker/controller/ssh/zero-known-hosts`; never use
+   `StrictHostKeyChecking=no`. This SSH automation key is the only private key
+   intentionally present on either Pi and is not a release or approval signer.
+5. Copy `lab/hil_config.example.json` outside Git. Its pinned SSH paths name the
+   controller-to-Zero files above; the workstation-to-controller private
+   identity must not appear in this configuration. Set fixture/UART ports, SSH
    paths, camera capture/comparator, all 12 portal profiles, intentionally bad
    portal profile, the SHA-256 of the controller's exact `/etc/machine-id` file
    bytes, exact accepted image identity, and the final USB-absence probe.
@@ -63,7 +91,8 @@ the fixed `/usr/bin/openssl`.
    `*_support_files` array; interpreter scripts must be canonical absolute paths
    and must be listed. Copy the resulting exact canonical command and file
    hashes into the signed safety gate. Secrets remain only in this private
-   mode-0600 file and are never copied into artifacts.
+   mode-0600 file and are never copied into artifacts. Application-release,
+   lab-approval, and image-release signing private keys remain off both Pis.
 6. Inspect then simulate:
 
 ```text
@@ -202,6 +231,10 @@ tidetracker-promote --baseline <b01> --candidate <c01> ... \
   --legacy-report <signed-legacy-report.json> \
   --image-manifest <signed-zero-role-image-manifest.json> \
   --image-release-public-key <accepted-image-release-public-key.pem> \
+  --workstation-to-controller-ssh-public-key <accepted-workstation-controller.pub> \
+  --controller-to-zero-ssh-public-key <accepted-controller-zero.pub> \
+  --application-release-public-key <accepted-application-release.pem> \
+  --lab-safety-public-key <accepted-lab-safety.pem> \
   --expected-image-release-public-key-sha256 <64-hex> \
   --expected-image-manifest-sha256 <64-hex> \
   --expected-image-sha256 <64-hex> \
