@@ -1,0 +1,17 @@
+[Unit]
+Description=TideTracker deterministic development boot cycle
+After=local-fs.target
+RequiresMountsFor=/opt/tidetracker-dev /var/lib/tidetracker-dev
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+WorkingDirectory=/var/lib/tidetracker-dev
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStartPre=/usr/bin/test -L /opt/tidetracker-dev/current
+ExecStart=/usr/local/bin/tidetracker-dev cycle --simulate --builtin --mode run --data-dir /var/lib/tidetracker-dev --asset-dir /opt/tidetracker-dev/current/assets --display-output /var/lib/tidetracker-dev/results/simulated-framebuffer.bin
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

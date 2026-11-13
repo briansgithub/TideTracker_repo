@@ -17,7 +17,7 @@ from typing import Any
 NAME = re.compile(r"[a-z0-9][a-z0-9+.-]*")
 SHA256 = re.compile(r"[0-9a-f]{64}")
 # Debian versions commonly put '~' in archive names and APT percent-escapes
-# epochs.  Deliberately exclude separators and whitespace.
+# epochs. Deliberately exclude separators and whitespace.
 FILENAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9+._%~-]*\.deb")
 
 
@@ -197,11 +197,14 @@ def validate(
             getattr(before, field) != getattr(current, field) for field in stable_fields
         ):
             raise BundleError(f"package file changed while it was validated: {filename}")
-        if metadata.returncode != 0 or metadata.stdout.splitlines() != [
+        metadata_lines = metadata.stdout.splitlines()
+        plain_fields = [name, version, architecture]
+        labelled_fields = [
             f"Package: {name}",
             f"Version: {version}",
             f"Architecture: {architecture}",
-        ]:
+        ]
+        if metadata.returncode != 0 or metadata_lines not in (plain_fields, labelled_fields):
             raise BundleError(f"package control metadata does not match the lock: {filename}")
         names.add(name)
         filenames.add(filename)

@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+
+install_root=/opt/tidetracker-dev
+release=$(readlink -f "$install_root/current")
+case "$release" in
+    "$install_root"/releases/*) ;;
+    *) echo 'TideTracker dev release pointer is missing or unsafe' >&2; exit 1 ;;
+esac
+test -d "$release/src/tidetracker" && test -d "$release/assets" || {
+    echo 'TideTracker dev release is incomplete' >&2
+    exit 1
+}
+
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH="$release/src"
+export TIDETRACKER_ASSET_DIR="$release/assets"
+export TIDETRACKER_STATIONS="$release/assets/stations.csv"
+export TIDETRACKER_EINK_LIB="$release/e-ink_lib"
+
+exec /usr/bin/python3 -c \
+    'import sys; from tidetracker.cli import main; raise SystemExit(main(sys.argv[1:]))' "$@"
