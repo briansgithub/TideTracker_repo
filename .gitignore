@@ -1,6 +1,6 @@
-no_wifi.pdn
+﻿no_wifi.pdn
 .code-workspace
-.idea/*
+.idea/
 
 # Python build and test output
 __pycache__/
@@ -15,10 +15,14 @@ dist/
 *.egg-info/
 .venv/
 
-# TideTracker runtime and lab output
+# TideTracker runtime and lab output (leave on disk; do not commit)
 artifacts/
+deploy/artifacts/
 lab/artifacts/
 lab/state/
 release-out/
 *.incoming
 *.part
+*.img
+*.img.xz
+.artifacts/
